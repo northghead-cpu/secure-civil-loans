@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import KYCPage from "./pages/KYCPage";
+import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,6 +20,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/compare" element={<ComparePage />} />
+          <Route path="/login" element={<AuthPage />} />
           <Route path="/apply" element={<KYCPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
