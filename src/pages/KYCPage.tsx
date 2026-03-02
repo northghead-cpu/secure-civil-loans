@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -30,6 +31,7 @@ const steps = [
 ];
 
 const KYCPage = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -285,7 +287,7 @@ const KYCPage = () => {
               <ArrowLeft className="w-4 h-4" /> Previous
             </Button>
             {currentStep === steps.length ? (
-              <Button disabled={!formData.consentAccepted || !formData.signatureName}>
+              <Button disabled={!formData.consentAccepted || !formData.signatureName} onClick={() => navigate("/application-submitted")}>
                 Submit Application <CheckCircle2 className="w-4 h-4" />
               </Button>
             ) : (

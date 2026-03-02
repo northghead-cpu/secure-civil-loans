@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import KYCPage from "./pages/KYCPage";
 import AuthPage from "./pages/AuthPage";
+import ApplicationConfirmation from "./pages/ApplicationConfirmation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/apply" element={<KYCPage />} />
+            <Route path="/application-submitted" element={<ApplicationConfirmation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
