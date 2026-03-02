@@ -18,7 +18,7 @@ const CTASection = () => {
           </h2>
           <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
             Join over 300,000 civil servants who have already found better rates
-            through LoanSasa. It takes less than 5 minutes.
+            through Riverbank. It takes less than 5 minutes.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>

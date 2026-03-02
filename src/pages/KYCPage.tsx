@@ -183,7 +183,7 @@ const KYCPage = () => {
             </div>
             <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
               <p className="text-xs text-muted-foreground">
-                By proceeding, you authorize LoanSasa to perform a soft credit inquiry on your behalf. This is a pre-qualification check and does not impact your credit score.
+                By proceeding, you authorize Riverbank to perform a soft credit inquiry on your behalf. This is a pre-qualification check and does not impact your credit score.
               </p>
             </div>
           </div>
