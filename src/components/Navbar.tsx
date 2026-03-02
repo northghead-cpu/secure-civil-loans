@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Shield } from "lucide-react";
+import { Menu, X, Shield, LogOut, User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
 
   const navLinks = [
     { label: "Home", path: "/" },
@@ -13,6 +16,13 @@ const Navbar = () => {
     { label: "How It Works", path: "/#how-it-works" },
     { label: "About", path: "/#about" },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
@@ -40,12 +50,26 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/apply">Get Started</Link>
-            </Button>
+            {user ? (
+              <>
+                <div className="flex items-center gap-2 text-sm text-foreground">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{displayName}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-1" /> Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to="/apply">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           <button
@@ -69,12 +93,25 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="flex gap-3 pt-2">
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/login">Sign In</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link to="/apply">Get Started</Link>
-              </Button>
+              {user ? (
+                <>
+                  <span className="text-sm font-medium text-foreground flex items-center gap-1">
+                    <User className="w-4 h-4" /> {displayName}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-1" /> Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/login">Sign In</Link>
+                  </Button>
+                  <Button size="sm" asChild>
+                    <Link to="/apply">Get Started</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         )}
