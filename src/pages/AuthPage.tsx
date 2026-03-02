@@ -60,7 +60,7 @@ const AuthPage = () => {
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <Shield className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="font-display text-2xl font-bold text-foreground">LoanSasa</span>
+            <span className="font-display text-2xl font-bold text-foreground">Riverbank</span>
           </div>
           <h1 className="text-3xl font-display font-bold text-foreground">
             {isLogin ? "Welcome back" : "Create your account"}
