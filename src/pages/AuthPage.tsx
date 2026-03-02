@@ -25,7 +25,7 @@ const AuthPage = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast({ title: "Welcome back!", description: "You've signed in successfully." });
-        navigate("/compare");
+        navigate("/apply");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
