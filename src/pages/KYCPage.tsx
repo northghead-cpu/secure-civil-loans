@@ -76,11 +76,18 @@ const KYCPage = () => {
             </div>
             <div>
               <Label>Upload NRC (Front & Back)</Label>
-              <div className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer">
+              <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("nrcFile", e.target.files?.[0] || null)} />
                 <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Drag & drop or click to upload</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG or PDF (max 10MB)</p>
-              </div>
+                {formData.nrcFile ? (
+                  <p className="text-sm text-foreground font-medium">{formData.nrcFile.name}</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">Drag & drop or click to upload</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG or PDF (max 10MB)</p>
+                  </>
+                )}
+              </label>
             </div>
           </div>
         );
@@ -104,11 +111,18 @@ const KYCPage = () => {
             </div>
             <div>
               <Label>Upload Government ID</Label>
-              <div className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer">
+              <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("govIdFile", e.target.files?.[0] || null)} />
                 <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Drag & drop or click to upload</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG or PDF (max 10MB)</p>
-              </div>
+                {formData.govIdFile ? (
+                  <p className="text-sm text-foreground font-medium">{formData.govIdFile.name}</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">Drag & drop or click to upload</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG or PDF (max 10MB)</p>
+                  </>
+                )}
+              </label>
             </div>
           </div>
         );
@@ -128,11 +142,18 @@ const KYCPage = () => {
             </div>
             <div>
               <Label>Upload Latest Payslip</Label>
-              <div className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer">
+              <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("payslipFile", e.target.files?.[0] || null)} />
                 <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Upload your most recent payslip for automated parsing</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">PDF or image (max 10MB)</p>
-              </div>
+                {formData.payslipFile ? (
+                  <p className="text-sm text-foreground font-medium">{formData.payslipFile.name}</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">Upload your most recent payslip for automated parsing</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">PDF or image (max 10MB)</p>
+                  </>
+                )}
+              </label>
             </div>
             <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
               <p className="text-sm text-muted-foreground">
