@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -32,7 +35,9 @@ const steps = [
 
 const KYCPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     nrcNumber: "",
@@ -57,6 +62,33 @@ const KYCPage = () => {
 
   const updateField = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const uploadFiles = async () => {
+    if (!user) return;
+    setSubmitting(true);
+    try {
+      const files: { field: string; file: File }[] = [];
+      if (formData.nrcFile) files.push({ field: "nrc", file: formData.nrcFile });
+      if (formData.govIdFile) files.push({ field: "gov-id", file: formData.govIdFile });
+      if (formData.payslipFile) files.push({ field: "payslip", file: formData.payslipFile });
+
+      for (const { field, file } of files) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${field}-${Date.now()}.${ext}`;
+        const { error } = await supabase.storage
+          .from("kyc-documents")
+          .upload(path, file, { upsert: true });
+        if (error) throw error;
+      }
+
+      toast.success("Documents uploaded successfully");
+      navigate("/application-submitted");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload documents");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderStep = () => {
@@ -308,8 +340,8 @@ const KYCPage = () => {
               <ArrowLeft className="w-4 h-4" /> Previous
             </Button>
             {currentStep === steps.length ? (
-              <Button disabled={!formData.consentAccepted || !formData.signatureName} onClick={() => navigate("/application-submitted")}>
-                Submit Application <CheckCircle2 className="w-4 h-4" />
+              <Button disabled={!formData.consentAccepted || !formData.signatureName || submitting} onClick={uploadFiles}>
+                {submitting ? "Uploading…" : "Submit Application"} <CheckCircle2 className="w-4 h-4" />
               </Button>
             ) : (
               <Button onClick={next}>
