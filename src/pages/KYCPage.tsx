@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -15,22 +15,18 @@ import {
   Upload,
   CreditCard,
   FileText,
-  Calculator,
-  ShieldCheck,
   FileSignature,
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
-  User,
+  ShieldCheck,
 } from "lucide-react";
 
 const steps = [
   { id: 1, title: "NRC Upload", icon: Upload, description: "Upload your National Registration Card" },
   { id: 2, title: "Government ID", icon: CreditCard, description: "Verify your government-issued identity" },
-  { id: 3, title: "Payroll Parsing", icon: FileText, description: "Upload your latest payslip for automated parsing" },
-  { id: 4, title: "Salary Calculator", icon: Calculator, description: "Review your net salary and affordability" },
-  { id: 5, title: "CRB Pre-Check", icon: ShieldCheck, description: "Check your credit bureau standing" },
-  { id: 6, title: "E-Sign Consent", icon: FileSignature, description: "Sign your payroll deduction consent" },
+  { id: 3, title: "Payslip Upload", icon: FileText, description: "Upload your latest payslip" },
+  { id: 4, title: "E-Sign Consent", icon: FileSignature, description: "Sign your payroll deduction consent" },
 ];
 
 const KYCPage = () => {
@@ -48,26 +44,20 @@ const KYCPage = () => {
     payslipFile: null as File | null,
     employer: "",
     employeeNumber: "",
-    grossSalary: "",
-    deductions: "",
-    netSalary: "",
     consentAccepted: false,
     signatureName: "",
   });
 
   const progress = (currentStep / steps.length) * 100;
-
   const next = () => setCurrentStep((s) => Math.min(s + 1, steps.length));
   const prev = () => setCurrentStep((s) => Math.max(s - 1, 1));
+  const updateField = (field: string, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
 
-  const updateField = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const uploadFiles = async () => {
+  const handleSubmit = async () => {
     if (!user) return;
     setSubmitting(true);
     try {
+      // Upload files
       const files: { field: string; file: File }[] = [];
       if (formData.nrcFile) files.push({ field: "nrc", file: formData.nrcFile });
       if (formData.govIdFile) files.push({ field: "gov-id", file: formData.govIdFile });
@@ -76,16 +66,28 @@ const KYCPage = () => {
       for (const { field, file } of files) {
         const ext = file.name.split(".").pop();
         const path = `${user.id}/${field}-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage
-          .from("kyc-documents")
-          .upload(path, file, { upsert: true });
+        const { error } = await supabase.storage.from("kyc-documents").upload(path, file, { upsert: true });
         if (error) throw error;
       }
 
-      toast.success("Documents uploaded successfully");
+      // Save application to database
+      const { error: insertError } = await supabase.from("loan_applications").insert({
+        user_id: user.id,
+        full_name: formData.fullName,
+        nrc_number: formData.nrcNumber,
+        gov_id_type: formData.govIdType,
+        gov_id_number: formData.govIdNumber,
+        employer: formData.employer,
+        employee_number: formData.employeeNumber,
+        consent_accepted: formData.consentAccepted,
+        signature_name: formData.signatureName,
+      });
+      if (insertError) throw insertError;
+
+      toast.success("Application submitted successfully");
       navigate("/application-submitted");
     } catch (err: any) {
-      toast.error(err.message || "Failed to upload documents");
+      toast.error(err.message || "Failed to submit application");
     } finally {
       setSubmitting(false);
     }
@@ -181,7 +183,7 @@ const KYCPage = () => {
                   <p className="text-sm text-foreground font-medium">{formData.payslipFile.name}</p>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground">Upload your most recent payslip for automated parsing</p>
+                    <p className="text-sm text-muted-foreground">Upload your most recent payslip</p>
                     <p className="text-xs text-muted-foreground/70 mt-1">PDF or image (max 10MB)</p>
                   </>
                 )}
@@ -200,54 +202,6 @@ const KYCPage = () => {
         return (
           <div className="space-y-6">
             <div className="bg-muted/50 rounded-xl p-6 border border-border/50">
-              <h4 className="font-display font-semibold text-foreground mb-4">Parsed Salary Breakdown</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Gross Salary</span>
-                  <Input className="w-40 text-right" placeholder="K 0.00" value={formData.grossSalary} onChange={(e) => updateField("grossSalary", e.target.value)} />
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Total Deductions</span>
-                  <Input className="w-40 text-right" placeholder="K 0.00" value={formData.deductions} onChange={(e) => updateField("deductions", e.target.value)} />
-                </div>
-                <div className="border-t border-border pt-3 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-foreground">Net Salary</span>
-                  <Input className="w-40 text-right font-semibold" placeholder="K 0.00" value={formData.netSalary} onChange={(e) => updateField("netSalary", e.target.value)} />
-                </div>
-              </div>
-            </div>
-            <div className="bg-accent/10 rounded-xl p-6 border border-accent/20">
-              <h4 className="font-display font-semibold text-foreground mb-2">Affordability Assessment</h4>
-              <p className="text-sm text-muted-foreground">Based on 1/3 rule, your maximum monthly repayment capacity is estimated at <strong className="text-foreground">K{formData.netSalary ? (parseFloat(formData.netSalary) / 3).toFixed(2) : "—"}</strong></p>
-            </div>
-          </div>
-        );
-
-      case 5:
-        return (
-          <div className="space-y-6">
-            <div className="bg-card rounded-xl p-6 border border-border/50 text-center">
-              <ShieldCheck className="w-16 h-16 text-accent mx-auto mb-4" />
-              <h4 className="font-display font-semibold text-foreground text-lg mb-2">Credit Bureau Pre-Check</h4>
-              <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-                We'll perform a soft inquiry with TransUnion Zambia to check your credit standing. This will NOT affect your credit score.
-              </p>
-              <Button size="lg" onClick={next}>
-                Run CRB Pre-Check <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
-              <p className="text-xs text-muted-foreground">
-                By proceeding, you authorize Riverbank to perform a soft credit inquiry on your behalf. This is a pre-qualification check and does not impact your credit score.
-              </p>
-            </div>
-          </div>
-        );
-
-      case 6:
-        return (
-          <div className="space-y-6">
-            <div className="bg-muted/50 rounded-xl p-6 border border-border/50">
               <h4 className="font-display font-semibold text-foreground mb-4">Payroll Deduction Consent</h4>
               <div className="prose prose-sm text-muted-foreground max-h-48 overflow-y-auto text-sm leading-relaxed mb-4">
                 <p>I, the undersigned, hereby authorize my employer to deduct the agreed loan repayment amount from my monthly salary and remit the same directly to the selected lending institution.</p>
@@ -255,14 +209,12 @@ const KYCPage = () => {
                 <p>I acknowledge that I have read and understood the terms and conditions of the loan offer and that this consent is irrevocable for the duration of the loan term unless mutually agreed upon by all parties.</p>
               </div>
             </div>
-
             <div className="flex items-start gap-3">
               <Checkbox id="consent" checked={formData.consentAccepted} onCheckedChange={(checked) => updateField("consentAccepted", checked)} />
               <Label htmlFor="consent" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
                 I have read and agree to the payroll deduction consent terms. I confirm that all information provided is true and accurate.
               </Label>
             </div>
-
             <div>
               <Label htmlFor="signatureName">Digital Signature (Type your full name)</Label>
               <Input id="signatureName" placeholder="Type your full legal name" value={formData.signatureName} onChange={(e) => updateField("signatureName", e.target.value)} className="mt-1.5 font-serif italic text-lg" />
@@ -285,7 +237,6 @@ const KYCPage = () => {
             <p className="text-muted-foreground">Complete the steps below to verify your identity and apply for refinancing.</p>
           </motion.div>
 
-          {/* Progress */}
           <div className="mb-8">
             <div className="flex justify-between mb-2">
               <span className="text-sm font-medium text-foreground">Step {currentStep} of {steps.length}</span>
@@ -294,7 +245,6 @@ const KYCPage = () => {
             <Progress value={progress} className="h-2" />
           </div>
 
-          {/* Step indicators */}
           <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
             {steps.map((step) => (
               <button
@@ -308,17 +258,12 @@ const KYCPage = () => {
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {step.id < currentStep ? (
-                  <CheckCircle2 className="w-4 h-4" />
-                ) : (
-                  <step.icon className="w-4 h-4" />
-                )}
+                {step.id < currentStep ? <CheckCircle2 className="w-4 h-4" /> : <step.icon className="w-4 h-4" />}
                 <span className="hidden sm:inline">{step.title}</span>
               </button>
             ))}
           </div>
 
-          {/* Step content */}
           <motion.div
             key={currentStep}
             className="bg-card rounded-xl p-6 lg:p-8 border border-border/50 card-elevated"
@@ -330,18 +275,16 @@ const KYCPage = () => {
               <h3 className="text-xl font-display font-semibold text-foreground">{steps[currentStep - 1].title}</h3>
               <p className="text-sm text-muted-foreground mt-1">{steps[currentStep - 1].description}</p>
             </div>
-
             {renderStep()}
           </motion.div>
 
-          {/* Navigation */}
           <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={prev} disabled={currentStep === 1}>
               <ArrowLeft className="w-4 h-4" /> Previous
             </Button>
             {currentStep === steps.length ? (
-              <Button disabled={!formData.consentAccepted || !formData.signatureName || submitting} onClick={uploadFiles}>
-                {submitting ? "Uploading…" : "Submit Application"} <CheckCircle2 className="w-4 h-4" />
+              <Button disabled={!formData.consentAccepted || !formData.signatureName || submitting} onClick={handleSubmit}>
+                {submitting ? "Submitting…" : "Submit Application"} <CheckCircle2 className="w-4 h-4" />
               </Button>
             ) : (
               <Button onClick={next}>
