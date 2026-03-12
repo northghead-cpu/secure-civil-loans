@@ -110,7 +110,7 @@ export function AdminSidebar({ isSuperAdmin = false }: AdminSidebarProps) {
           if (visibleItems.length === 0) return null;
 
           return (
-            <SidebarGroup key={group.label} defaultOpen>
+            <SidebarGroup key={group.label}>
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
