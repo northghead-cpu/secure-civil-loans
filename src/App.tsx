@@ -11,6 +11,7 @@ import AuthPage from "./pages/AuthPage";
 import ApplicationConfirmation from "./pages/ApplicationConfirmation";
 import AdminLayout from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
+import UserManagement from "./pages/admin/UserManagement";
 import UsersKYC from "./pages/admin/UsersKYC";
 import UsersApplications from "./pages/admin/UsersApplications";
 import UsersHistory from "./pages/admin/UsersHistory";
