@@ -46,6 +46,7 @@ const App = () => (
 
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="users/management" element={<UserManagement />} />
               <Route path="users/kyc" element={<UsersKYC />} />
               <Route path="users/applications" element={<UsersApplications />} />
               <Route path="users/history" element={<UsersHistory />} />

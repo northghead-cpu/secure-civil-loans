@@ -42,6 +42,7 @@ const menuGroups = [
   {
     label: "Users",
     items: [
+      { title: "User Management", url: "/admin/users/management", icon: Users },
       { title: "KYC", url: "/admin/users/kyc", icon: FileCheck },
       { title: "Applications", url: "/admin/users/applications", icon: ClipboardList },
       { title: "History", url: "/admin/users/history", icon: History },
