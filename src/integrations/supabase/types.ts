@@ -82,32 +82,44 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
           created_at: string
+          email: string | null
           employee_number: string | null
           employer: string | null
           full_name: string | null
           id: string
+          nrc_number: string | null
           phone: string | null
+          salary: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          account_status?: string
           created_at?: string
+          email?: string | null
           employee_number?: string | null
           employer?: string | null
           full_name?: string | null
           id?: string
+          nrc_number?: string | null
           phone?: string | null
+          salary?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          account_status?: string
           created_at?: string
+          email?: string | null
           employee_number?: string | null
           employer?: string | null
           full_name?: string | null
           id?: string
+          nrc_number?: string | null
           phone?: string | null
+          salary?: number | null
           updated_at?: string
           user_id?: string
         }
