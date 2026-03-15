@@ -61,6 +61,7 @@ const App = () => (
               <Route path="compliance/audit-logs" element={<ComplianceAuditLogs />} />
               <Route path="compliance/payroll" element={<CompliancePayroll />} />
               <Route path="automations" element={<Automations />} />
+              <Route path="role-permissions" element={<RolePermissions />} />
               <Route path="system-settings" element={<SystemSettings />} />
             </Route>
 
