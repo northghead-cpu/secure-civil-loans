@@ -1,41 +1,36 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { RBACProvider, useRBAC } from "@/hooks/useRBAC";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 
-const AdminLayout = () => {
+const AdminContent = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const { roles, loading: rbacLoading, permissions, highestRole } = useRBAC();
+  const [checked, setChecked] = useState(false);
+
+  const ADMIN_ROLES = ["admin", "super_admin", "super_user", "compliance_team", "data_entry_team"];
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || rbacLoading) return;
     if (!user) {
       navigate("/login");
       return;
     }
-    const checkRole = async () => {
-      const [{ data: admin }, { data: superAdmin }] = await Promise.all([
-        supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
-        supabase.rpc("has_role", { _user_id: user.id, _role: "super_admin" }),
-      ]);
-      if (!admin && !superAdmin) {
-        toast.error("Access denied — admin only");
-        navigate("/");
-        return;
-      }
-      setIsAdmin(true);
-      setIsSuperAdmin(!!superAdmin);
-    };
-    checkRole();
-  }, [user, authLoading, navigate]);
+    const hasAdminRole = roles.some((r) => ADMIN_ROLES.includes(r));
+    if (!hasAdminRole) {
+      toast.error("Access denied — you don't have admin privileges");
+      navigate("/");
+      return;
+    }
+    setChecked(true);
+  }, [user, authLoading, rbacLoading, roles, navigate]);
 
-  if (authLoading || isAdmin === null) {
+  if (authLoading || rbacLoading || !checked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -46,18 +41,26 @@ const AdminLayout = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AdminSidebar isSuperAdmin={isSuperAdmin} />
+        <AdminSidebar />
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center border-b border-border px-4 bg-card/80 backdrop-blur-lg">
             <SidebarTrigger className="mr-4" />
             <span className="font-display text-sm font-semibold text-foreground">Riverbank Admin</span>
           </header>
           <main className="flex-1 overflow-auto p-6">
-            <Outlet context={{ isSuperAdmin }} />
+            <Outlet />
           </main>
         </div>
       </div>
     </SidebarProvider>
+  );
+};
+
+const AdminLayout = () => {
+  return (
+    <RBACProvider>
+      <AdminContent />
+    </RBACProvider>
   );
 };
 
