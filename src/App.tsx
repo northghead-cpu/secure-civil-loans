@@ -26,6 +26,7 @@ import ComplianceAuditLogs from "./pages/admin/ComplianceAuditLogs";
 import CompliancePayroll from "./pages/admin/CompliancePayroll";
 import Automations from "./pages/admin/Automations";
 import SystemSettings from "./pages/admin/SystemSettings";
+import RolePermissions from "./pages/admin/RolePermissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
