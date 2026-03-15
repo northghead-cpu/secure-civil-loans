@@ -1,61 +1,179 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { Search, Loader2, ScrollText } from "lucide-react";
+import { useRBAC } from "@/hooks/useRBAC";
 
-const mockLogs = [
-  { id: "AL001", actor: "Admin: Sarah K.", action: "Approved application", target: "John Mwale #APP-2847", timestamp: "2026-03-11 14:32", category: "application" },
-  { id: "AL002", actor: "System", action: "CRB check completed", target: "Grace Banda #APP-2846", timestamp: "2026-03-11 13:15", category: "automation" },
-  { id: "AL003", actor: "Admin: Sarah K.", action: "Updated commission rate", target: "Stanbic Bank", timestamp: "2026-03-11 11:45", category: "settings" },
-  { id: "AL004", actor: "System", action: "Risk flag auto-raised", target: "Unknown user #RF002", timestamp: "2026-03-10 22:00", category: "risk" },
-  { id: "AL005", actor: "Admin: Mike L.", action: "Rejected application", target: "Peter Zulu #APP-2840", timestamp: "2026-03-10 16:20", category: "application" },
-  { id: "AL006", actor: "System", action: "Payout processed", target: "Zanaco — K8,900", timestamp: "2026-03-10 09:00", category: "financial" },
-  { id: "AL007", actor: "Admin: Sarah K.", action: "KYC verified", target: "James Tembo", timestamp: "2026-03-09 15:30", category: "kyc" },
-  { id: "AL008", actor: "System", action: "New user registered", target: "mary.phiri@email.com", timestamp: "2026-03-09 10:12", category: "user" },
-];
-
-const categoryColors: Record<string, string> = {
-  application: "bg-info/10 text-info",
-  automation: "bg-accent/10 text-accent",
-  settings: "bg-muted text-muted-foreground",
-  risk: "bg-destructive/10 text-destructive",
-  financial: "bg-success/10 text-success",
-  kyc: "bg-warning/10 text-warning",
-  user: "bg-primary/10 text-primary",
-};
+interface AuditLog {
+  id: string;
+  user_id: string;
+  role: string;
+  action_performed: string;
+  record_id: string | null;
+  table_name: string | null;
+  old_value: any;
+  new_value: any;
+  created_at: string;
+}
 
 const ComplianceAuditLogs = () => {
+  const { permissions } = useRBAC();
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (!error && data) {
+        setLogs(data as unknown as AuditLog[]);
+      }
+      setLoading(false);
+    };
+    fetchLogs();
+  }, []);
+
+  const actions = useMemo(
+    () => [...new Set(logs.map((l) => l.action_performed))],
+    [logs]
+  );
+
+  const filtered = useMemo(() => {
+    let result = logs;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (l) =>
+          l.user_id.toLowerCase().includes(q) ||
+          l.action_performed.toLowerCase().includes(q) ||
+          l.record_id?.toLowerCase().includes(q) ||
+          l.role.toLowerCase().includes(q)
+      );
+    }
+    if (actionFilter !== "all") {
+      result = result.filter((l) => l.action_performed === actionFilter);
+    }
+    if (dateFilter) {
+      result = result.filter((l) => l.created_at.startsWith(dateFilter));
+    }
+    return result;
+  }, [logs, search, actionFilter, dateFilter]);
+
+  if (!permissions.canViewAuditLogs) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        You don't have permission to view audit logs.
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
         <h1 className="text-2xl font-display font-bold text-foreground">Audit Logs</h1>
-        <p className="text-sm text-muted-foreground">Complete trail of all admin and system actions</p>
+        <p className="text-sm text-muted-foreground">
+          Complete trail of all actions — {logs.length} entries
+        </p>
       </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by user, action, record ID, or role…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={actionFilter} onValueChange={setActionFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All Actions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Actions</SelectItem>
+                {actions.map((a) => (
+                  <SelectItem key={a} value={a}>{a}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full sm:w-[180px]"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Actor</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Target</TableHead>
-                <TableHead>Category</TableHead>
                 <TableHead>Timestamp</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Record ID</TableHead>
+                <TableHead className="hidden md:table-cell">Old Value</TableHead>
+                <TableHead className="hidden md:table-cell">New Value</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockLogs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="font-mono text-xs">{log.id}</TableCell>
-                  <TableCell className="font-medium">{log.actor}</TableCell>
-                  <TableCell>{log.action}</TableCell>
-                  <TableCell className="text-muted-foreground">{log.target}</TableCell>
-                  <TableCell><Badge className={categoryColors[log.category]}>{log.category}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{log.timestamp}</TableCell>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                    <ScrollText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                    No audit log entries found
+                  </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(log.created_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">{log.role}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium text-sm">{log.action_performed}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {log.record_id ?? "—"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[200px] truncate">
+                      {log.old_value ? JSON.stringify(log.old_value) : "—"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[200px] truncate">
+                      {log.new_value ? JSON.stringify(log.new_value) : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
