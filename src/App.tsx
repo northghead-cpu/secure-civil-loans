@@ -26,6 +26,7 @@ import ComplianceAuditLogs from "./pages/admin/ComplianceAuditLogs";
 import CompliancePayroll from "./pages/admin/CompliancePayroll";
 import Automations from "./pages/admin/Automations";
 import SystemSettings from "./pages/admin/SystemSettings";
+import RolePermissions from "./pages/admin/RolePermissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="compliance/audit-logs" element={<ComplianceAuditLogs />} />
               <Route path="compliance/payroll" element={<CompliancePayroll />} />
               <Route path="automations" element={<Automations />} />
+              <Route path="role-permissions" element={<RolePermissions />} />
               <Route path="system-settings" element={<SystemSettings />} />
             </Route>
 
