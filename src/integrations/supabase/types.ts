@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action_performed: string
+          created_at: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          record_id: string | null
+          role: string
+          table_name: string | null
+          user_id: string
+        }
+        Insert: {
+          action_performed: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          record_id?: string | null
+          role: string
+          table_name?: string | null
+          user_id: string
+        }
+        Update: {
+          action_performed?: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          record_id?: string | null
+          role?: string
+          table_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       loan_applications: {
         Row: {
           admin_notes: string | null
@@ -154,6 +190,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_audit: {
+        Args: {
+          _action: string
+          _new_value?: Json
+          _old_value?: Json
+          _record_id?: string
+          _role: string
+          _table_name?: string
+          _user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
