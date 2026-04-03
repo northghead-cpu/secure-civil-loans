@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
+import { TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 const monthlyRevenue = [
   { month: "Jan", revenue: 185000, growth: 12 },
@@ -16,15 +17,21 @@ const revenueStreams = [
 
 const FinancialsRevenue = () => {
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Revenue</h1>
-        <p className="text-sm text-muted-foreground">Revenue tracking and breakdown</p>
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Financial performance"
+        title="Revenue visibility across fees, commissions, and insurance products"
+        description="Review how the platform is earning, where margins are improving, and which streams are slowing down month over month."
+        stats={monthlyRevenue.map((m) => ({
+          label: `${m.month} 2026`,
+          value: `K${m.revenue.toLocaleString()}`,
+          meta: `+${m.growth}% growth`,
+        }))}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {monthlyRevenue.map((m) => (
-          <Card key={m.month}>
+          <Card key={m.month} className={adminCardClass}>
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">{m.month} 2026</p>
               <div className="text-2xl font-display font-bold text-foreground">K{m.revenue.toLocaleString()}</div>
@@ -36,7 +43,7 @@ const FinancialsRevenue = () => {
         ))}
       </div>
 
-      <Card>
+      <Card className={adminCardClass}>
         <CardHeader>
           <CardTitle className="text-base font-display">Revenue Streams</CardTitle>
         </CardHeader>
@@ -59,7 +66,7 @@ const FinancialsRevenue = () => {
           ))}
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 };
 

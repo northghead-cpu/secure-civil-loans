@@ -1,7 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
+import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/hooks/useRBAC";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Eye, Edit, Download, Upload, Settings, Users, Trash2, CheckCircle } from "lucide-react";
-import { ROLE_LABELS, ROLE_DESCRIPTIONS } from "@/hooks/useRBAC";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle, Download, Edit, Eye, Settings, Shield, Trash2, Upload, Users } from "lucide-react";
 
 const permissionList = [
   { key: "canViewProfiles", label: "View all profiles", icon: Eye },
@@ -9,7 +10,7 @@ const permissionList = [
   { key: "canEditProfileIdentity", label: "Edit identity fields (name, NRC)", icon: Edit },
   { key: "canEditProfileEmployment", label: "Edit employment fields (salary, employer)", icon: Edit },
   { key: "canEditLoanApplications", label: "Edit loan applications", icon: Edit },
-  { key: "canExportData", label: "Export data/reports", icon: Download },
+  { key: "canExportData", label: "Export data and reports", icon: Download },
   { key: "canViewAuditLogs", label: "View audit logs", icon: Eye },
   { key: "canViewLoanApplications", label: "View loan applications", icon: Eye },
   { key: "canChangeSystemSettings", label: "Change system settings", icon: Settings },
@@ -21,7 +22,7 @@ const permissionList = [
   { key: "canUploadDocuments", label: "Upload documents", icon: Upload },
 ];
 
-const ROLE_PERMISSIONS_MAP: Record<string, Record<string, boolean>> = {
+const rolePermissionsMap: Record<string, Record<string, boolean>> = {
   super_admin: {
     canViewProfiles: true, canEditProfiles: true, canEditProfileIdentity: true,
     canEditProfileEmployment: true, canEditLoanApplications: true, canExportData: true,
@@ -71,42 +72,43 @@ const RolePermissions = () => {
   const roles = ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"];
 
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Role Permissions</h1>
-        <p className="text-sm text-muted-foreground">Overview of permissions for each role</p>
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Access model"
+        title="Role permissions across the full admin operating surface"
+        description="Make access boundaries obvious so teams understand who can view, approve, export, and change production data."
+        stats={[
+          { label: "Roles mapped", value: roles.length.toString(), meta: "Active admin-facing role types" },
+          { label: "Permissions tracked", value: permissionList.length.toString(), meta: "Capabilities in the current matrix" },
+        ]}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {roles.map((role) => (
-          <Card key={role}>
+          <Card key={role} className={adminCardClass}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-display">
-                  {ROLE_LABELS[role]}
-                </CardTitle>
+                <CardTitle className="text-base font-display">{ROLE_LABELS[role]}</CardTitle>
                 <Badge className={roleBadgeColors[role]}>{role}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">{ROLE_DESCRIPTIONS[role]}</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-1.5">
-                {permissionList.map((perm) => {
-                  const hasPermission = ROLE_PERMISSIONS_MAP[role]?.[perm.key] ?? false;
+                {permissionList.map((permission) => {
+                  const hasPermission = rolePermissionsMap[role]?.[permission.key] ?? false;
                   return (
                     <div
-                      key={perm.key}
-                      className={`flex items-center gap-2 text-xs py-1 px-2 rounded ${
+                      key={permission.key}
+                      className={`flex items-center gap-2 rounded px-2 py-1 text-xs ${
                         hasPermission
-                          ? "text-foreground bg-success/5"
+                          ? "bg-success/5 text-foreground"
                           : "text-muted-foreground/50 line-through"
                       }`}
                     >
-                      <perm.icon className="h-3 w-3 shrink-0" />
-                      <span>{perm.label}</span>
-                      {hasPermission && (
-                        <CheckCircle className="h-3 w-3 ml-auto text-success shrink-0" />
-                      )}
+                      <permission.icon className="h-3 w-3 shrink-0" />
+                      <span>{permission.label}</span>
+                      {hasPermission ? <CheckCircle className="ml-auto h-3 w-3 shrink-0 text-success" /> : null}
                     </div>
                   );
                 })}
@@ -115,7 +117,7 @@ const RolePermissions = () => {
           </Card>
         ))}
       </div>
-    </div>
+    </AdminPageShell>
   );
 };
 

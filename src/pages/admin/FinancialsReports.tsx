@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Download, FileBarChart, Calendar } from "lucide-react";
 
 const reports = [
@@ -13,15 +14,21 @@ const reports = [
 
 const FinancialsReports = () => {
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Reports</h1>
-        <p className="text-sm text-muted-foreground">Generate and download financial and operational reports</p>
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Reporting library"
+        title="Operational and financial reports ready for export"
+        description="Package revenue, compliance, lending, and growth data into a report set the team can distribute without rebuilding the same views."
+        stats={[
+          { label: "Report templates", value: reports.length.toString(), meta: "Predefined exports available" },
+          { label: "Financial packs", value: reports.filter((report) => report.type === "Financial").length.toString(), meta: "Revenue and reconciliation sets" },
+          { label: "Operational packs", value: reports.filter((report) => report.type !== "Financial").length.toString(), meta: "Risk, growth, and compliance" },
+        ]}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {reports.map((report) => (
-          <Card key={report.name}>
+          <Card key={report.name} className={adminCardClass}>
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -42,7 +49,7 @@ const FinancialsReports = () => {
           </Card>
         ))}
       </div>
-    </div>
+    </AdminPageShell>
   );
 };
 

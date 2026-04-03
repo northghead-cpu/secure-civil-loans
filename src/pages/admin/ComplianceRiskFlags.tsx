@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShieldAlert, Eye, CheckCircle2 } from "lucide-react";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
+import { Eye, CheckCircle2 } from "lucide-react";
 
 const mockFlags = [
   { id: "RF001", user: "John Mwale", type: "Duplicate NRC", severity: "high", date: "2026-03-11", status: "open" },
@@ -27,32 +28,39 @@ const statusColors: Record<string, string> = {
 
 const ComplianceRiskFlags = () => {
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Risk Flags</h1>
-        <p className="text-sm text-muted-foreground">Monitor and resolve potential fraud and compliance risks</p>
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Risk monitoring"
+        title="Flag resolution queue for fraud, credit, and compliance exceptions"
+        description="Watch high-severity issues, separate false positives from real fraud signals, and keep active investigations moving."
+        stats={[
+          { label: "Critical", value: "2", meta: "Immediate intervention required" },
+          { label: "Open", value: "3", meta: "Still awaiting owner action" },
+          { label: "Investigating", value: "1", meta: "Assigned and in progress" },
+          { label: "Resolved", value: "1", meta: "Closed after review" },
+        ]}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-destructive">2</div>
             <p className="text-sm text-muted-foreground">Critical</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-warning">3</div>
             <p className="text-sm text-muted-foreground">Open</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-info">1</div>
             <p className="text-sm text-muted-foreground">Investigating</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-success">1</div>
             <p className="text-sm text-muted-foreground">Resolved</p>
@@ -60,7 +68,7 @@ const ComplianceRiskFlags = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card className={`${adminCardClass} overflow-hidden`}>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -95,7 +103,7 @@ const ComplianceRiskFlags = () => {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 };
 

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Plus, Edit, ToggleLeft } from "lucide-react";
 
 const mockProducts = [
@@ -13,17 +14,27 @@ const mockProducts = [
 ];
 
 const LendersProducts = () => {
-  return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Loan Products</h1>
-          <p className="text-sm text-muted-foreground">Manage lender products and terms</p>
-        </div>
-        <Button><Plus className="w-4 h-4 mr-1" /> Add Product</Button>
-      </div>
+  const activeProducts = mockProducts.filter((product) => product.status === "active").length;
 
-      <Card>
+  return (
+    <AdminPageShell>
+      <AdminHero
+        badge="Partner catalog"
+        title="Loan product controls for lenders and employer-specific offers"
+        description="Review terms, pause products when risk changes, and keep the marketplace inventory aligned with lender appetite."
+        actions={
+          <Button className="bg-white text-slate-950 hover:bg-white/90">
+            <Plus className="mr-1 h-4 w-4" /> Add Product
+          </Button>
+        }
+        stats={[
+          { label: "Products listed", value: mockProducts.length.toString(), meta: "Visible in the marketplace" },
+          { label: "Active products", value: activeProducts.toString(), meta: "Currently accepting applications" },
+          { label: "Paused", value: (mockProducts.length - activeProducts).toString(), meta: "Temporarily disabled" },
+        ]}
+      />
+
+      <Card className={`${adminCardClass} overflow-hidden`}>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -62,7 +73,7 @@ const LendersProducts = () => {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 };
 

@@ -1,22 +1,27 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { Shield, Key, Globe, Bell, Database } from "lucide-react";
+import { Bell, Globe, Key, Shield } from "lucide-react";
 
 const SystemSettings = () => {
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">System Settings</h1>
-        <p className="text-sm text-muted-foreground">Super Admin only — platform-wide configuration</p>
-      </div>
+    <AdminPageShell className="max-w-5xl">
+      <AdminHero
+        badge="Super admin"
+        title="Platform-wide controls for security, notifications, and core integrations"
+        description="Adjust the operating envelope for the admin workspace without burying high-impact settings inside generic forms."
+        stats={[
+          { label: "Configuration areas", value: "4", meta: "General, security, keys, and notifications" },
+          { label: "Security defaults", value: "2FA on", meta: "Admin access hardened by default" },
+        ]}
+      />
 
-      <Card>
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base font-display flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base font-display">
             <Globe className="h-4 w-4" /> General
           </CardTitle>
         </CardHeader>
@@ -39,9 +44,9 @@ const SystemSettings = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base font-display flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base font-display">
             <Shield className="h-4 w-4" /> Security
           </CardTitle>
         </CardHeader>
@@ -67,27 +72,27 @@ const SystemSettings = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base font-display flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base font-display">
             <Key className="h-4 w-4" /> API Keys
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>TransUnion CRB API Key</Label>
-            <Input type="password" defaultValue="••••••••••••" />
+            <Input type="password" defaultValue="************" />
           </div>
           <div className="space-y-2">
             <Label>SMS Gateway API Key</Label>
-            <Input type="password" defaultValue="••••••••••••" />
+            <Input type="password" defaultValue="************" />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={adminCardClass}>
         <CardHeader>
-          <CardTitle className="text-base font-display flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base font-display">
             <Bell className="h-4 w-4" /> Notifications
           </CardTitle>
         </CardHeader>
@@ -119,7 +124,7 @@ const SystemSettings = () => {
       <div className="flex justify-end">
         <Button>Save Settings</Button>
       </div>
-    </div>
+    </AdminPageShell>
   );
 };
 

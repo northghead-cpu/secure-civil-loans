@@ -1,23 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRBAC, ROLE_LABELS, AppRole } from "@/hooks/useRBAC";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Search, Download, Eye, UserCheck, UserX, Users, ArrowUpDown,
-  Loader2, Shield, Plus, Trash2,
+  Search,
+  Download,
+  Eye,
+  UserCheck,
+  UserX,
+  Users,
+  ArrowUpDown,
+  Loader2,
+  Shield,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,7 +60,7 @@ const roleBadgeColors: Record<string, string> = {
   user: "bg-muted text-muted-foreground",
 };
 
-const ASSIGNABLE_ROLES: AppRole[] = ["super_user", "compliance_team", "data_entry_team", "admin"];
+const assignableRoles: AppRole[] = ["super_user", "compliance_team", "data_entry_team", "admin"];
 
 const UserManagement = () => {
   const { permissions, logAction } = useRBAC();
@@ -68,7 +72,7 @@ const UserManagement = () => {
   const [sortAsc, setSortAsc] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [roleDialogUser, setRoleDialogUser] = useState<Profile | null>(null);
-  const [newRole, setNewRole] = useState<string>("");
+  const [newRole, setNewRole] = useState("");
 
   const fetchData = async () => {
     const [profilesRes, rolesRes] = await Promise.all([
@@ -87,45 +91,46 @@ const UserManagement = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchData())
       .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => fetchData())
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const getUserRoles = (userId: string) =>
-    userRoles.filter((r) => r.user_id === userId);
+  const getUserRoles = (userId: string) => userRoles.filter((role) => role.user_id === userId);
 
   const employers = useMemo(
-    () => [...new Set(users.map((u) => u.employer).filter(Boolean))] as string[],
+    () => [...new Set(users.map((user) => user.employer).filter(Boolean))] as string[],
     [users]
   );
 
   const filtered = useMemo(() => {
     let result = users;
     if (search) {
-      const q = search.toLowerCase();
+      const query = search.toLowerCase();
       result = result.filter(
-        (u) =>
-          u.full_name?.toLowerCase().includes(q) ||
-          u.email?.toLowerCase().includes(q) ||
-          u.phone?.includes(q) ||
-          u.nrc_number?.toLowerCase().includes(q)
+        (user) =>
+          user.full_name?.toLowerCase().includes(query) ||
+          user.email?.toLowerCase().includes(query) ||
+          user.phone?.includes(query) ||
+          user.nrc_number?.toLowerCase().includes(query)
       );
     }
     if (employerFilter !== "all") {
-      result = result.filter((u) => u.employer === employerFilter);
+      result = result.filter((user) => user.employer === employerFilter);
     }
     return [...result].sort((a, b) => {
-      const da = new Date(a.created_at).getTime();
-      const db = new Date(b.created_at).getTime();
-      return sortAsc ? da - db : db - da;
+      const first = new Date(a.created_at).getTime();
+      const second = new Date(b.created_at).getTime();
+      return sortAsc ? first - second : second - first;
     });
   }, [users, search, employerFilter, sortAsc]);
 
   const updateStatus = async (userId: string, status: string) => {
-    const profile = users.find((u) => u.user_id === userId);
+    const profile = users.find((user) => user.user_id === userId);
     const oldStatus = profile?.account_status;
     const { error } = await supabase
       .from("profiles")
-      .update({ account_status: status } as any)
+      .update({ account_status: status } as never)
       .eq("user_id", userId);
     if (error) {
       toast.error("Failed to update status");
@@ -144,15 +149,14 @@ const UserManagement = () => {
 
   const assignRole = async () => {
     if (!roleDialogUser || !newRole) return;
-    const existing = getUserRoles(roleDialogUser.user_id);
-    if (existing.some((r) => r.role === newRole)) {
+    if (getUserRoles(roleDialogUser.user_id).some((role) => role.role === newRole)) {
       toast.error("User already has this role");
       return;
     }
     const { error } = await supabase.from("user_roles").insert({
       user_id: roleDialogUser.user_id,
       role: newRole,
-    } as any);
+    } as never);
     if (error) {
       toast.error("Failed to assign role");
       return;
@@ -170,7 +174,7 @@ const UserManagement = () => {
       return;
     }
     await logAction("remove_role", roleRecord.user_id, "user_roles", { role: roleRecord.role }, null);
-    toast.success(`Role removed`);
+    toast.success("Role removed");
     fetchData();
   };
 
@@ -180,34 +184,50 @@ const UserManagement = () => {
       return;
     }
     const headers = [
-      "Full Name", "NRC/ID", "Phone", "Email", "Employer",
-      "Employee No.", "Salary", "Status", "Roles", "Registered",
+      "Full Name",
+      "NRC/ID",
+      "Phone",
+      "Email",
+      "Employer",
+      "Employee No.",
+      "Salary",
+      "Status",
+      "Roles",
+      "Registered",
     ];
-    const rows = filtered.map((u) => [
-      u.full_name ?? "", u.nrc_number ?? "", u.phone ?? "", u.email ?? "",
-      u.employer ?? "", u.employee_number ?? "", u.salary?.toString() ?? "",
-      u.account_status,
-      getUserRoles(u.user_id).map((r) => r.role).join("; "),
-      new Date(u.created_at).toLocaleString(),
+    const rows = filtered.map((user) => [
+      user.full_name ?? "",
+      user.nrc_number ?? "",
+      user.phone ?? "",
+      user.email ?? "",
+      user.employer ?? "",
+      user.employee_number ?? "",
+      user.salary?.toString() ?? "",
+      user.account_status,
+      getUserRoles(user.user_id).map((role) => role.role).join("; "),
+      new Date(user.created_at).toLocaleString(),
     ]);
-    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
     URL.revokeObjectURL(url);
     logAction("export_csv", undefined, "profiles");
     toast.success("CSV exported");
   };
 
-  const statusCounts = useMemo(() => ({
-    total: users.length,
-    active: users.filter((u) => u.account_status === "active").length,
-    pending: users.filter((u) => u.account_status === "pending").length,
-    suspended: users.filter((u) => u.account_status === "suspended").length,
-  }), [users]);
+  const statusCounts = useMemo(
+    () => ({
+      total: users.length,
+      active: users.filter((user) => user.account_status === "active").length,
+      pending: users.filter((user) => user.account_status === "pending").length,
+      suspended: users.filter((user) => user.account_status === "suspended").length,
+    }),
+    [users]
+  );
 
   if (loading) {
     return (
@@ -218,22 +238,32 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">User Management</h1>
-          <p className="text-sm text-muted-foreground">{statusCounts.total} registered users</p>
-        </div>
-        {permissions.canExportData && (
-          <Button variant="outline" onClick={exportCSV} className="gap-2">
-            <Download className="h-4 w-4" /> Export CSV
-          </Button>
-        )}
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Identity and access"
+        title="User management for roles, status controls, and profile oversight"
+        description="Search the borrower base, control account status, and manage admin-facing roles from a single operational surface."
+        actions={
+          permissions.canExportData ? (
+            <Button
+              variant="outline"
+              onClick={exportCSV}
+              className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+          ) : null
+        }
+        stats={[
+          { label: "Registered users", value: statusCounts.total.toString(), meta: "All profiles in the workspace" },
+          { label: "Active", value: statusCounts.active.toString(), meta: "Approved and available to transact" },
+          { label: "Pending", value: statusCounts.pending.toString(), meta: "Still awaiting review or activation" },
+          { label: "Suspended", value: statusCounts.suspended.toString(), meta: "Currently blocked from use" },
+        ]}
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
@@ -242,19 +272,19 @@ const UserManagement = () => {
             <p className="text-sm text-muted-foreground">Total Users</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-success">{statusCounts.active}</div>
             <p className="text-sm text-muted-foreground">Active</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-warning">{statusCounts.pending}</div>
             <p className="text-sm text-muted-foreground">Pending</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-destructive">{statusCounts.suspended}</div>
             <p className="text-sm text-muted-foreground">Suspended</p>
@@ -262,16 +292,15 @@ const UserManagement = () => {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
+      <Card className={adminCardClass}>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, phone, or NRC…"
+                placeholder="Search by name, email, phone, or NRC..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
                 className="pl-9"
               />
             </div>
@@ -281,8 +310,10 @@ const UserManagement = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Employers</SelectItem>
-                {employers.map((emp) => (
-                  <SelectItem key={emp} value={emp}>{emp}</SelectItem>
+                {employers.map((employer) => (
+                  <SelectItem key={employer} value={employer}>
+                    {employer}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -294,8 +325,7 @@ const UserManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
+      <Card className={`${adminCardClass} overflow-hidden`}>
         <CardHeader>
           <CardTitle className="text-base font-display">Users ({filtered.length})</CardTitle>
         </CardHeader>
@@ -314,7 +344,7 @@ const UserManagement = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -323,57 +353,59 @@ const UserManagement = () => {
                   const roles = getUserRoles(user.user_id);
                   return (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.full_name ?? "—"}</TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {user.email ?? "—"}
+                      <TableCell className="font-medium">{user.full_name ?? "-"}</TableCell>
+                      <TableCell className="hidden text-muted-foreground md:table-cell">
+                        {user.email ?? "-"}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {roles.length === 0 ? (
                             <span className="text-xs text-muted-foreground">No roles</span>
                           ) : (
-                            roles.map((r) => (
-                              <Badge key={r.id} className={`text-xs ${roleBadgeColors[r.role] ?? ""}`}>
-                                {ROLE_LABELS[r.role] ?? r.role}
+                            roles.map((role) => (
+                              <Badge key={role.id} className={`text-xs ${roleBadgeColors[role.role] ?? ""}`}>
+                                {ROLE_LABELS[role.role] ?? role.role}
                               </Badge>
                             ))
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={statusBadge[user.account_status] ?? ""}>
-                          {user.account_status}
-                        </Badge>
+                        <Badge className={statusBadge[user.account_status] ?? ""}>{user.account_status}</Badge>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
+                      <TableCell className="hidden text-muted-foreground sm:table-cell">
                         {new Date(user.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end">
+                        <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => setSelectedUser(user)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {permissions.canAssignRoles && (
+                          {permissions.canAssignRoles ? (
                             <Button size="sm" variant="ghost" onClick={() => setRoleDialogUser(user)}>
                               <Shield className="h-4 w-4" />
                             </Button>
-                          )}
-                          {permissions.canDeactivateUsers && user.account_status !== "active" && (
+                          ) : null}
+                          {permissions.canDeactivateUsers && user.account_status !== "active" ? (
                             <Button
-                              size="sm" variant="ghost" className="text-success"
+                              size="sm"
+                              variant="ghost"
+                              className="text-success"
                               onClick={() => updateStatus(user.user_id, "active")}
                             >
                               <UserCheck className="h-4 w-4" />
                             </Button>
-                          )}
-                          {permissions.canDeactivateUsers && user.account_status !== "suspended" && (
+                          ) : null}
+                          {permissions.canDeactivateUsers && user.account_status !== "suspended" ? (
                             <Button
-                              size="sm" variant="ghost" className="text-destructive"
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
                               onClick={() => updateStatus(user.user_id, "suspended")}
                             >
                               <UserX className="h-4 w-4" />
                             </Button>
-                          )}
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -385,13 +417,12 @@ const UserManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Profile Dialog */}
       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display">User Profile</DialogTitle>
           </DialogHeader>
-          {selectedUser && (
+          {selectedUser ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {[
@@ -406,74 +437,81 @@ const UserManagement = () => {
                 ].map(([label, value]) => (
                   <div key={label as string}>
                     <p className="text-muted-foreground">{label}</p>
-                    <p className="font-medium text-foreground">{(value as string) ?? "—"}</p>
+                    <p className="font-medium text-foreground">{(value as string) ?? "-"}</p>
                   </div>
                 ))}
               </div>
-              <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-2">Roles</p>
+              <div className="border-t border-border pt-2">
+                <p className="mb-2 text-xs text-muted-foreground">Roles</p>
                 <div className="flex flex-wrap gap-1">
-                  {getUserRoles(selectedUser.user_id).map((r) => (
-                    <Badge key={r.id} className={`text-xs ${roleBadgeColors[r.role] ?? ""}`}>
-                      {ROLE_LABELS[r.role] ?? r.role}
+                  {getUserRoles(selectedUser.user_id).map((role) => (
+                    <Badge key={role.id} className={`text-xs ${roleBadgeColors[role.role] ?? ""}`}>
+                      {ROLE_LABELS[role.role] ?? role.role}
                     </Badge>
                   ))}
                 </div>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center justify-between border-t border-border pt-2">
                 <Badge className={statusBadge[selectedUser.account_status] ?? ""}>
                   {selectedUser.account_status}
                 </Badge>
                 <div className="flex gap-2">
-                  {permissions.canDeactivateUsers && selectedUser.account_status !== "active" && (
+                  {permissions.canDeactivateUsers && selectedUser.account_status !== "active" ? (
                     <Button
-                      size="sm" variant="outline" className="text-success border-success/30"
+                      size="sm"
+                      variant="outline"
+                      className="border-success/30 text-success"
                       onClick={() => updateStatus(selectedUser.user_id, "active")}
                     >
-                      <UserCheck className="h-4 w-4 mr-1" /> Approve
+                      <UserCheck className="mr-1 h-4 w-4" /> Approve
                     </Button>
-                  )}
-                  {permissions.canDeactivateUsers && selectedUser.account_status !== "suspended" && (
+                  ) : null}
+                  {permissions.canDeactivateUsers && selectedUser.account_status !== "suspended" ? (
                     <Button
-                      size="sm" variant="outline" className="text-destructive border-destructive/30"
+                      size="sm"
+                      variant="outline"
+                      className="border-destructive/30 text-destructive"
                       onClick={() => updateStatus(selectedUser.user_id, "suspended")}
                     >
-                      <UserX className="h-4 w-4 mr-1" /> Suspend
+                      <UserX className="mr-1 h-4 w-4" /> Suspend
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
 
-      {/* Role Assignment Dialog */}
       <Dialog open={!!roleDialogUser} onOpenChange={() => { setRoleDialogUser(null); setNewRole(""); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Manage Roles</DialogTitle>
           </DialogHeader>
-          {roleDialogUser && (
+          {roleDialogUser ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Managing roles for <span className="font-medium text-foreground">{roleDialogUser.full_name ?? roleDialogUser.email}</span>
+                Managing roles for{" "}
+                <span className="font-medium text-foreground">
+                  {roleDialogUser.full_name ?? roleDialogUser.email}
+                </span>
               </p>
               <div>
                 <Label className="text-xs text-muted-foreground">Current Roles</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {getUserRoles(roleDialogUser.user_id).length === 0 ? (
                     <span className="text-xs text-muted-foreground">No roles assigned</span>
                   ) : (
-                    getUserRoles(roleDialogUser.user_id).map((r) => (
-                      <div key={r.id} className="flex items-center gap-1">
-                        <Badge className={`text-xs ${roleBadgeColors[r.role] ?? ""}`}>
-                          {ROLE_LABELS[r.role] ?? r.role}
+                    getUserRoles(roleDialogUser.user_id).map((role) => (
+                      <div key={role.id} className="flex items-center gap-1">
+                        <Badge className={`text-xs ${roleBadgeColors[role.role] ?? ""}`}>
+                          {ROLE_LABELS[role.role] ?? role.role}
                         </Badge>
                         <Button
-                          size="sm" variant="ghost"
+                          size="sm"
+                          variant="ghost"
                           className="h-5 w-5 p-0 text-destructive hover:text-destructive"
-                          onClick={() => removeRole(r)}
+                          onClick={() => removeRole(role)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -485,11 +523,13 @@ const UserManagement = () => {
               <div className="flex gap-2">
                 <Select value={newRole} onValueChange={setNewRole}>
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select role…" />
+                    <SelectValue placeholder="Select role..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {ASSIGNABLE_ROLES.map((r) => (
-                      <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                    {assignableRoles.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {ROLE_LABELS[role]}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -498,10 +538,10 @@ const UserManagement = () => {
                 </Button>
               </div>
             </div>
-          )}
+          ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 };
 

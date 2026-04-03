@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Link2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
+import { Link2, RefreshCw } from "lucide-react";
 
 const integrations = [
   { employer: "Ministry of Education", type: "API", status: "connected", lastSync: "2026-03-11 08:00", employees: 1240 },
@@ -19,30 +20,40 @@ const statusColors: Record<string, string> = {
 };
 
 const CompliancePayroll = () => {
+  const employeesCovered = integrations.reduce((sum, integration) => sum + integration.employees, 0);
+
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Payroll Integration</h1>
-          <p className="text-sm text-muted-foreground">Manage employer payroll connections for salary verification</p>
-        </div>
-        <Button><Link2 className="w-4 h-4 mr-1" /> Add Integration</Button>
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Salary verification"
+        title="Payroll integrations powering employer and payslip validation"
+        description="Monitor connection health, sync freshness, and how much of the borrower base is covered by direct payroll sources."
+        actions={
+          <Button className="bg-white text-slate-950 hover:bg-white/90">
+            <Link2 className="mr-1 h-4 w-4" /> Add Integration
+          </Button>
+        }
+        stats={[
+          { label: "Total integrations", value: integrations.length.toString(), meta: "Configured employer connections" },
+          { label: "Active connections", value: integrations.filter((integration) => integration.status === "connected").length.toString(), meta: "Healthy payroll sources" },
+          { label: "Employees covered", value: employeesCovered.toLocaleString(), meta: "Users reachable through payroll checks" },
+        ]}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-foreground">5</div>
             <p className="text-sm text-muted-foreground">Total Integrations</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-success">3</div>
             <p className="text-sm text-muted-foreground">Active Connections</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-foreground">3,030</div>
             <p className="text-sm text-muted-foreground">Employees Covered</p>
@@ -50,7 +61,7 @@ const CompliancePayroll = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card className={`${adminCardClass} overflow-hidden`}>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -69,7 +80,7 @@ const CompliancePayroll = () => {
                   <TableCell className="font-medium">{i.employer}</TableCell>
                   <TableCell>{i.type}</TableCell>
                   <TableCell><Badge className={statusColors[i.status]}>{i.status}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{i.lastSync || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{i.lastSync || "-"}</TableCell>
                   <TableCell>{i.employees.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="ghost"><RefreshCw className="h-4 w-4" /></Button>
@@ -80,7 +91,7 @@ const CompliancePayroll = () => {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 };
 

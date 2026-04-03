@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Eye, CheckCircle2, XCircle } from "lucide-react";
 
 const mockKYC = [
@@ -20,26 +21,32 @@ const statusBadge: Record<string, string> = {
 
 const UsersKYC = () => {
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">KYC Verification</h1>
-        <p className="text-sm text-muted-foreground">Review and verify user identity documents</p>
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Identity review"
+        title="KYC verification queue for civil servant applicants"
+        description="Keep document review moving, surface risk early, and push complete files into underwriting without losing the audit trail."
+        stats={[
+          { label: "Pending review", value: "12", meta: "Awaiting first operator pass" },
+          { label: "Verified", value: "234", meta: "Approved identity records" },
+          { label: "Rejected", value: "8", meta: "Files sent back or declined" },
+        ]}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-foreground">12</div>
             <p className="text-sm text-muted-foreground">Pending Review</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-success">234</div>
             <p className="text-sm text-muted-foreground">Verified</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-destructive">8</div>
             <p className="text-sm text-muted-foreground">Rejected</p>
@@ -47,7 +54,7 @@ const UsersKYC = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card className={`${adminCardClass} overflow-hidden`}>
         <CardHeader>
           <CardTitle className="text-base font-display">KYC Submissions</CardTitle>
         </CardHeader>
@@ -86,7 +93,7 @@ const UsersKYC = () => {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 };
 

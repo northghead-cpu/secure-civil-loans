@@ -1,9 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Save } from "lucide-react";
+import { Edit } from "lucide-react";
 
 const mockCommission = [
   { lender: "Stanbic Bank", rate: "2.5%", flat: "K50", model: "Per Disbursement", lastPayout: "K12,400", nextPayout: "2026-04-01" },
@@ -15,13 +14,19 @@ const mockCommission = [
 
 const LendersCommission = () => {
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Commission Settings</h1>
-        <p className="text-sm text-muted-foreground">Configure commission rates and payout models per lender</p>
-      </div>
+    <AdminPageShell>
+      <AdminHero
+        badge="Pricing controls"
+        title="Commission settings by lender, model, and payout cycle"
+        description="Keep pricing aligned with partner contracts and make the payout schedule visible before reconciliation begins."
+        stats={[
+          { label: "Lenders configured", value: mockCommission.length.toString(), meta: "Partner pricing records" },
+          { label: "Average rate", value: "2.5%", meta: "Across the current configuration" },
+          { label: "Next payout", value: "2026-04-01", meta: "Shared schedule in sample data" },
+        ]}
+      />
 
-      <Card>
+      <Card className={`${adminCardClass} overflow-hidden`}>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -36,16 +41,18 @@ const LendersCommission = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockCommission.map((c) => (
-                <TableRow key={c.lender}>
-                  <TableCell className="font-medium">{c.lender}</TableCell>
-                  <TableCell>{c.rate}</TableCell>
-                  <TableCell>{c.flat}</TableCell>
-                  <TableCell>{c.model}</TableCell>
-                  <TableCell>{c.lastPayout}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.nextPayout}</TableCell>
+              {mockCommission.map((item) => (
+                <TableRow key={item.lender}>
+                  <TableCell className="font-medium">{item.lender}</TableCell>
+                  <TableCell>{item.rate}</TableCell>
+                  <TableCell>{item.flat}</TableCell>
+                  <TableCell>{item.model}</TableCell>
+                  <TableCell>{item.lastPayout}</TableCell>
+                  <TableCell className="text-muted-foreground">{item.nextPayout}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="ghost"><Edit className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="ghost">
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -53,7 +60,7 @@ const LendersCommission = () => {
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 };
 
