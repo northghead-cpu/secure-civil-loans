@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { LampContainer } from "@/components/ui/lamp";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -55,20 +56,22 @@ const ComparePage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-24 pb-16">
-        <div className="container mx-auto px-4 lg:px-8">
-          <motion.div
-            className="mb-10"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
-              Compare Loan Offers
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Real-time rates from licensed lenders across Zambia
-            </p>
-          </motion.div>
+        <LampContainer className="h-48 bg-background" />
 
+        <motion.div
+          className="container mx-auto px-4 lg:px-8 mt-6"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
+            Compare Loan Offers
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Real-time rates from licensed lenders across Zambia
+          </p>
+        </motion.div>
+
+        <div className="container mx-auto px-4 lg:px-8 mt-6">
           {/* Filters */}
           <motion.div
             className="bg-card rounded-xl p-6 border border-border/50 card-elevated mb-8"

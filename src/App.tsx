@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { RBACProvider } from "@/hooks/useRBAC";
 import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import KYCPage from "./pages/KYCPage";
 import AuthPage from "./pages/AuthPage";
+import ProfilePage from "./pages/ProfilePage";
 import ApplicationConfirmation from "./pages/ApplicationConfirmation";
 import AdminLayout from "./components/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
@@ -38,9 +40,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <RBACProvider>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/compare" element={<ComparePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/apply" element={<KYCPage />} />
             <Route path="/application-submitted" element={<ApplicationConfirmation />} />
@@ -67,7 +71,8 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
+        </RBACProvider>
+      </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

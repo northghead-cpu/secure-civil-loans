@@ -1,8 +1,9 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, TrendingDown, Users, ShieldCheck } from "lucide-react";
-import heroBg from "@/assets/hero-bg.jpg";
+import { SparklesCore } from "@/components/ui/sparkles";
+import { useRef } from "react";
 
 const stats = [
   { icon: Users, value: "300K+", label: "Civil Servants" },
@@ -11,15 +12,31 @@ const stats = [
 ];
 
 const HeroSection = () => {
-  return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroBg})` }}
-      />
-      <div className="absolute inset-0 hero-gradient opacity-90" />
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start end", "end start"]
+  });
 
-      <div className="container mx-auto px-4 lg:px-8 relative z-10 pt-20">
+  // Create scroll-based transforms for content
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, -50]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.8, 0.6]);
+
+  return (
+    <section ref={heroRef} className="relative min-h-[90vh] flex items-center overflow-hidden bg-black">
+      <SparklesCore
+        particleDensity={80}
+        particleColor="#FFFFFF"
+        minSize={1}
+        maxSize={4}
+        className="w-full h-full"
+      />
+      <div className="absolute inset-0 bg-black/30" />
+
+      <motion.div
+        className="container mx-auto px-4 lg:px-8 relative z-10 pt-20"
+        style={{ y: contentY, opacity }}
+      >
         <div className="max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -33,7 +50,7 @@ const HeroSection = () => {
           </motion.div>
 
           <motion.h1
-            className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-primary-foreground leading-tight mb-6"
+            className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white leading-tight mb-6"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -43,7 +60,7 @@ const HeroSection = () => {
           </motion.h1>
 
           <motion.p
-            className="text-lg md:text-xl text-primary-foreground/70 max-w-2xl mb-8"
+            className="text-lg md:text-xl text-white/70 max-w-2xl mb-8"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -78,15 +95,15 @@ const HeroSection = () => {
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
                 <stat.icon className="w-5 h-5 text-accent mx-auto mb-2" />
-                <p className="text-2xl font-display font-bold text-primary-foreground">
+                <p className="text-2xl font-display font-bold text-white">
                   {stat.value}
                 </p>
-                <p className="text-xs text-primary-foreground/50">{stat.label}</p>
+                <p className="text-xs text-white/50">{stat.label}</p>
               </div>
             ))}
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 };

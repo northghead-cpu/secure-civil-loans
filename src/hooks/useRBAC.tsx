@@ -108,6 +108,23 @@ const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
     canApproveChanges: false,
     canUploadDocuments: true,
   },
+  user: {
+    canViewProfiles: true,
+    canEditProfiles: false,
+    canEditProfileIdentity: false,
+    canEditProfileEmployment: false,
+    canEditLoanApplications: false,
+    canExportData: false,
+    canViewAuditLogs: false,
+    canViewLoanApplications: false,
+    canChangeSystemSettings: false,
+    canManageUsers: false,
+    canAssignRoles: false,
+    canDeactivateUsers: false,
+    canDeleteRecords: false,
+    canApproveChanges: false,
+    canUploadDocuments: true,
+  },
 };
 
 // Fields that data_entry_team can edit
@@ -125,7 +142,7 @@ interface RBACContextType {
   loading: boolean;
   highestRole: AppRole | null;
   hasRole: (role: AppRole) => boolean;
-  logAction: (action: string, recordId?: string, tableName?: string, oldValue?: any, newValue?: any) => Promise<void>;
+  logAction: (action: string, recordId?: string, tableName?: string, oldValue?: unknown, newValue?: unknown) => Promise<void>;
 }
 
 const defaultPermissions: RBACPermissions = {
@@ -200,10 +217,20 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
 
   const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
 
+  interface AuditLogParams {
+    _user_id: string;
+    _role: AppRole | "unknown";
+    _action: string;
+    _record_id: string | null;
+    _table_name: string | null;
+    _old_value: string | null;
+    _new_value: string | null;
+  }
+
   const logAction = useCallback(
-    async (action: string, recordId?: string, tableName?: string, oldValue?: any, newValue?: any) => {
+    async (action: string, recordId?: string, tableName?: string, oldValue?: unknown, newValue?: unknown) => {
       if (!user) return;
-      await supabase.rpc("log_audit", {
+      const payload: AuditLogParams = {
         _user_id: user.id,
         _role: highestRole ?? "unknown",
         _action: action,
@@ -211,7 +238,9 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         _table_name: tableName ?? null,
         _old_value: oldValue ? JSON.stringify(oldValue) : null,
         _new_value: newValue ? JSON.stringify(newValue) : null,
-      } as any);
+      };
+
+      await supabase.rpc("log_audit", payload);
     },
     [user, highestRole]
   );
