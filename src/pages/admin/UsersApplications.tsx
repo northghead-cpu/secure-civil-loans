@@ -290,10 +290,10 @@ const UsersApplications = () => {
                 {applications.map((app) => (
                   <TableRow key={app.id}>
                     <TableCell className="font-medium">{app.full_name || "—"}</TableCell>
-                    <TableCell>{app.employer || "—"}</TableCell>
-                    <TableCell>{app.nrc_number || "—"}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{app.employer || "—"}</TableCell>
+                    <TableCell className="hidden md:table-cell">{app.nrc_number || "—"}</TableCell>
                     <TableCell><Badge className={statusColors[app.status] || ""}>{app.status}</Badge></TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">{new Date(app.created_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="ghost" onClick={() => openApplication(app)}>
                         <Eye className="w-4 h-4 mr-1" /> Review
