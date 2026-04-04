@@ -128,11 +128,11 @@ const UsersApplications = () => {
         </div>
 
         <Tabs defaultValue="documents">
-          <TabsList>
-            <TabsTrigger value="documents"><FileText className="w-4 h-4 mr-1" /> Documents</TabsTrigger>
-            <TabsTrigger value="salary"><Calculator className="w-4 h-4 mr-1" /> Payslip</TabsTrigger>
-            <TabsTrigger value="crb"><ShieldCheck className="w-4 h-4 mr-1" /> CRB</TabsTrigger>
-            <TabsTrigger value="decision">Decision</TabsTrigger>
+          <TabsList className="w-full flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="documents" className="flex-1 min-w-[100px]"><FileText className="w-4 h-4 mr-1" /> Docs</TabsTrigger>
+            <TabsTrigger value="salary" className="flex-1 min-w-[100px]"><Calculator className="w-4 h-4 mr-1" /> Payslip</TabsTrigger>
+            <TabsTrigger value="crb" className="flex-1 min-w-[80px]"><ShieldCheck className="w-4 h-4 mr-1" /> CRB</TabsTrigger>
+            <TabsTrigger value="decision" className="flex-1 min-w-[80px]">Decision</TabsTrigger>
           </TabsList>
 
           <TabsContent value="documents" className="mt-4">
