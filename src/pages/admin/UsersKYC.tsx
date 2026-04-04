@@ -51,15 +51,15 @@ const UsersKYC = () => {
         <CardHeader>
           <CardTitle className="text-base font-display">KYC Submissions</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>NRC Number</TableHead>
-                <TableHead>Documents</TableHead>
+                <TableHead className="hidden sm:table-cell">NRC Number</TableHead>
+                <TableHead className="hidden md:table-cell">Documents</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Submitted</TableHead>
+                <TableHead className="hidden lg:table-cell">Submitted</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -67,12 +67,12 @@ const UsersKYC = () => {
               {mockKYC.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.nrc}</TableCell>
-                  <TableCell>{user.docs} files</TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">{user.nrc}</TableCell>
+                  <TableCell className="hidden md:table-cell">{user.docs} files</TableCell>
                   <TableCell>
                     <Badge className={statusBadge[user.status]}>{user.status}</Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{user.submitted}</TableCell>
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">{user.submitted}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
                       <Button size="sm" variant="ghost"><Eye className="h-4 w-4" /></Button>

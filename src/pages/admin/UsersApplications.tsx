@@ -114,9 +114,9 @@ const UsersApplications = () => {
         <Button variant="ghost" onClick={() => setSelected(null)}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Applications
         </Button>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">
               {selected.full_name || "Unnamed Applicant"}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -128,11 +128,11 @@ const UsersApplications = () => {
         </div>
 
         <Tabs defaultValue="documents">
-          <TabsList>
-            <TabsTrigger value="documents"><FileText className="w-4 h-4 mr-1" /> Documents</TabsTrigger>
-            <TabsTrigger value="salary"><Calculator className="w-4 h-4 mr-1" /> Payslip</TabsTrigger>
-            <TabsTrigger value="crb"><ShieldCheck className="w-4 h-4 mr-1" /> CRB</TabsTrigger>
-            <TabsTrigger value="decision">Decision</TabsTrigger>
+          <TabsList className="w-full flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="documents" className="flex-1 min-w-[100px]"><FileText className="w-4 h-4 mr-1" /> Docs</TabsTrigger>
+            <TabsTrigger value="salary" className="flex-1 min-w-[100px]"><Calculator className="w-4 h-4 mr-1" /> Payslip</TabsTrigger>
+            <TabsTrigger value="crb" className="flex-1 min-w-[80px]"><ShieldCheck className="w-4 h-4 mr-1" /> CRB</TabsTrigger>
+            <TabsTrigger value="decision" className="flex-1 min-w-[80px]">Decision</TabsTrigger>
           </TabsList>
 
           <TabsContent value="documents" className="mt-4">
@@ -274,15 +274,15 @@ const UsersApplications = () => {
         <Card><CardContent className="py-12 text-center"><p className="text-muted-foreground">No applications yet.</p></CardContent></Card>
       ) : (
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Applicant</TableHead>
-                  <TableHead>Employer</TableHead>
-                  <TableHead>NRC</TableHead>
+                  <TableHead className="hidden sm:table-cell">Employer</TableHead>
+                  <TableHead className="hidden md:table-cell">NRC</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -290,10 +290,10 @@ const UsersApplications = () => {
                 {applications.map((app) => (
                   <TableRow key={app.id}>
                     <TableCell className="font-medium">{app.full_name || "—"}</TableCell>
-                    <TableCell>{app.employer || "—"}</TableCell>
-                    <TableCell>{app.nrc_number || "—"}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{app.employer || "—"}</TableCell>
+                    <TableCell className="hidden md:table-cell">{app.nrc_number || "—"}</TableCell>
                     <TableCell><Badge className={statusColors[app.status] || ""}>{app.status}</Badge></TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">{new Date(app.created_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="ghost" onClick={() => openApplication(app)}>
                         <Eye className="w-4 h-4 mr-1" /> Review

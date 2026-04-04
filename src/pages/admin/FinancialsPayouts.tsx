@@ -21,7 +21,7 @@ const statusColors: Record<string, string> = {
 const FinancialsPayouts = () => {
   return (
     <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Payouts</h1>
           <p className="text-sm text-muted-foreground">Manage lender commission payouts</p>
@@ -51,27 +51,27 @@ const FinancialsPayouts = () => {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Payout ID</TableHead>
+                <TableHead className="hidden sm:table-cell">Payout ID</TableHead>
                 <TableHead>Lender</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Period</TableHead>
+                <TableHead className="hidden md:table-cell">Period</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Paid Date</TableHead>
+                <TableHead className="hidden lg:table-cell">Paid Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {mockPayouts.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-medium font-mono text-sm">{p.id}</TableCell>
+                  <TableCell className="hidden sm:table-cell font-medium font-mono text-sm">{p.id}</TableCell>
                   <TableCell>{p.lender}</TableCell>
                   <TableCell className="font-medium">{p.amount}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.period}</TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground">{p.period}</TableCell>
                   <TableCell><Badge className={statusColors[p.status]}>{p.status}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{p.paidDate || "—"}</TableCell>
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">{p.paidDate || "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

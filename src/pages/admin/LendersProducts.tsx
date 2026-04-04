@@ -15,7 +15,7 @@ const mockProducts = [
 const LendersProducts = () => {
   return (
     <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Loan Products</h1>
           <p className="text-sm text-muted-foreground">Manage lender products and terms</p>
@@ -24,15 +24,15 @@ const LendersProducts = () => {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Lender</TableHead>
                 <TableHead>Product</TableHead>
-                <TableHead>Interest Rate</TableHead>
-                <TableHead>Max Term</TableHead>
-                <TableHead>Max Amount</TableHead>
+                <TableHead>Rate</TableHead>
+                <TableHead className="hidden sm:table-cell">Max Term</TableHead>
+                <TableHead className="hidden md:table-cell">Max Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -43,8 +43,8 @@ const LendersProducts = () => {
                   <TableCell className="font-medium">{p.lender}</TableCell>
                   <TableCell>{p.product}</TableCell>
                   <TableCell>{p.rate}</TableCell>
-                  <TableCell>{p.maxTerm}</TableCell>
-                  <TableCell>{p.maxAmount}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.maxTerm}</TableCell>
+                  <TableCell className="hidden md:table-cell">{p.maxAmount}</TableCell>
                   <TableCell>
                     <Badge className={p.status === "active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}>
                       {p.status}
