@@ -114,9 +114,9 @@ const UsersApplications = () => {
         <Button variant="ghost" onClick={() => setSelected(null)}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Applications
         </Button>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">
               {selected.full_name || "Unnamed Applicant"}
             </h1>
             <p className="text-sm text-muted-foreground">
