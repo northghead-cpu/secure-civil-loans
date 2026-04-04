@@ -47,7 +47,7 @@ const AdminContent = () => {
             <SidebarTrigger className="mr-4" />
             <span className="font-display text-sm font-semibold text-foreground">Riverbank Admin</span>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-3 sm:p-6">
             <Outlet />
           </main>
         </div>
