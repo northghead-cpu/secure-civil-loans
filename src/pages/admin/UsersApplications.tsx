@@ -279,10 +279,10 @@ const UsersApplications = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Applicant</TableHead>
-                  <TableHead>Employer</TableHead>
-                  <TableHead>NRC</TableHead>
+                  <TableHead className="hidden sm:table-cell">Employer</TableHead>
+                  <TableHead className="hidden md:table-cell">NRC</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
