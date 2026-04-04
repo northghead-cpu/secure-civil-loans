@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Save } from "lucide-react";
+import { Edit } from "lucide-react";
 
 const mockCommission = [
   { lender: "Stanbic Bank", rate: "2.5%", flat: "K50", model: "Per Disbursement", lastPayout: "K12,400", nextPayout: "2026-04-01" },
@@ -22,16 +21,16 @@ const LendersCommission = () => {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Lender</TableHead>
                 <TableHead>Rate</TableHead>
-                <TableHead>Flat Fee</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Last Payout</TableHead>
-                <TableHead>Next Payout</TableHead>
+                <TableHead className="hidden sm:table-cell">Flat Fee</TableHead>
+                <TableHead className="hidden md:table-cell">Model</TableHead>
+                <TableHead className="hidden lg:table-cell">Last Payout</TableHead>
+                <TableHead className="hidden lg:table-cell">Next Payout</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -40,10 +39,10 @@ const LendersCommission = () => {
                 <TableRow key={c.lender}>
                   <TableCell className="font-medium">{c.lender}</TableCell>
                   <TableCell>{c.rate}</TableCell>
-                  <TableCell>{c.flat}</TableCell>
-                  <TableCell>{c.model}</TableCell>
-                  <TableCell>{c.lastPayout}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.nextPayout}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{c.flat}</TableCell>
+                  <TableCell className="hidden md:table-cell">{c.model}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{c.lastPayout}</TableCell>
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">{c.nextPayout}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="ghost"><Edit className="h-4 w-4" /></Button>
                   </TableCell>

@@ -27,15 +27,15 @@ const UsersHistory = () => {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Action</TableHead>
-                <TableHead>Details</TableHead>
+                <TableHead className="hidden sm:table-cell">Details</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead className="hidden md:table-cell">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -43,9 +43,9 @@ const UsersHistory = () => {
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.user}</TableCell>
                   <TableCell>{item.action}</TableCell>
-                  <TableCell className="text-muted-foreground">{item.details}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">{item.details}</TableCell>
                   <TableCell><Badge className={statusColors[item.status]}>{item.status}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{item.date}</TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground">{item.date}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

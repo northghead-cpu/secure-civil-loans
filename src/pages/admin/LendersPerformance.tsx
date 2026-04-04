@@ -18,7 +18,7 @@ const LendersPerformance = () => {
         <p className="text-sm text-muted-foreground">Track lender metrics and KPIs</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Total Disbursed", value: "391 loans" },
           { label: "Total Value", value: "K6.33M" },
@@ -27,22 +27,22 @@ const LendersPerformance = () => {
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="pt-6">
-              <div className="text-2xl font-display font-bold text-foreground">{s.value}</div>
-              <p className="text-sm text-muted-foreground">{s.label}</p>
+              <div className="text-xl sm:text-2xl font-display font-bold text-foreground">{s.value}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Lender</TableHead>
-                <TableHead>Loans Disbursed</TableHead>
-                <TableHead>Total Value</TableHead>
-                <TableHead>Avg Processing</TableHead>
+                <TableHead>Disbursed</TableHead>
+                <TableHead className="hidden sm:table-cell">Total Value</TableHead>
+                <TableHead className="hidden md:table-cell">Avg Processing</TableHead>
                 <TableHead>Default Rate</TableHead>
                 <TableHead>Trend</TableHead>
               </TableRow>
@@ -52,8 +52,8 @@ const LendersPerformance = () => {
                 <TableRow key={p.lender}>
                   <TableCell className="font-medium">{p.lender}</TableCell>
                   <TableCell>{p.disbursed}</TableCell>
-                  <TableCell>{p.totalValue}</TableCell>
-                  <TableCell>{p.avgProcessing}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.totalValue}</TableCell>
+                  <TableCell className="hidden md:table-cell">{p.avgProcessing}</TableCell>
                   <TableCell>{p.defaultRate}</TableCell>
                   <TableCell>
                     {p.trend === "up" ? (

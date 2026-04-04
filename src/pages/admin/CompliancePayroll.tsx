@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Link2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Link2, RefreshCw } from "lucide-react";
 
 const integrations = [
   { employer: "Ministry of Education", type: "API", status: "connected", lastSync: "2026-03-11 08:00", employees: 1240 },
@@ -21,7 +21,7 @@ const statusColors: Record<string, string> = {
 const CompliancePayroll = () => {
   return (
     <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Payroll Integration</h1>
           <p className="text-sm text-muted-foreground">Manage employer payroll connections for salary verification</p>
@@ -51,15 +51,15 @@ const CompliancePayroll = () => {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Employer</TableHead>
-                <TableHead>Integration Type</TableHead>
+                <TableHead className="hidden sm:table-cell">Type</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Last Sync</TableHead>
-                <TableHead>Employees</TableHead>
+                <TableHead className="hidden md:table-cell">Last Sync</TableHead>
+                <TableHead className="hidden sm:table-cell">Employees</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -67,10 +67,10 @@ const CompliancePayroll = () => {
               {integrations.map((i) => (
                 <TableRow key={i.employer}>
                   <TableCell className="font-medium">{i.employer}</TableCell>
-                  <TableCell>{i.type}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{i.type}</TableCell>
                   <TableCell><Badge className={statusColors[i.status]}>{i.status}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{i.lastSync || "—"}</TableCell>
-                  <TableCell>{i.employees.toLocaleString()}</TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground">{i.lastSync || "—"}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{i.employees.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="ghost"><RefreshCw className="h-4 w-4" /></Button>
                   </TableCell>
