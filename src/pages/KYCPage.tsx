@@ -46,7 +46,6 @@ const KYCPage = () => {
       navigate("/profile");
     }
   }, [profile, navigate]);
-  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     nrcNumber: "",
