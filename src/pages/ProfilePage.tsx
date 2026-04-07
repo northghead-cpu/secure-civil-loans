@@ -322,12 +322,20 @@ const ProfilePage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
-                  onClick={() => navigate("/apply")}
+                  onClick={() => {
+                    if (kycStatus === "COMPLETED") {
+                      navigate("/apply");
+                    } else if (kycStatus === "IN_REVIEW") {
+                      toast.info("Your KYC is still under review.");
+                    } else {
+                      navigate("/apply");
+                    }
+                  }}
                   className="w-full justify-start"
                   variant="outline"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Apply for a Loan
+                  {kycStatus === "COMPLETED" ? "Apply for a Loan" : "Complete KYC & Apply"}
                 </Button>
                 <Button
                   onClick={() => navigate("/compare")}
