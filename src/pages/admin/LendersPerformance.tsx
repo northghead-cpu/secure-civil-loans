@@ -1,7 +1,6 @@
-import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 const mockPerformance = [
   { lender: "Stanbic Bank", disbursed: 156, totalValue: "K2.4M", avgProcessing: "2.1 days", defaultRate: "3.2%", trend: "up" },
@@ -11,57 +10,53 @@ const mockPerformance = [
   { lender: "Indo Zambia", disbursed: 34, totalValue: "K450K", avgProcessing: "1.9 days", defaultRate: "3.0%", trend: "up" },
 ];
 
-const summary = [
-  { label: "Total disbursed", value: "391 loans" },
-  { label: "Total value", value: "K6.33M" },
-  { label: "Avg processing", value: "2.3 days" },
-  { label: "Avg default rate", value: "3.1%" },
-];
-
 const LendersPerformance = () => {
   return (
-    <AdminPageShell>
-      <AdminHero
-        badge="Partner performance"
-        title="Lender performance across volume, turnaround, and default pressure"
-        description="Compare lender output side by side so the team can see who is accelerating approvals and where operational drag is starting to show."
-        stats={summary.map((item) => ({ ...item, meta: "Current reporting snapshot" }))}
-      />
+    <div className="space-y-6 max-w-7xl">
+      <div>
+        <h1 className="text-2xl font-display font-bold text-foreground">Lender Performance</h1>
+        <p className="text-sm text-muted-foreground">Track lender metrics and KPIs</p>
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        {summary.map((item) => (
-          <Card key={item.label} className={adminCardClass}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: "Total Disbursed", value: "391 loans" },
+          { label: "Total Value", value: "K6.33M" },
+          { label: "Avg Processing", value: "2.3 days" },
+          { label: "Avg Default Rate", value: "3.1%" },
+        ].map((s) => (
+          <Card key={s.label}>
             <CardContent className="pt-6">
-              <div className="text-2xl font-display font-bold text-foreground">{item.value}</div>
-              <p className="text-sm text-muted-foreground">{item.label}</p>
+              <div className="text-xl sm:text-2xl font-display font-bold text-foreground">{s.value}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card className={`${adminCardClass} overflow-hidden`}>
-        <CardContent className="p-0">
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Lender</TableHead>
-                <TableHead>Loans Disbursed</TableHead>
-                <TableHead>Total Value</TableHead>
-                <TableHead>Avg Processing</TableHead>
+                <TableHead>Disbursed</TableHead>
+                <TableHead className="hidden sm:table-cell">Total Value</TableHead>
+                <TableHead className="hidden md:table-cell">Avg Processing</TableHead>
                 <TableHead>Default Rate</TableHead>
                 <TableHead>Trend</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockPerformance.map((item) => (
-                <TableRow key={item.lender}>
-                  <TableCell className="font-medium">{item.lender}</TableCell>
-                  <TableCell>{item.disbursed}</TableCell>
-                  <TableCell>{item.totalValue}</TableCell>
-                  <TableCell>{item.avgProcessing}</TableCell>
-                  <TableCell>{item.defaultRate}</TableCell>
+              {mockPerformance.map((p) => (
+                <TableRow key={p.lender}>
+                  <TableCell className="font-medium">{p.lender}</TableCell>
+                  <TableCell>{p.disbursed}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.totalValue}</TableCell>
+                  <TableCell className="hidden md:table-cell">{p.avgProcessing}</TableCell>
+                  <TableCell>{p.defaultRate}</TableCell>
                   <TableCell>
-                    {item.trend === "up" ? (
+                    {p.trend === "up" ? (
                       <TrendingUp className="h-4 w-4 text-success" />
                     ) : (
                       <TrendingDown className="h-4 w-4 text-destructive" />
@@ -73,7 +68,7 @@ const LendersPerformance = () => {
           </Table>
         </CardContent>
       </Card>
-    </AdminPageShell>
+    </div>
   );
 };
 

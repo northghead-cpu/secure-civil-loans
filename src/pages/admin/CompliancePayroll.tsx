@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Link2, RefreshCw } from "lucide-react";
 
 const integrations = [
@@ -20,40 +19,30 @@ const statusColors: Record<string, string> = {
 };
 
 const CompliancePayroll = () => {
-  const employeesCovered = integrations.reduce((sum, integration) => sum + integration.employees, 0);
-
   return (
-    <AdminPageShell>
-      <AdminHero
-        badge="Salary verification"
-        title="Payroll integrations powering employer and payslip validation"
-        description="Monitor connection health, sync freshness, and how much of the borrower base is covered by direct payroll sources."
-        actions={
-          <Button className="bg-white text-slate-950 hover:bg-white/90">
-            <Link2 className="mr-1 h-4 w-4" /> Add Integration
-          </Button>
-        }
-        stats={[
-          { label: "Total integrations", value: integrations.length.toString(), meta: "Configured employer connections" },
-          { label: "Active connections", value: integrations.filter((integration) => integration.status === "connected").length.toString(), meta: "Healthy payroll sources" },
-          { label: "Employees covered", value: employeesCovered.toLocaleString(), meta: "Users reachable through payroll checks" },
-        ]}
-      />
+    <div className="space-y-6 max-w-7xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Payroll Integration</h1>
+          <p className="text-sm text-muted-foreground">Manage employer payroll connections for salary verification</p>
+        </div>
+        <Button><Link2 className="w-4 h-4 mr-1" /> Add Integration</Button>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className={adminCardClass}>
+        <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-foreground">5</div>
             <p className="text-sm text-muted-foreground">Total Integrations</p>
           </CardContent>
         </Card>
-        <Card className={adminCardClass}>
+        <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-success">3</div>
             <p className="text-sm text-muted-foreground">Active Connections</p>
           </CardContent>
         </Card>
-        <Card className={adminCardClass}>
+        <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-display font-bold text-foreground">3,030</div>
             <p className="text-sm text-muted-foreground">Employees Covered</p>
@@ -61,16 +50,16 @@ const CompliancePayroll = () => {
         </Card>
       </div>
 
-      <Card className={`${adminCardClass} overflow-hidden`}>
-        <CardContent className="p-0">
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Employer</TableHead>
-                <TableHead>Integration Type</TableHead>
+                <TableHead className="hidden sm:table-cell">Type</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Last Sync</TableHead>
-                <TableHead>Employees</TableHead>
+                <TableHead className="hidden md:table-cell">Last Sync</TableHead>
+                <TableHead className="hidden sm:table-cell">Employees</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -78,10 +67,10 @@ const CompliancePayroll = () => {
               {integrations.map((i) => (
                 <TableRow key={i.employer}>
                   <TableCell className="font-medium">{i.employer}</TableCell>
-                  <TableCell>{i.type}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{i.type}</TableCell>
                   <TableCell><Badge className={statusColors[i.status]}>{i.status}</Badge></TableCell>
-                  <TableCell className="text-muted-foreground">{i.lastSync || "-"}</TableCell>
-                  <TableCell>{i.employees.toLocaleString()}</TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground">{i.lastSync || "—"}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{i.employees.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="ghost"><RefreshCw className="h-4 w-4" /></Button>
                   </TableCell>
@@ -91,7 +80,7 @@ const CompliancePayroll = () => {
           </Table>
         </CardContent>
       </Card>
-    </AdminPageShell>
+    </div>
   );
 };
 

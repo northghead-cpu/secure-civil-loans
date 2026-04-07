@@ -2,7 +2,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { AdminHero, AdminPageShell, adminCardClass, adminInsetCardClass } from "@/components/admin/AdminPageShell";
 import { Zap, Plus } from "lucide-react";
 
 const automations = [
@@ -49,55 +48,42 @@ const automations = [
 ];
 
 const Automations = () => {
-  const enabledCount = automations.filter((auto) => auto.enabled).length;
-  const totalRuns = automations.reduce((sum, auto) => sum + auto.runs, 0);
-
   return (
-    <AdminPageShell>
-      <AdminHero
-        badge="Workflow controls"
-        title="Automation rules for underwriting and payout operations"
-        description="Turn repetitive review steps into controlled workflows while keeping the team aware of where automation is currently active."
-        actions={
-          <Button className="bg-white text-slate-950 hover:bg-white/90">
-            <Plus className="mr-1 h-4 w-4" /> New Automation
-          </Button>
-        }
-        stats={[
-          { label: "Total workflows", value: automations.length.toString(), meta: "Across review, fraud, and payout steps" },
-          { label: "Enabled now", value: enabledCount.toString(), meta: "Rules currently affecting live traffic" },
-          { label: "Recorded runs", value: totalRuns.toLocaleString(), meta: "Cumulative executions from sample data" },
-        ]}
-      />
+    <div className="space-y-6 max-w-7xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Automations</h1>
+          <p className="text-sm text-muted-foreground">Configure automated workflows and rules</p>
+        </div>
+        <Button><Plus className="w-4 h-4 mr-1" /> New Automation</Button>
+      </div>
 
       <div className="grid gap-4">
         {automations.map((auto) => (
-          <Card key={auto.name} className={adminCardClass}>
+          <Card key={auto.name}>
             <CardContent className="pt-6">
-              <div className={`flex items-start justify-between gap-4 p-1 sm:p-2 ${adminInsetCardClass}`}>
-                <div className="flex items-start gap-3">
-                  <div className="m-3 rounded-xl bg-accent/10 p-2">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="p-2 rounded-lg bg-accent/10 shrink-0">
                     <Zap className="h-5 w-5 text-accent" />
                   </div>
-                  <div className="space-y-1 p-3 pl-0">
+                  <div className="space-y-1 min-w-0">
                     <h3 className="font-display font-semibold text-foreground">{auto.name}</h3>
                     <p className="text-sm text-muted-foreground">{auto.description}</p>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
                       <Badge variant="outline" className="text-xs">Trigger: {auto.trigger}</Badge>
                       <Badge variant="outline" className="text-xs">Action: {auto.action}</Badge>
                       <span className="text-xs text-muted-foreground">{auto.runs} runs</span>
                     </div>
                   </div>
                 </div>
-                <div className="p-3">
-                  <Switch checked={auto.enabled} />
-                </div>
+                <Switch checked={auto.enabled} className="shrink-0" />
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-    </AdminPageShell>
+    </div>
   );
 };
 

@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Plus, Edit, ToggleLeft } from "lucide-react";
 
 const mockProducts = [
@@ -14,36 +13,26 @@ const mockProducts = [
 ];
 
 const LendersProducts = () => {
-  const activeProducts = mockProducts.filter((product) => product.status === "active").length;
-
   return (
-    <AdminPageShell>
-      <AdminHero
-        badge="Partner catalog"
-        title="Loan product controls for lenders and employer-specific offers"
-        description="Review terms, pause products when risk changes, and keep the marketplace inventory aligned with lender appetite."
-        actions={
-          <Button className="bg-white text-slate-950 hover:bg-white/90">
-            <Plus className="mr-1 h-4 w-4" /> Add Product
-          </Button>
-        }
-        stats={[
-          { label: "Products listed", value: mockProducts.length.toString(), meta: "Visible in the marketplace" },
-          { label: "Active products", value: activeProducts.toString(), meta: "Currently accepting applications" },
-          { label: "Paused", value: (mockProducts.length - activeProducts).toString(), meta: "Temporarily disabled" },
-        ]}
-      />
+    <div className="space-y-6 max-w-7xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Loan Products</h1>
+          <p className="text-sm text-muted-foreground">Manage lender products and terms</p>
+        </div>
+        <Button><Plus className="w-4 h-4 mr-1" /> Add Product</Button>
+      </div>
 
-      <Card className={`${adminCardClass} overflow-hidden`}>
-        <CardContent className="p-0">
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Lender</TableHead>
                 <TableHead>Product</TableHead>
-                <TableHead>Interest Rate</TableHead>
-                <TableHead>Max Term</TableHead>
-                <TableHead>Max Amount</TableHead>
+                <TableHead>Rate</TableHead>
+                <TableHead className="hidden sm:table-cell">Max Term</TableHead>
+                <TableHead className="hidden md:table-cell">Max Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -54,8 +43,8 @@ const LendersProducts = () => {
                   <TableCell className="font-medium">{p.lender}</TableCell>
                   <TableCell>{p.product}</TableCell>
                   <TableCell>{p.rate}</TableCell>
-                  <TableCell>{p.maxTerm}</TableCell>
-                  <TableCell>{p.maxAmount}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.maxTerm}</TableCell>
+                  <TableCell className="hidden md:table-cell">{p.maxAmount}</TableCell>
                   <TableCell>
                     <Badge className={p.status === "active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}>
                       {p.status}
@@ -73,7 +62,7 @@ const LendersProducts = () => {
           </Table>
         </CardContent>
       </Card>
-    </AdminPageShell>
+    </div>
   );
 };
 

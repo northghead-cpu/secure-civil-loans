@@ -125,6 +125,7 @@ export type Database = {
           employer: string | null
           full_name: string | null
           id: string
+          kyc_status: Database["public"]["Enums"]["kyc_status"]
           nrc_number: string | null
           phone: string | null
           salary: number | null
@@ -139,6 +140,7 @@ export type Database = {
           employer?: string | null
           full_name?: string | null
           id?: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
           nrc_number?: string | null
           phone?: string | null
           salary?: number | null
@@ -153,6 +155,7 @@ export type Database = {
           employer?: string | null
           full_name?: string | null
           id?: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
           nrc_number?: string | null
           phone?: string | null
           salary?: number | null
@@ -212,6 +215,7 @@ export type Database = {
         | "super_user"
         | "compliance_team"
         | "data_entry_team"
+      kyc_status: "PENDING" | "IN_REVIEW" | "COMPLETED" | "REJECTED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -347,6 +351,7 @@ export const Constants = {
         "compliance_team",
         "data_entry_team",
       ],
+      kyc_status: ["PENDING", "IN_REVIEW", "COMPLETED", "REJECTED"],
     },
   },
 } as const

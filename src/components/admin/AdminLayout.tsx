@@ -43,11 +43,11 @@ const AdminContent = () => {
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center border-b border-border/70 px-4 bg-background/85 backdrop-blur-lg">
+          <header className="h-14 flex items-center border-b border-border px-4 bg-card/80 backdrop-blur-lg">
             <SidebarTrigger className="mr-4" />
             <span className="font-display text-sm font-semibold text-foreground">Riverbank Admin</span>
           </header>
-          <main className="flex-1 overflow-auto bg-[radial-gradient(circle_at_top_left,_rgba(24,204,252,0.06),_transparent_26%),radial-gradient(circle_at_top_right,_rgba(174,72,255,0.05),_transparent_20%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.9))] p-6">
+          <main className="flex-1 overflow-auto p-3 sm:p-6">
             <Outlet />
           </main>
         </div>

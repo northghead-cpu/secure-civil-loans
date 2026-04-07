@@ -56,7 +56,9 @@ const ComparePage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-24 pb-16">
-        <LampContainer className="h-48 bg-background" />
+        <LampContainer className="h-48 bg-background">
+          <span />
+        </LampContainer>
 
         <motion.div
           className="container mx-auto px-4 lg:px-8 mt-6"

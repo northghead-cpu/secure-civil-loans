@@ -1,6 +1,6 @@
-import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Edit } from "lucide-react";
 
@@ -14,45 +14,37 @@ const mockCommission = [
 
 const LendersCommission = () => {
   return (
-    <AdminPageShell>
-      <AdminHero
-        badge="Pricing controls"
-        title="Commission settings by lender, model, and payout cycle"
-        description="Keep pricing aligned with partner contracts and make the payout schedule visible before reconciliation begins."
-        stats={[
-          { label: "Lenders configured", value: mockCommission.length.toString(), meta: "Partner pricing records" },
-          { label: "Average rate", value: "2.5%", meta: "Across the current configuration" },
-          { label: "Next payout", value: "2026-04-01", meta: "Shared schedule in sample data" },
-        ]}
-      />
+    <div className="space-y-6 max-w-7xl">
+      <div>
+        <h1 className="text-2xl font-display font-bold text-foreground">Commission Settings</h1>
+        <p className="text-sm text-muted-foreground">Configure commission rates and payout models per lender</p>
+      </div>
 
-      <Card className={`${adminCardClass} overflow-hidden`}>
-        <CardContent className="p-0">
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Lender</TableHead>
                 <TableHead>Rate</TableHead>
-                <TableHead>Flat Fee</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Last Payout</TableHead>
-                <TableHead>Next Payout</TableHead>
+                <TableHead className="hidden sm:table-cell">Flat Fee</TableHead>
+                <TableHead className="hidden md:table-cell">Model</TableHead>
+                <TableHead className="hidden lg:table-cell">Last Payout</TableHead>
+                <TableHead className="hidden lg:table-cell">Next Payout</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockCommission.map((item) => (
-                <TableRow key={item.lender}>
-                  <TableCell className="font-medium">{item.lender}</TableCell>
-                  <TableCell>{item.rate}</TableCell>
-                  <TableCell>{item.flat}</TableCell>
-                  <TableCell>{item.model}</TableCell>
-                  <TableCell>{item.lastPayout}</TableCell>
-                  <TableCell className="text-muted-foreground">{item.nextPayout}</TableCell>
+              {mockCommission.map((c) => (
+                <TableRow key={c.lender}>
+                  <TableCell className="font-medium">{c.lender}</TableCell>
+                  <TableCell>{c.rate}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{c.flat}</TableCell>
+                  <TableCell className="hidden md:table-cell">{c.model}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{c.lastPayout}</TableCell>
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">{c.nextPayout}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="ghost">
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <Button size="sm" variant="ghost"><Edit className="h-4 w-4" /></Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -60,7 +52,7 @@ const LendersCommission = () => {
           </Table>
         </CardContent>
       </Card>
-    </AdminPageShell>
+    </div>
   );
 };
 
