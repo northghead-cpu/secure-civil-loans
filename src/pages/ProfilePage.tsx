@@ -217,11 +217,37 @@ const ProfilePage = () => {
     return status.replace("_", " ").toUpperCase();
   };
 
-  // Calculate profile completion
-  const profileFields: (keyof NonNullable<typeof profile>)[] = ["full_name", "phone", "email", "nrc_number", "employer", "employee_number", "salary"];
-  const completedFields = profileFields.filter(field => profile && profile[field]);
-  const profileCompletion = (completedFields.length / profileFields.length) * 100;
+  // Profile fields with labels for display
+  const profileFieldDefs = [
+    { key: "full_name" as const, label: "Full Name" },
+    { key: "email" as const, label: "Email Address" },
+    { key: "phone" as const, label: "Phone Number" },
+    { key: "nrc_number" as const, label: "NRC / ID Number" },
+    { key: "employer" as const, label: "Employer / Ministry" },
+    { key: "employee_number" as const, label: "Employee Number" },
+    { key: "salary" as const, label: "Salary" },
+  ];
+  const completedFields = profileFieldDefs.filter(f => profile && profile[f.key]);
+  const profileCompletion = (completedFields.length / profileFieldDefs.length) * 100;
   const kycStatus = profile?.kyc_status || "PENDING";
+
+  const getKycIcon = () => {
+    switch (kycStatus) {
+      case "COMPLETED": return <CheckCircle2 className="h-5 w-5 text-success" />;
+      case "IN_REVIEW": return <Clock className="h-5 w-5 text-warning" />;
+      case "REJECTED": return <XCircle className="h-5 w-5 text-destructive" />;
+      default: return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
+  const getKycLabel = () => {
+    switch (kycStatus) {
+      case "COMPLETED": return "Verified";
+      case "IN_REVIEW": return "Under Review";
+      case "REJECTED": return "Rejected";
+      default: return "Not Started";
+    }
+  };
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
