@@ -217,9 +217,10 @@ const ProfilePage = () => {
   };
 
   // Calculate profile completion
-  const profileFields = ["full_name", "phone", "email", "nrc_number", "employer", "employee_number", "salary"];
-  const completedFields = profileFields.filter(field => profile && profile[field as keyof typeof profile]);
+  const profileFields: (keyof NonNullable<typeof profile>)[] = ["full_name", "phone", "email", "nrc_number", "employer", "employee_number", "salary"];
+  const completedFields = profileFields.filter(field => profile && profile[field]);
   const profileCompletion = (completedFields.length / profileFields.length) * 100;
+  const kycStatus = profile?.kyc_status || "PENDING";
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
