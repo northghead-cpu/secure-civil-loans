@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,6 +47,7 @@ const KYCPage = () => {
       navigate("/profile");
     }
   }, [profile, navigate]);
+  const kycStatus = profile?.kyc_status || "PENDING";
   const [formData, setFormData] = useState({
     fullName: "",
     nrcNumber: "",
@@ -252,8 +254,26 @@ const KYCPage = () => {
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4 lg:px-8 max-w-3xl">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-            <h1 className="text-3xl font-display font-bold text-foreground mb-2">KYC Verification</h1>
-            <p className="text-muted-foreground">Complete the steps below to verify your identity and apply for refinancing.</p>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h1 className="text-3xl font-display font-bold text-foreground mb-2">KYC Verification</h1>
+                <p className="text-muted-foreground">Complete the steps below to verify your identity and apply for refinancing.</p>
+              </div>
+              <Badge
+                variant="outline"
+                className={
+                  kycStatus === "COMPLETED"
+                    ? "border-success text-success"
+                    : kycStatus === "IN_REVIEW"
+                    ? "border-warning text-warning"
+                    : kycStatus === "REJECTED"
+                    ? "border-destructive text-destructive"
+                    : "border-muted-foreground text-muted-foreground"
+                }
+              >
+                KYC Status: {kycStatus}
+              </Badge>
+            </div>
           </motion.div>
 
           <div className="mb-8">
