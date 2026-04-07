@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRBAC } from "@/hooks/useRBAC";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ const statusColors: Record<string, string> = {
 };
 
 const UsersApplications = () => {
+  const { permissions, logAction } = useRBAC();
   const [applications, setApplications] = useState<Application[]>([]);
   const [selected, setSelected] = useState<Application | null>(null);
   const [loadingApps, setLoadingApps] = useState(true);
@@ -85,10 +87,16 @@ const UsersApplications = () => {
 
   const updateApplication = async (updates: Record<string, string | number | null | boolean>) => {
     if (!selected) return;
+    if (!permissions.canEditLoanApplications) {
+      toast.error("You don't have permission to edit applications");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase.from("loan_applications").update(updates).eq("id", selected.id);
-    if (error) toast.error(error.message);
-    else {
+    const { error } = await supabase.from("loan_applications").update(updates as never).eq("id", selected.id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      await logAction("update_application", selected.id, "loan_applications", null, updates);
       toast.success("Application updated");
       setApplications((prev) => prev.map((a) => (a.id === selected.id ? { ...a, ...updates } : a)));
       setSelected((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -107,6 +115,8 @@ const UsersApplications = () => {
   const runCRBCheck = () => {
     updateApplication({ crb_status: "clear", crb_checked_at: new Date().toISOString() });
   };
+
+  const canEdit = permissions.canEditLoanApplications;
 
   if (selected) {
     return (
@@ -180,13 +190,15 @@ const UsersApplications = () => {
                     <div key={key} className="flex justify-between items-center">
                       <Label>{label}</Label>
                       <Input className="w-48 text-right" placeholder="0.00" value={salaryForm[key]}
-                        onChange={(e) => setSalaryForm((p) => ({ ...p, [key]: e.target.value }))} />
+                        onChange={(e) => setSalaryForm((p) => ({ ...p, [key]: e.target.value }))}
+                        disabled={!canEdit} />
                     </div>
                   ))}
                   <div className="border-t border-border pt-4 flex justify-between items-center">
                     <Label className="font-semibold">Net Salary (K)</Label>
                     <Input className="w-48 text-right font-semibold" placeholder="0.00" value={salaryForm.net}
-                      onChange={(e) => setSalaryForm((p) => ({ ...p, net: e.target.value }))} />
+                      onChange={(e) => setSalaryForm((p) => ({ ...p, net: e.target.value }))}
+                      disabled={!canEdit} />
                   </div>
                 </div>
                 {salaryForm.net && (
@@ -197,7 +209,9 @@ const UsersApplications = () => {
                     </p>
                   </div>
                 )}
-                <Button onClick={saveSalary} disabled={saving}>{saving ? "Saving…" : "Save Salary Data"}</Button>
+                {canEdit && (
+                  <Button onClick={saveSalary} disabled={saving}>{saving ? "Saving…" : "Save Salary Data"}</Button>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -221,7 +235,9 @@ const UsersApplications = () => {
                     <p className="text-sm text-muted-foreground max-w-md mx-auto">
                       Run a soft inquiry to check credit standing. This will NOT affect the applicant's credit score.
                     </p>
-                    <Button size="lg" onClick={runCRBCheck}>Run CRB Pre-Check</Button>
+                    {canEdit && (
+                      <Button size="lg" onClick={runCRBCheck}>Run CRB Pre-Check</Button>
+                    )}
                   </>
                 )}
               </CardContent>
@@ -237,22 +253,25 @@ const UsersApplications = () => {
                   <textarea id="adminNotes"
                     className="mt-1.5 w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                     placeholder="Add internal notes..." value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)} />
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    disabled={!canEdit} />
                 </div>
-                <div className="flex gap-3">
-                  <Button className="bg-success hover:bg-success/90 text-success-foreground" disabled={saving}
-                    onClick={() => updateApplication({ status: "approved", admin_notes: adminNotes })}>
-                    <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
-                  </Button>
-                  <Button variant="destructive" disabled={saving}
-                    onClick={() => updateApplication({ status: "rejected", admin_notes: adminNotes })}>
-                    <XCircle className="w-4 h-4 mr-1" /> Reject
-                  </Button>
-                  <Button variant="outline" disabled={saving}
-                    onClick={() => updateApplication({ status: "reviewing", admin_notes: adminNotes })}>
-                    Mark as Reviewing
-                  </Button>
-                </div>
+                {canEdit && (
+                  <div className="flex gap-3">
+                    <Button className="bg-success hover:bg-success/90 text-success-foreground" disabled={saving}
+                      onClick={() => updateApplication({ status: "approved", admin_notes: adminNotes })}>
+                      <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
+                    </Button>
+                    <Button variant="destructive" disabled={saving}
+                      onClick={() => updateApplication({ status: "rejected", admin_notes: adminNotes })}>
+                      <XCircle className="w-4 h-4 mr-1" /> Reject
+                    </Button>
+                    <Button variant="outline" disabled={saving}
+                      onClick={() => updateApplication({ status: "reviewing", admin_notes: adminNotes })}>
+                      Mark as Reviewing
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
