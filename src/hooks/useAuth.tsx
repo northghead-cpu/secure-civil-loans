@@ -40,10 +40,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
     setProfile(data);
+  };
+
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
   };
 
   useEffect(() => {
