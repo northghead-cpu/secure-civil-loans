@@ -272,26 +272,51 @@ const ProfilePage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Profile Completion */}
-            <Card className="hover:bg-blue-50 hover:border-blue-200 transition-colors duration-300">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Profile Completion</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Profile</CardTitle>
                 <User className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-display font-bold text-foreground">{Math.round(profileCompletion)}%</div>
                 <Progress value={profileCompletion} className="mt-2" />
                 <p className="text-xs text-muted-foreground mt-2">
-                  {profileFields.length - completedFields.length} fields remaining
+                  {profileFieldDefs.length - completedFields.length} fields remaining
                 </p>
               </CardContent>
             </Card>
 
-            {/* Active Applications */}
-            <Card className="hover:bg-green-50 hover:border-green-200 transition-colors duration-300">
+            {/* KYC Status */}
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Active Applications</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">KYC Status</CardTitle>
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  {getKycIcon()}
+                  <span className="text-lg font-display font-bold text-foreground">{getKycLabel()}</span>
+                </div>
+                {kycStatus === "PENDING" && (
+                  <Button size="sm" variant="link" className="px-0 mt-1 text-xs" onClick={() => navigate("/apply")}>
+                    Start KYC →
+                  </Button>
+                )}
+                {kycStatus === "REJECTED" && (
+                  <Button size="sm" variant="link" className="px-0 mt-1 text-xs text-destructive" onClick={() => navigate("/apply")}>
+                    Resubmit →
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Active Applications */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
                 <FileCheck className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -303,9 +328,9 @@ const ProfilePage = () => {
             </Card>
 
             {/* Total Applications */}
-            <Card className="hover:bg-purple-50 hover:border-purple-200 transition-colors duration-300">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Applications</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -315,9 +340,72 @@ const ProfilePage = () => {
             </Card>
           </div>
 
+          {/* Profile Details + Completion Checklist */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Profile Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-display">Profile Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {profileFieldDefs.map(({ key, label }) => {
+                  const value = profile?.[key];
+                  return (
+                    <div key={key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                      <span className="text-sm text-muted-foreground">{label}</span>
+                      {value ? (
+                        <span className="text-sm font-medium text-foreground">
+                          {key === "salary" ? `K${Number(value).toLocaleString()}` : String(value)}
+                        </span>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">
+                          Not provided
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            {/* Completion Checklist */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-display">Completion Checklist</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {profileFieldDefs.map(({ key, label }) => {
+                  const filled = profile && profile[key];
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      {filled ? (
+                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                      ) : (
+                        <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                      )}
+                      <span className={`text-sm ${filled ? "text-foreground" : "text-muted-foreground"}`}>
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center gap-3 pt-2 border-t border-border/50">
+                  {kycStatus === "COMPLETED" ? (
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                  )}
+                  <span className={`text-sm ${kycStatus === "COMPLETED" ? "text-foreground" : "text-muted-foreground"}`}>
+                    KYC Verification
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Applications */}
-            <Card className="hover:bg-orange-50 hover:border-orange-200 transition-colors duration-300">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base font-display">Recent Applications</CardTitle>
               </CardHeader>
@@ -343,7 +431,7 @@ const ProfilePage = () => {
             </Card>
 
             {/* Quick Actions */}
-            <Card className="hover:bg-red-50 hover:border-red-200 transition-colors duration-300">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base font-display">Quick Actions</CardTitle>
               </CardHeader>
@@ -371,15 +459,6 @@ const ProfilePage = () => {
                 >
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Compare Loan Options
-                </Button>
-                <Button
-                  onClick={() => {/* TODO: Add profile edit page */}}
-                  className="w-full justify-start"
-                  variant="outline"
-                  disabled
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Update Profile
                 </Button>
               </CardContent>
             </Card>
