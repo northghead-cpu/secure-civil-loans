@@ -4,10 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { User, FileCheck, CreditCard, Settings, TrendingUp, Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { User, FileCheck, CreditCard, TrendingUp, Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle, Mail, Phone, Building, Hash, Banknote } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { PulseBeams } from "@/components/ui/pulse-beams";
 import { toast } from "sonner";
 
 interface LoanApplication {
@@ -17,169 +16,8 @@ interface LoanApplication {
   updated_at: string;
 }
 
-const beams = [
-  {
-    path: "M269 220.5H16.5C10.9772 220.5 6.5 224.977 6.5 230.5V398.5",
-    gradientConfig: {
-      initial: {
-        x1: "0%",
-        x2: "0%",
-        y1: "80%",
-        y2: "100%",
-      },
-      animate: {
-        x1: ["0%", "0%", "200%"],
-        x2: ["0%", "0%", "180%"],
-        y1: ["80%", "0%", "0%"],
-        y2: ["100%", "20%", "20%"],
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop",
-        ease: "linear",
-        repeatDelay: 2,
-        delay: Math.random() * 2,
-      },
-    },
-    connectionPoints: [
-      { cx: 6.5, cy: 398.5, r: 6 },
-      { cx: 269, cy: 220.5, r: 6 }
-    ]
-  },
-  {
-    path: "M568 200H841C846.523 200 851 195.523 851 190V40",
-    gradientConfig: {
-      initial: {
-        x1: "0%",
-        x2: "0%",
-        y1: "80%",
-        y2: "100%",
-      },
-      animate: {
-        x1: ["20%", "100%", "100%"],
-        x2: ["0%", "90%", "90%"],
-        y1: ["80%", "80%", "-20%"],
-        y2: ["100%", "100%", "0%"],
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop",
-        ease: "linear",
-        repeatDelay: 2,
-        delay: Math.random() * 2,
-      },
-    },
-    connectionPoints: [
-      { cx: 851, cy: 34, r: 6.5 },
-      { cx: 568, cy: 200, r: 6 }
-    ]
-  },
-  {
-    path: "M425.5 274V333C425.5 338.523 421.023 343 415.5 343H152C146.477 343 142 347.477 142 353V426.5",
-    gradientConfig: {
-      initial: {
-        x1: "0%",
-        x2: "0%",
-        y1: "80%",
-        y2: "100%",
-      },
-      animate: {
-        x1: ["20%", "100%", "100%"],
-        x2: ["0%", "90%", "90%"],
-        y1: ["80%", "80%", "-20%"],
-        y2: ["100%", "100%", "0%"],
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop",
-        ease: "linear",
-        repeatDelay: 2,
-        delay: Math.random() * 2,
-      },
-    },
-    connectionPoints: [
-      { cx: 142, cy: 427, r: 6.5 },
-      { cx: 425.5, cy: 274, r: 6 }
-    ]
-  },
-  {
-    path: "M493 274V333.226C493 338.749 497.477 343.226 503 343.226H760C765.523 343.226 770 347.703 770 353.226V427",
-    gradientConfig: {
-      initial: {
-        x1: "40%",
-        x2: "50%",
-        y1: "160%",
-        y2: "180%",
-      },
-      animate: {
-        x1: "0%",
-        x2: "10%",
-        y1: "-40%",
-        y2: "-20%",
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop",
-        ease: "linear",
-        repeatDelay: 2,
-        delay: Math.random() * 2,
-      },
-    },
-    connectionPoints: [
-      { cx: 770, cy: 427, r: 6.5 },
-      { cx: 493, cy: 274, r: 6 }
-    ]
-  },
-  {
-    path: "M380 168V17C380 11.4772 384.477 7 390 7H414",
-    gradientConfig: {
-      initial: {
-        x1: "-40%",
-        x2: "-10%",
-        y1: "0%",
-        y2: "20%",
-      },
-      animate: {
-        x1: ["40%", "0%", "0%"],
-        x2: ["10%", "0%", "0%"],
-        y1: ["0%", "0%", "180%"],
-        y2: ["20%", "20%", "200%"],
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop",
-        ease: "linear",
-        repeatDelay: 2,
-        delay: Math.random() * 2,
-      },
-    },
-    connectionPoints: [
-      { cx: 420.5, cy: 6.5, r: 6 },
-      { cx: 380, cy: 168, r: 6 }
-    ]
-  }
-];
-
-const gradientColors = {
-  start: "#18CCFC",
-  middle: "#6344F5",
-  end: "#AE48FF"
-};
-
-interface LoanApplication {
-  id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
 const ProfilePage = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,7 +31,7 @@ const ProfilePage = () => {
         .select("id, status, created_at, updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       setApplications(data || []);
       setLoading(false);
@@ -204,31 +42,18 @@ const ProfilePage = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "approved": return "bg-success";
-      case "rejected": return "bg-destructive";
-      case "pending": return "bg-warning";
-      case "kyc_review": return "bg-info";
-      case "crb_check": return "bg-accent";
-      default: return "bg-muted";
+      case "approved": return "bg-success text-success-foreground";
+      case "rejected": return "bg-destructive text-destructive-foreground";
+      case "pending": return "bg-warning text-warning-foreground";
+      case "reviewing": return "bg-info text-info-foreground";
+      default: return "bg-muted text-muted-foreground";
     }
   };
 
   const getStatusLabel = (status: string) => {
-    return status.replace("_", " ").toUpperCase();
+    return status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
   };
 
-  // Profile fields with labels for display
-  const profileFieldDefs = [
-    { key: "full_name" as const, label: "Full Name" },
-    { key: "email" as const, label: "Email Address" },
-    { key: "phone" as const, label: "Phone Number" },
-    { key: "nrc_number" as const, label: "NRC / ID Number" },
-    { key: "employer" as const, label: "Employer / Ministry" },
-    { key: "employee_number" as const, label: "Employee Number" },
-    { key: "salary" as const, label: "Salary" },
-  ];
-  const completedFields = profileFieldDefs.filter(f => profile && profile[f.key]);
-  const profileCompletion = (completedFields.length / profileFieldDefs.length) * 100;
   const kycStatus = profile?.kyc_status || "PENDING";
 
   const getKycIcon = () => {
@@ -249,223 +74,262 @@ const ProfilePage = () => {
     }
   };
 
+  // Profile fields with labels and icons for display
+  const profileFields = [
+    { key: "full_name" as const, label: "Full Name", icon: User },
+    { key: "email" as const, label: "Email Address", icon: Mail },
+    { key: "phone" as const, label: "Phone Number", icon: Phone },
+    { key: "nrc_number" as const, label: "NRC Number", icon: Hash },
+    { key: "employer" as const, label: "Employer / Ministry", icon: Building },
+    { key: "employee_number" as const, label: "Employee Number", icon: Hash },
+  ];
+
+  const completedFields = profileFields.filter(f => profile && profile[f.key]);
+  const profileCompletion = (completedFields.length / profileFields.length) * 100;
+
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading profile...</div>
+      </div>
+    );
   }
 
   return (
-    <PulseBeams
-      beams={beams}
-      gradientColors={gradientColors}
-      className="bg-slate-950"
-      width={1920}
-      height={1080}
-    >
-      <div className="w-full h-full overflow-auto p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white leading-tight mb-6">
-              Welcome back, <span className="text-gradient">{profile?.full_name || "User"}</span>!
-            </h1>
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-8">
-              Manage your profile and loan applications
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6">
+        
+        {/* Header */}
+        <div className="text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-foreground">
+            Welcome back, <span className="text-primary">{profile?.full_name || "User"}</span>!
+          </h1>
+          <p className="text-muted-foreground mt-2">Manage your profile and track your loan applications</p>
+        </div>
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Profile Completion */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Profile</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-display font-bold text-foreground">{Math.round(profileCompletion)}%</div>
-                <Progress value={profileCompletion} className="mt-2" />
-                <p className="text-xs text-muted-foreground mt-2">
-                  {profileFieldDefs.length - completedFields.length} fields remaining
-                </p>
-              </CardContent>
-            </Card>
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Profile Completion */}
+          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Profile</CardTitle>
+              <User className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">{Math.round(profileCompletion)}%</div>
+              <Progress value={profileCompletion} className="mt-2 h-2" />
+              <p className="text-xs text-muted-foreground mt-2">
+                {profileFields.length - completedFields.length} fields remaining
+              </p>
+            </CardContent>
+          </Card>
 
-            {/* KYC Status */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">KYC Status</CardTitle>
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  {getKycIcon()}
-                  <span className="text-lg font-display font-bold text-foreground">{getKycLabel()}</span>
-                </div>
-                {kycStatus === "PENDING" && (
-                  <Button size="sm" variant="link" className="px-0 mt-1 text-xs" onClick={() => navigate("/apply")}>
-                    Start KYC →
-                  </Button>
-                )}
-                {kycStatus === "REJECTED" && (
-                  <Button size="sm" variant="link" className="px-0 mt-1 text-xs text-destructive" onClick={() => navigate("/apply")}>
-                    Resubmit →
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+          {/* KYC Status */}
+          <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">KYC Status</CardTitle>
+              <ShieldCheck className="h-4 w-4 text-warning" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                {getKycIcon()}
+                <span className="text-lg sm:text-xl font-display font-bold text-foreground">{getKycLabel()}</span>
+              </div>
+              {kycStatus === "PENDING" && (
+                <Button 
+                  size="sm" 
+                  variant="link" 
+                  className="px-0 mt-2 h-auto text-xs text-primary" 
+                  onClick={() => navigate("/apply")}
+                >
+                  Start KYC →
+                </Button>
+              )}
+              {kycStatus === "REJECTED" && (
+                <Button 
+                  size="sm" 
+                  variant="link" 
+                  className="px-0 mt-2 h-auto text-xs text-destructive" 
+                  onClick={() => navigate("/apply")}
+                >
+                  Resubmit →
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
-            {/* Active Applications */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
-                <FileCheck className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-display font-bold text-foreground">
-                  {applications.filter(app => app.status !== "approved" && app.status !== "rejected").length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">In progress</p>
-              </CardContent>
-            </Card>
+          {/* Active Applications */}
+          <Card className="bg-gradient-to-br from-info/5 to-info/10 border-info/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Active</CardTitle>
+              <FileCheck className="h-4 w-4 text-info" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+                {applications.filter(app => app.status !== "approved" && app.status !== "rejected").length}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">In progress</p>
+            </CardContent>
+          </Card>
 
-            {/* Total Applications */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-display font-bold text-foreground">{applications.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">All time</p>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Total Applications */}
+          <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total</CardTitle>
+              <CreditCard className="h-4 w-4 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">{applications.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">All time</p>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Profile Details + Completion Checklist */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Profile Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-display">Profile Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {profileFieldDefs.map(({ key, label }) => {
-                  const value = profile?.[key];
-                  return (
-                    <div key={key} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                      <span className="text-sm text-muted-foreground">{label}</span>
+        {/* Profile Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-display flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Profile Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {profileFields.map(({ key, label, icon: Icon }) => {
+                const value = profile?.[key];
+                return (
+                  <div key={key} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground mb-1">{label}</p>
                       {value ? (
-                        <span className="text-sm font-medium text-foreground">
-                          {key === "salary" ? `K${Number(value).toLocaleString()}` : String(value)}
-                        </span>
+                        <p className="text-sm font-medium text-foreground truncate">{String(value)}</p>
                       ) : (
                         <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">
                           Not provided
                         </Badge>
                       )}
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Completion Checklist */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-display">Completion Checklist</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {profileFieldDefs.map(({ key, label }) => {
-                  const filled = profile && profile[key];
-                  return (
-                    <div key={key} className="flex items-center gap-3">
-                      {filled ? (
-                        <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                      ) : (
-                        <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                      )}
-                      <span className={`text-sm ${filled ? "text-foreground" : "text-muted-foreground"}`}>
-                        {label}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div className="flex items-center gap-3 pt-2 border-t border-border/50">
-                  {kycStatus === "COMPLETED" ? (
-                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                  ) : (
-                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                  )}
-                  <span className={`text-sm ${kycStatus === "COMPLETED" ? "text-foreground" : "text-muted-foreground"}`}>
-                    KYC Verification
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Applications */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-display">Recent Applications</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {applications.length > 0 ? (
-                  applications.map((app) => (
-                    <div key={app.id} className="flex items-center justify-between">
-                      <div>
+        {/* Two Column Layout for Applications and Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Recent Applications */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-display flex items-center gap-2">
+                <FileCheck className="h-5 w-5 text-primary" />
+                Recent Applications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {applications.length > 0 ? (
+                <div className="space-y-3">
+                  {applications.map((app) => (
+                    <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">Loan Application</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(app.created_at).toLocaleDateString()}
+                          {new Date(app.created_at).toLocaleDateString('en-ZA', { 
+                            day: '2-digit', 
+                            month: 'short', 
+                            year: 'numeric' 
+                          })}
                         </p>
                       </div>
-                      <Badge className={`${getStatusColor(app.status)} text-white`}>
+                      <Badge className={`${getStatusColor(app.status)} text-xs`}>
                         {getStatusLabel(app.status)}
                       </Badge>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No applications yet</p>
-                )}
-              </CardContent>
-            </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">No applications yet</p>
+                  <p className="text-xs mt-1">Start by completing your KYC verification</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-display">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={() => {
-                    if (kycStatus === "COMPLETED") {
-                      navigate("/apply");
-                    } else if (kycStatus === "IN_REVIEW") {
-                      toast.info("Your KYC is still under review.");
-                    } else {
-                      navigate("/apply");
-                    }
-                  }}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  {kycStatus === "COMPLETED" ? "Apply for a Loan" : "Complete KYC & Apply"}
-                </Button>
-                <Button
-                  onClick={() => navigate("/compare")}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Compare Loan Options
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-display flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                onClick={() => {
+                  if (kycStatus === "COMPLETED") {
+                    navigate("/compare");
+                  } else if (kycStatus === "IN_REVIEW") {
+                    toast.info("Your KYC is still under review. Please wait for approval.");
+                  } else {
+                    navigate("/apply");
+                  }
+                }}
+                className="w-full justify-start h-12 text-left"
+                variant="outline"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <CreditCard className="h-5 w-5 text-primary shrink-0" />
+                  <div className="text-left">
+                    <p className="font-medium">
+                      {kycStatus === "COMPLETED" ? "Apply for a Loan" : "Complete KYC & Apply"}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-normal">
+                      {kycStatus === "COMPLETED" 
+                        ? "Browse and compare loan options" 
+                        : "Verify your identity first"}
+                    </p>
+                  </div>
+                </div>
+              </Button>
+              
+              <Button
+                onClick={() => navigate("/compare")}
+                className="w-full justify-start h-12 text-left"
+                variant="outline"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <TrendingUp className="h-5 w-5 text-primary shrink-0" />
+                  <div className="text-left">
+                    <p className="font-medium">Compare Loan Options</p>
+                    <p className="text-xs text-muted-foreground font-normal">View rates from different lenders</p>
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                onClick={() => navigate("/profile")}
+                className="w-full justify-start h-12 text-left"
+                variant="outline"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <User className="h-5 w-5 text-primary shrink-0" />
+                  <div className="text-left">
+                    <p className="font-medium">Edit Profile</p>
+                    <p className="text-xs text-muted-foreground font-normal">Update your personal information</p>
+                  </div>
+                </div>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </PulseBeams>
+    </div>
   );
 };
 
