@@ -8,6 +8,7 @@ import { User, FileCheck, CreditCard, Settings, TrendingUp, Clock } from "lucide
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PulseBeams } from "@/components/ui/pulse-beams";
+import { toast } from "sonner";
 
 interface LoanApplication {
   id: string;
@@ -217,9 +218,10 @@ const ProfilePage = () => {
   };
 
   // Calculate profile completion
-  const profileFields = ["full_name", "phone", "email", "nrc_number", "employer", "employee_number", "salary"];
-  const completedFields = profileFields.filter(field => profile && profile[field as keyof typeof profile]);
+  const profileFields: (keyof NonNullable<typeof profile>)[] = ["full_name", "phone", "email", "nrc_number", "employer", "employee_number", "salary"];
+  const completedFields = profileFields.filter(field => profile && profile[field]);
   const profileCompletion = (completedFields.length / profileFields.length) * 100;
+  const kycStatus = profile?.kyc_status || "PENDING";
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -321,12 +323,20 @@ const ProfilePage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
-                  onClick={() => navigate("/apply")}
+                  onClick={() => {
+                    if (kycStatus === "COMPLETED") {
+                      navigate("/apply");
+                    } else if (kycStatus === "IN_REVIEW") {
+                      toast.info("Your KYC is still under review.");
+                    } else {
+                      navigate("/apply");
+                    }
+                  }}
                   className="w-full justify-start"
                   variant="outline"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Apply for a Loan
+                  {kycStatus === "COMPLETED" ? "Apply for a Loan" : "Complete KYC & Apply"}
                 </Button>
                 <Button
                   onClick={() => navigate("/compare")}

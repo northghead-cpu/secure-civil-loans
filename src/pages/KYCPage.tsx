@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,9 +31,21 @@ const steps = [
 
 const KYCPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+
+  // Redirect if KYC already completed or in review
+  useEffect(() => {
+    if (profile?.kyc_status === "COMPLETED" || profile?.kyc_status === "IN_REVIEW") {
+      toast.info(
+        profile.kyc_status === "COMPLETED"
+          ? "Your KYC is already verified."
+          : "Your KYC is under review."
+      );
+      navigate("/profile");
+    }
+  }, [profile, navigate]);
   const [formData, setFormData] = useState({
     fullName: "",
     nrcNumber: "",
@@ -84,6 +96,13 @@ const KYCPage = () => {
       });
       if (insertError) throw insertError;
 
+      // Update profile KYC status to IN_REVIEW
+      await supabase
+        .from("profiles")
+        .update({ kyc_status: "IN_REVIEW" as any })
+        .eq("user_id", user.id);
+
+      await refreshProfile();
       toast.success("Application submitted successfully");
       navigate("/application-submitted");
     } catch (err: any) {
