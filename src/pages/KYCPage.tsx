@@ -47,6 +47,7 @@ const KYCPage = () => {
       navigate("/profile");
     }
   }, [profile, navigate]);
+  const kycStatus = profile?.kyc_status || "PENDING";
   const [formData, setFormData] = useState({
     fullName: "",
     nrcNumber: "",
