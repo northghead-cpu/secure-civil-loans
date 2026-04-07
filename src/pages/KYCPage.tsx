@@ -97,6 +97,13 @@ const KYCPage = () => {
       });
       if (insertError) throw insertError;
 
+      // Update profile KYC status to IN_REVIEW
+      await supabase
+        .from("profiles")
+        .update({ kyc_status: "IN_REVIEW" as any })
+        .eq("user_id", user.id);
+
+      await refreshProfile();
       toast.success("Application submitted successfully");
       navigate("/application-submitted");
     } catch (err: any) {
