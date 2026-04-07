@@ -8,6 +8,7 @@ import { User, FileCheck, CreditCard, Settings, TrendingUp, Clock } from "lucide
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PulseBeams } from "@/components/ui/pulse-beams";
+import { toast } from "sonner";
 
 interface LoanApplication {
   id: string;
