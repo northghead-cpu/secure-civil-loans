@@ -129,7 +129,7 @@ const AdminPortal = () => {
     }
   };
 
-  const updateApplication = async (updates: Record<string, any>) => {
+  const updateApplication = async (updates: Record<string, string | number | null>) => {
     if (!selected) return;
     setSaving(true);
     const { error } = await supabase

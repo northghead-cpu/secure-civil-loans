@@ -51,7 +51,7 @@ const KYCPage = () => {
   const progress = (currentStep / steps.length) * 100;
   const next = () => setCurrentStep((s) => Math.min(s + 1, steps.length));
   const prev = () => setCurrentStep((s) => Math.max(s - 1, 1));
-  const updateField = (field: string, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
+  const updateField = (field: string, value: unknown) => setFormData((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -86,8 +86,9 @@ const KYCPage = () => {
 
       toast.success("Application submitted successfully");
       navigate("/application-submitted");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit application");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to submit application";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

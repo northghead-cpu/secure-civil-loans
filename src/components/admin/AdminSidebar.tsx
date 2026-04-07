@@ -16,6 +16,7 @@ import {
   Zap,
   Settings,
   Shield,
+  LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -35,7 +36,7 @@ import {
 interface MenuItem {
   title: string;
   url: string;
-  icon: any;
+  icon: LucideIcon;
   requiredPermission?: string;
 }
 
@@ -117,7 +118,7 @@ export function AdminSidebar() {
         {menuGroups.map((group) => {
           const visibleItems = group.items.filter((item) => {
             if (!item.requiredPermission) return true;
-            return (permissions as any)[item.requiredPermission] === true;
+            return (permissions as unknown as Record<string, boolean>)[item.requiredPermission] === true;
           });
           if (visibleItems.length === 0) return null;
 
