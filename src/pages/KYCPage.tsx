@@ -31,8 +31,21 @@ const steps = [
 
 const KYCPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Redirect if KYC already completed or in review
+  useEffect(() => {
+    if (profile?.kyc_status === "COMPLETED" || profile?.kyc_status === "IN_REVIEW") {
+      toast.info(
+        profile.kyc_status === "COMPLETED"
+          ? "Your KYC is already verified."
+          : "Your KYC is under review."
+      );
+      navigate("/profile");
+    }
+  }, [profile, navigate]);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
