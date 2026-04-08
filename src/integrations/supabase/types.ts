@@ -116,6 +116,72 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_integrations: {
+        Row: {
+          api_endpoint: string | null
+          config: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          provider_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_endpoint?: string | null
+          config?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          provider_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_endpoint?: string | null
+          config?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          provider_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          pricing: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          pricing?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          pricing?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_status: string
@@ -159,6 +225,51 @@ export type Database = {
           nrc_number?: string | null
           phone?: string | null
           salary?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      risk_flags: {
+        Row: {
+          application_id: string
+          created_at: string
+          flag_type: string
+          flags: Json | null
+          fraud_score: number | null
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          flag_type: string
+          flags?: Json | null
+          fraud_score?: number | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          flag_type?: string
+          flags?: Json | null
+          fraud_score?: number | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
