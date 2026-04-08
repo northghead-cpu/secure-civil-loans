@@ -1,10 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface Product {
   id: string;
   name: string;
   description: string | null;
-  pricing: Record<string, unknown>;
+  pricing: Json;
+  status: "active" | "inactive";
   status: "active" | "inactive";
   created_by: string | null;
   created_at: string;
@@ -14,7 +16,8 @@ export interface Product {
 export interface ProductInput {
   name: string;
   description?: string;
-  pricing?: Record<string, unknown>;
+  pricing?: Json;
+  status?: "active" | "inactive";
   status?: "active" | "inactive";
 }
 
@@ -31,7 +34,7 @@ export const adminProductService = {
   async create(input: ProductInput, userId: string): Promise<Product> {
     const { data, error } = await supabase
       .from("products")
-      .insert({ ...input, created_by: userId })
+      .insert([{ ...input, created_by: userId }])
       .select()
       .single();
     if (error) throw error;
@@ -39,9 +42,14 @@ export const adminProductService = {
   },
 
   async update(id: string, input: Partial<ProductInput>): Promise<Product> {
+    const payload: Record<string, unknown> = {};
+    if (input.name !== undefined) payload.name = input.name;
+    if (input.description !== undefined) payload.description = input.description;
+    if (input.pricing !== undefined) payload.pricing = input.pricing;
+    if (input.status !== undefined) payload.status = input.status;
     const { data, error } = await supabase
       .from("products")
-      .update(input)
+      .update(payload as { name?: string; description?: string; pricing?: Json; status?: string })
       .eq("id", id)
       .select()
       .single();
