@@ -7,7 +7,6 @@ export interface Product {
   description: string | null;
   pricing: Json;
   status: "active" | "inactive";
-  status: "active" | "inactive";
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -17,7 +16,6 @@ export interface ProductInput {
   name: string;
   description?: string;
   pricing?: Json;
-  status?: "active" | "inactive";
   status?: "active" | "inactive";
 }
 
