@@ -20,13 +20,19 @@ import {
   AlertOctagon,
   Plug,
   LucideIcon,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useRBAC } from "@/hooks/useRBAC";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -112,8 +118,20 @@ export function AdminSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const { permissions } = useRBAC();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => currentPath === path;
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error) {
+      toast.error("Failed to logout");
+    }
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -159,6 +177,23 @@ export function AdminSidebar() {
           );
         })}
       </SidebarContent>
+
+      {/* Logout Button in Sidebar Footer */}
+      <SidebarFooter>
+        <div className={`p-2 ${collapsed ? "px-2" : "px-4"}`}>
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 ${
+              collapsed ? "px-2" : ""
+            }`}
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            {!collapsed && <span>Logout</span>}
+          </Button>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }
