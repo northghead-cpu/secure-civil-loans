@@ -142,21 +142,41 @@ const AuthPage = () => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-background p-4 overflow-hidden">
-      {/* Sparkles Background */}
-      <div className="absolute inset-0 inset-y-0 right-0 w-full md:w-1/2 z-0">
+      {/* Sparkles Background - Mobile optimized */}
+      <div className="absolute inset-0 z-0 md:hidden">
+        {/* CSS-only sparkles for mobile - lightweight */}
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={`mobile-sparkle-${i}`}
+              className="absolute w-1 h-1 bg-indigo-400/60 rounded-full animate-pulse"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+      
+      {/* Desktop sparkles with particles */}
+      <div className="absolute inset-0 right-0 w-1/2 z-0 hidden md:block">
         <SparklesCore
           id="auth-sparkles"
           background="transparent"
           minSize={0.4}
           maxSize={1}
-          particleDensity={800}
+          particleDensity={400}
           className="w-full h-full"
           particleColor="#6366f1"
           speed={0.5}
         />
-        {/* Radial Gradient to blend with form */}
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-transparent" />
       </div>
+      
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-transparent z-[1]" />
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
