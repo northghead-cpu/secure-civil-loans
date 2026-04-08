@@ -372,8 +372,8 @@ export const processMultipleDocumentFiles = async (
       timestamp,
     };
 
-    finalConfig.onError?.(error instanceof Error ? error : new Error(errorMessage));
-    finalConfig.onComplete?.(errorResult);
+    config?.onError?.(error instanceof Error ? error : new Error(errorMessage));
+    config?.onComplete?.(errorResult);
 
     return errorResult;
   }

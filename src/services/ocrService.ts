@@ -266,7 +266,7 @@ export const processDocument = async (
     const imageData = await fileToDataUrl(file);
 
     // Perform OCR using Tesseract.js
-    const { data, status } = await Tesseract.recognize(imageData, "eng", {
+    const result = await Tesseract.recognize(imageData, "eng", {
       logger: (m) => {
         if (features.enableOCROLogging && m.status === "recognizing text") {
           log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
@@ -274,8 +274,10 @@ export const processDocument = async (
       },
     });
 
-    if (status === "failed" || !data) {
-      log("OCR processing failed", { status });
+    const data = result.data;
+
+    if (!data) {
+      log("OCR processing failed");
       return {
         ...defaultOCRResult,
         document_type: documentType,
@@ -285,7 +287,6 @@ export const processDocument = async (
 
     log("OCR processing completed", {
       confidence: data.confidence,
-      wordCount: data.words?.length ?? 0,
     });
 
     // Parse the extracted text to find structured data
