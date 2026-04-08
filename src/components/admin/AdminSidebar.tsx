@@ -102,12 +102,6 @@ const menuGroups: MenuGroup[] = [
       { title: "Automations", url: "/admin/automations", icon: Zap, requiredPermission: "canApproveChanges" },
       { title: "Role Permissions", url: "/admin/role-permissions", icon: Shield, requiredPermission: "canManageUsers" },
       { title: "System Settings", url: "/admin/system-settings", icon: Settings, requiredPermission: "canChangeSystemSettings" },
-    ],
-  },
-  {
-    label: "Super Admin",
-    items: [
-      { title: "System Settings", url: "/admin/system-settings", icon: Settings, requiredPermission: "canChangeSystemSettings" },
       { title: "Credit Bureau", url: "/admin/credit-bureau", icon: CreditCard, requiredPermission: "canChangeSystemSettings" },
     ],
   },
