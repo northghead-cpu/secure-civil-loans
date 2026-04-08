@@ -29,9 +29,6 @@ import CompliancePayroll from "./pages/admin/CompliancePayroll";
 import Automations from "./pages/admin/Automations";
 import SystemSettings from "./pages/admin/SystemSettings";
 import RolePermissions from "./pages/admin/RolePermissions";
-import ProductManager from "./pages/admin/ProductManager";
-import RiskCenter from "./pages/admin/RiskCenter";
-import PayrollManager from "./pages/admin/PayrollManager";
 import CreditBureau from "./pages/admin/CreditBureau";
 import NotFound from "./pages/NotFound";
 
@@ -71,9 +68,6 @@ const App = () => (
               <Route path="automations" element={<Automations />} />
               <Route path="role-permissions" element={<RolePermissions />} />
               <Route path="system-settings" element={<SystemSettings />} />
-              <Route path="product-manager" element={<ProductManager />} />
-              <Route path="risk-center" element={<RiskCenter />} />
-              <Route path="payroll-manager" element={<PayrollManager />} />
               <Route path="credit-bureau" element={<CreditBureau />} />
             </Route>
 

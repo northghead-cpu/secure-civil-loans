@@ -107,9 +107,8 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Super Admin",
     items: [
-      { title: "Product Manager", url: "/admin/product-manager", icon: BoxIcon, requiredPermission: "canChangeSystemSettings" },
-      { title: "Risk Center", url: "/admin/risk-center", icon: AlertOctagon, requiredPermission: "canChangeSystemSettings" },
-      { title: "Payroll Manager", url: "/admin/payroll-manager", icon: Plug, requiredPermission: "canChangeSystemSettings" },
+      { title: "System Settings", url: "/admin/system-settings", icon: Settings, requiredPermission: "canChangeSystemSettings" },
+      { title: "Credit Bureau", url: "/admin/credit-bureau", icon: CreditCard, requiredPermission: "canChangeSystemSettings" },
     ],
   },
 ];
