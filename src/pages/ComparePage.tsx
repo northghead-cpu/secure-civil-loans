@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,6 +16,9 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { ArrowRight, ArrowUpDown, Star, TrendingDown } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useRBAC } from "@/hooks/useRBAC";
+import { Loader2 } from "lucide-react";
 
 interface LoanOffer {
   id: string;
@@ -42,6 +46,49 @@ const ComparePage = () => {
   const [amount, setAmount] = useState([100000]);
   const [sortBy, setSortBy] = useState("rate");
   const [termFilter, setTermFilter] = useState("all");
+  const navigate = useNavigate();
+  const { user, profile, loading } = useAuth();
+  const { hasRole } = useRBAC();
+
+  // Redirect if not logged in or KYC not completed (unless they have admin role)
+  useEffect(() => {
+    if (loading) return;
+    
+    // If not logged in, redirect to login
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    // Check if user is admin (admins can access compare without KYC)
+    const isAdmin = hasRole("super_admin") || hasRole("admin") || hasRole("super_user");
+    if (isAdmin) return;
+
+    // Check KYC status for regular users
+    const kycStatus = profile?.kyc_status;
+    if (kycStatus !== "COMPLETED") {
+      // If KYC is pending or in review, redirect to profile/dashboard
+      navigate("/profile", { replace: true });
+    }
+  }, [user, profile, loading, hasRole, navigate]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // If not logged in, don't render the page
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const filtered = mockOffers
     .filter((o) => termFilter === "all" || o.term === parseInt(termFilter))

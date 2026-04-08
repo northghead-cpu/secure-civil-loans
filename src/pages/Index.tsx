@@ -9,26 +9,59 @@ import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useRBAC, AppRole } from "@/hooks/useRBAC";
+import { Loader2 } from "lucide-react";
 
-const getDashboardPath = (role: AppRole | null | undefined) => {
-  if (["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"].includes(role ?? "")) return "/admin";
+/**
+ * Determines redirect path based on role and KYC status
+ */
+const getDashboardPath = async (role: AppRole | null | undefined, profile: { kyc_status: string | null } | null): Promise<string> => {
+  // Admin users go to admin dashboard
+  if (role && ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"].includes(role)) {
+    return "/admin";
+  }
+  
+  // For regular users, check KYC status
+  const kycStatus = profile?.kyc_status;
+  if (kycStatus === "COMPLETED") {
+    return "/compare";
+  }
+  
+  // PENDING, IN_REVIEW, or no profile data -> profile page
   return "/profile";
 };
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { highestRole, loading: rbacLoading } = useRBAC();
 
   useEffect(() => {
     if (authLoading || rbacLoading) return;
-    if (!user) return;
-
-    const targetPath = getDashboardPath(highestRole || "user");
-    if (window.location.pathname === "/") {
-      navigate(targetPath, { replace: true });
+    
+    // If user is not logged in, stay on home page (show landing)
+    if (!user) {
+      return;
     }
-  }, [user, authLoading, rbacLoading, highestRole, navigate]);
+
+    // User is logged in, determine where to redirect
+    const redirect = async () => {
+      const targetPath = await getDashboardPath(highestRole || "user", profile);
+      if (window.location.pathname === "/") {
+        navigate(targetPath, { replace: true });
+      }
+    };
+    
+    redirect();
+  }, [user, authLoading, rbacLoading, highestRole, profile, navigate]);
+
+  // Show loading while checking auth
+  if (authLoading || rbacLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

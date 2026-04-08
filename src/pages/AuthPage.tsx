@@ -6,11 +6,47 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const getDashboardPath = (roles: string[] = []) => {
-  if (roles.some((r) => ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"].includes(r))) {
-    return "/admin";
+/**
+ * Determines the redirect path after login based on user role and KYC status
+ */
+const getRedirectPath = async (userId: string): Promise<string> => {
+  try {
+    // Check user roles first
+    const { data: roleData, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (!roleError && roleData?.length) {
+      const roles = roleData.map((item: { role: string }) => item.role);
+      
+      // If user has admin role, redirect to admin dashboard
+      if (roles.some((r) => ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"].includes(r))) {
+        return "/admin";
+      }
+    }
+
+    // For regular users, check KYC status
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("kyc_status")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const kycStatus = profileData?.kyc_status;
+    
+    // If KYC is completed, allow access to compare page
+    if (kycStatus === "COMPLETED") {
+      return "/compare";
+    }
+
+    // For PENDING, IN_REVIEW, or no status, redirect to profile
+    return "/profile";
+  } catch (error) {
+    // On error, default to profile
+    console.error("Error determining redirect path:", error);
+    return "/profile";
   }
-  return "/profile";
 };
 
 const AuthPage = () => {
@@ -34,20 +70,15 @@ const AuthPage = () => {
         toast({ title: "Welcome back!", description: "You've signed in successfully." });
 
         const userId = data?.user?.id;
-        let rolePath = "/compare";
-
+        
         if (userId) {
-          const { data: roleData, error: roleError } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", userId);
-          if (!roleError && roleData?.length) {
-            const roles = roleData.map((item: { role: string }) => item.role);
-            rolePath = getDashboardPath(roles);
-          }
+          // Get the appropriate redirect path based on role and KYC status
+          const redirectPath = await getRedirectPath(userId);
+          navigate(redirectPath);
+        } else {
+          // Fallback if no user ID
+          navigate("/profile");
         }
-
-        navigate(rolePath);
       } else {
         const { error } = await supabase.auth.signUp({
           email,
