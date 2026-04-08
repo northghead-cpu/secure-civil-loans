@@ -21,6 +21,7 @@ import {
   Plug,
   LucideIcon,
   LogOut,
+  CreditCard,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -92,6 +93,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Risk Flags", url: "/admin/compliance/risk-flags", icon: ShieldAlert, requiredPermission: "canViewLoanApplications" },
       { title: "Audit Logs", url: "/admin/compliance/audit-logs", icon: ScrollText, requiredPermission: "canViewAuditLogs" },
       { title: "Payroll Integration", url: "/admin/compliance/payroll", icon: Link2, requiredPermission: "canViewLoanApplications" },
+      { title: "Credit Bureau Check", url: "/admin/credit-bureau", icon: CreditCard, requiredPermission: "canViewLoanApplications" },
     ],
   },
   {

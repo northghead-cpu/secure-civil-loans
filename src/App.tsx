@@ -32,6 +32,7 @@ import RolePermissions from "./pages/admin/RolePermissions";
 import ProductManager from "./pages/admin/ProductManager";
 import RiskCenter from "./pages/admin/RiskCenter";
 import PayrollManager from "./pages/admin/PayrollManager";
+import CreditBureau from "./pages/admin/CreditBureau";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="product-manager" element={<ProductManager />} />
               <Route path="risk-center" element={<RiskCenter />} />
               <Route path="payroll-manager" element={<PayrollManager />} />
+              <Route path="credit-bureau" element={<CreditBureau />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
