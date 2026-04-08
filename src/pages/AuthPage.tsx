@@ -7,6 +7,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { SparklesCore } from "@/components/ui/sparkles";
 
 /**
  * Determines the redirect path after login based on user role and KYC status
@@ -140,12 +141,28 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-background p-4 overflow-hidden">
+      {/* Sparkles Background */}
+      <div className="absolute inset-0 inset-y-0 right-0 w-full md:w-1/2 z-0">
+        <SparklesCore
+          id="auth-sparkles"
+          background="transparent"
+          minSize={0.4}
+          maxSize={1}
+          particleDensity={800}
+          className="w-full h-full"
+          particleColor="#6366f1"
+          speed={0.5}
+        />
+        {/* Radial Gradient to blend with form */}
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-transparent" />
+      </div>
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative z-10"
       >
         {/* Logo / Brand */}
         <div className="mb-8 text-center">
