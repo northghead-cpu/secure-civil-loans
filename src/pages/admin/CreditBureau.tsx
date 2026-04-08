@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRBAC } from "@/hooks/useRBAC";
 import { toast } from "sonner";
-import { ShieldCheck, Search, AlertTriangle, Loader2, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { ShieldCheck, Search, AlertTriangle, Loader2, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, XCircle, Clock, ArrowLeft } from "lucide-react";
 import {
   performCRBCheck,
   CRBReport,
@@ -33,12 +34,26 @@ interface CheckHistoryItem {
 
 const CreditBureau = () => {
   const { hasRole } = useRBAC();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [nrcNumber, setNrcNumber] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentReport, setCurrentReport] = useState<CRBReport | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   
+  // Read URL params on mount (for pre-filling from Applications page)
+  useEffect(() => {
+    const nrcParam = searchParams.get("nrc");
+    const nameParam = searchParams.get("name");
+    const appIdParam = searchParams.get("appId");
+    
+    if (nrcParam) setNrcNumber(decodeURIComponent(nrcParam));
+    if (nameParam) setFullName(decodeURIComponent(nameParam));
+    if (appIdParam) setApplicationId(appIdParam);
+  }, [searchParams]);
+
   // Check history
   const [checkHistory] = useState<CheckHistoryItem[]>([
     { id: "1", nrcNumber: "123456/12/1", fullName: "John Mwale", status: "CLEAR", riskLevel: "LOW", recommendation: "APPROVE", checkedAt: "2026-03-10 14:30", checkedBy: "Admin", score: 720 },

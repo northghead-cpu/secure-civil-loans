@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useRBAC } from "@/hooks/useRBAC";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ const statusColors: Record<string, string> = {
 
 const UsersApplications = () => {
   const { permissions, logAction } = useRBAC();
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [selected, setSelected] = useState<Application | null>(null);
   const [loadingApps, setLoadingApps] = useState(true);
@@ -113,7 +115,17 @@ const UsersApplications = () => {
   };
 
   const runCRBCheck = () => {
-    updateApplication({ crb_status: "clear", crb_checked_at: new Date().toISOString() });
+    if (!selected?.nrc_number || !selected?.full_name) {
+      toast.error("Applicant NRC and full name are required for CRB check");
+      return;
+    }
+    // Navigate to Credit Bureau page with pre-filled data
+    const params = new URLSearchParams({
+      nrc: selected.nrc_number,
+      name: selected.full_name,
+      appId: selected.id,
+    });
+    navigate(`/admin/credit-bureau?${params.toString()}`);
   };
 
   const canEdit = permissions.canEditLoanApplications;
