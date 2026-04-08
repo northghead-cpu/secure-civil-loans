@@ -16,6 +16,9 @@ import {
   Zap,
   Settings,
   Shield,
+  BoxIcon,
+  AlertOctagon,
+  Plug,
   LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -91,6 +94,14 @@ const menuGroups: MenuGroup[] = [
       { title: "Automations", url: "/admin/automations", icon: Zap, requiredPermission: "canApproveChanges" },
       { title: "Role Permissions", url: "/admin/role-permissions", icon: Shield, requiredPermission: "canManageUsers" },
       { title: "System Settings", url: "/admin/system-settings", icon: Settings, requiredPermission: "canChangeSystemSettings" },
+    ],
+  },
+  {
+    label: "Super Admin",
+    items: [
+      { title: "Product Manager", url: "/admin/product-manager", icon: BoxIcon, requiredPermission: "canChangeSystemSettings" },
+      { title: "Risk Center", url: "/admin/risk-center", icon: AlertOctagon, requiredPermission: "canChangeSystemSettings" },
+      { title: "Payroll Manager", url: "/admin/payroll-manager", icon: Plug, requiredPermission: "canChangeSystemSettings" },
     ],
   },
 ];

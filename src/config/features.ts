@@ -33,6 +33,14 @@ export const features = {
    * @default false (set to true in development)
    */
   enableOCROLogging: false,
+
+  /**
+   * Enable Super Admin Control Panel features
+   * Product Manager, Risk Center, Payroll Manager
+   * 
+   * @default true
+   */
+  enableAdminControls: true,
 } as const;
 
 /**
