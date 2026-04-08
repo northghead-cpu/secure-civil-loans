@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Globe, Key, Shield, Loader2, Save } from "lucide-react";
+import { Bell, Globe, Key, Shield, Loader2, Save, Wallet, Building2, Link2, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 const SystemSettings = () => {
@@ -219,6 +219,134 @@ const SystemSettings = () => {
               onCheckedChange={setSlackAlerts}
               disabled={!canEditSettings}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payroll Integration Section - Super Admin Only */}
+      <Card className={adminCardClass}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base font-display">
+            <Wallet className="h-4 w-4" /> Payroll Integration
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Configure third-party payroll provider connections for salary deduction processing</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="payrollProvider">Payroll Provider</Label>
+            <select 
+              id="payrollProvider" 
+              className="w-full mt-1.5 h-10 rounded-md border border-input bg-background px-3 text-sm"
+              disabled={!canEditSettings}
+            >
+              <option value="">Select a provider</option>
+              <option value="zanaco">ZANACO Payroll</option>
+              <option value="fnb">FNB Business Payroll</option>
+              <option value="standard_chartered">Standard Chartered</option>
+              <option value="civic">Civic Payroll Services</option>
+              <option value="custom">Custom/Internal API</option>
+            </select>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="payrollApiUrl">API Endpoint URL</Label>
+              <Input 
+                id="payrollApiUrl" 
+                type="url"
+                placeholder="https://api.payroll-provider.com/v1"
+                disabled={!canEditSettings}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="payrollApiKey">API Key / Token</Label>
+              <Input 
+                id="payrollApiKey" 
+                type="password"
+                placeholder="Enter API key"
+                disabled={!canEditSettings}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="payrollClientId">Client ID / Merchant ID</Label>
+            <Input 
+              id="payrollClientId" 
+              placeholder="Your payroll client identifier"
+              disabled={!canEditSettings}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="payrollSecret">Client Secret</Label>
+            <Input 
+              id="payrollSecret" 
+              type="password"
+              placeholder="Your payroll client secret"
+              disabled={!canEditSettings}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Enable Live Mode</Label>
+              <p className="text-xs text-muted-foreground">Use production payroll API instead of sandbox</p>
+            </div>
+            <Switch disabled={!canEditSettings} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Auto-verify Employment</Label>
+              <p className="text-xs text-muted-foreground">Automatically verify employee status via payroll API</p>
+            </div>
+            <Switch disabled={!canEditSettings} />
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
+              <Input 
+                id="syncInterval" 
+                type="number"
+                defaultValue="60"
+                min="15"
+                max="1440"
+                className="w-32"
+                disabled={!canEditSettings}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxDeduction">Max Deduction %</Label>
+              <Input 
+                id="maxDeduction" 
+                type="number"
+                defaultValue="30"
+                min="1"
+                max="100"
+                className="w-32"
+                disabled={!canEditSettings}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="webhookSecret">Webhook Secret</Label>
+            <Input 
+              id="webhookSecret" 
+              type="password"
+              placeholder="Secret for verifying incoming webhooks"
+              disabled={!canEditSettings}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Enable Deduction Notifications</Label>
+              <p className="text-xs text-muted-foreground">Notify employers of salary deductions</p>
+            </div>
+            <Switch disabled={!canEditSettings} />
+          </div>
+          <div className="flex items-center gap-2 pt-2 border-t">
+            <Button variant="outline" size="sm" disabled={!canEditSettings}>
+              <Link2 className="h-4 w-4 mr-2" /> Test Connection
+            </Button>
+            <Button variant="outline" size="sm" disabled={!canEditSettings}>
+              <Clock className="h-4 w-4 mr-2" /> View Sync Logs
+            </Button>
           </div>
         </CardContent>
       </Card>
