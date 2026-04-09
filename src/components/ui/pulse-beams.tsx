@@ -85,7 +85,14 @@ export const PulseBeams = ({
   );
 };
 
-const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }) => {
+const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }: {
+  beams: BeamPath[];
+  width: number;
+  height: number;
+  baseColor: string;
+  accentColor: string;
+  gradientColors?: { start: string; middle: string; end: string };
+}) => {
   return (
     <svg
       width={width}
