@@ -22,7 +22,7 @@ interface BeamPath {
     transition?: {
       duration?: number;
       repeat?: number;
-      repeatType?: string;
+      repeatType?: "loop" | "reverse" | "mirror";
       ease?: string;
       repeatDelay?: number;
       delay?: number;
