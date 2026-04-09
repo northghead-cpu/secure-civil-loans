@@ -19,14 +19,8 @@ interface BeamPath {
       y1: string | string[];
       y2: string | string[];
     };
-    transition?: {
-      duration?: number;
-      repeat?: number;
-      repeatType?: string;
-      ease?: string;
-      repeatDelay?: number;
-      delay?: number;
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transition?: Record<string, any>;
   };
   connectionPoints?: Array<{
     cx: number;
@@ -85,7 +79,14 @@ export const PulseBeams = ({
   );
 };
 
-const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }) => {
+const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }: {
+  beams: BeamPath[];
+  width: number;
+  height: number;
+  baseColor: string;
+  accentColor: string;
+  gradientColors?: { start: string; middle: string; end: string };
+}) => {
   return (
     <svg
       width={width}

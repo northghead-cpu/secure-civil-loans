@@ -2,7 +2,6 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, TrendingDown, Users, ShieldCheck } from "lucide-react";
-import { SparklesCore } from "@/components/ui/sparkles";
 import { useRef } from "react";
 
 const stats = [
@@ -24,14 +23,7 @@ const HeroSection = () => {
 
   return (
     <section ref={heroRef} className="relative min-h-[90vh] flex items-center overflow-hidden bg-black">
-      <SparklesCore
-        particleDensity={80}
-        particleColor="#FFFFFF"
-        minSize={1}
-        maxSize={4}
-        className="w-full h-full"
-      />
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-black/95 to-primary/10" />
 
       <motion.div
         className="container mx-auto px-4 lg:px-8 relative z-10 pt-20"
