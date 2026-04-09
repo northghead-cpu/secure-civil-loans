@@ -19,14 +19,8 @@ interface BeamPath {
       y1: string | string[];
       y2: string | string[];
     };
-    transition?: {
-      duration?: number;
-      repeat?: number;
-      repeatType?: "loop" | "reverse" | "mirror";
-      ease?: string | string[];
-      repeatDelay?: number;
-      delay?: number;
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transition?: Record<string, any>;
   };
   connectionPoints?: Array<{
     cx: number;
