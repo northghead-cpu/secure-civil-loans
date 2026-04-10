@@ -7,7 +7,6 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { SparklesCore } from "@/components/ui/sparkles";
 
 /**
  * Determines the redirect path after login based on user role and KYC status
