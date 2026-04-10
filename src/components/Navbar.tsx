@@ -3,9 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Shield, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
+import ApplyLoanModal from "@/components/ApplyLoanModal";
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsApplyOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
@@ -85,8 +85,9 @@ const navLinks = [
                   <Link to="/login">Sign In</Link>
                 </Button>
                 <Button size="sm" asChild>
-                  <Link to="/apply">Get Started</Link>
-                </Button>
+                  <Button size="sm" onClick={() => setApplyOpen(true)}>
+  Apply
+</Button> 
               </>
             )}
           </div>
@@ -127,7 +128,7 @@ const navLinks = [
                     <Link to="/login">Sign In</Link>
                   </Button>
                   <Button size="sm" asChild>
-                    <Link to="/apply">Get Started</Link>
+                    <Button size="sm" onClick={() => setIsApplyOpen(true)}>
                   </Button>
                 </>
               )}
@@ -138,5 +139,5 @@ const navLinks = [
     </nav>
   );
 };
-
+<ApplyLoanModal open={applyOpen} onClose={() => setApplyOpen(false)} />
 export default Navbar;
