@@ -1,6 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,8 +8,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RBACProvider } from "@/hooks/useRBAC"; 
 const InnerAppLogic = () => {
-const navigate = useNavigate();
-
 useEffect(() => {
   if (!profile) return;
 
@@ -23,7 +20,6 @@ useEffect(() => {
 
   // If verified → prevent going back to KYC
   if (profile.kyc_status === "verified" && currentPath === "/apply") {
-    navigate("/compare");
   }
 
 }, [profile]);
