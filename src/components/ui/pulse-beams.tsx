@@ -3,8 +3,6 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-
-type BeamPath = {
   path: string;
   gradientConfig: {
     initial: {
@@ -33,7 +31,6 @@ interface PulseBeamsProps {
   children?: React.ReactNode;
   className?: string;
   background?: React.ReactNode;
-  beams: BeamPath[];
   width?: number;
   height?: number;
   baseColor?: string;
@@ -83,8 +80,7 @@ export const PulseBeams = ({
 const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }: {
 =======
 interface SVGsProps {
->>>>>>> a83fa01 (Fix KYC routing flow)
-  beams: BeamPath[];
+>>>>>>> a83fa01 (Fix KYC routing flow) beams: BeamPath[];
   width: number;
   height: number;
   baseColor: string;
