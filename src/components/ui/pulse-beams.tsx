@@ -1,4 +1,4 @@
-const PulseBeams = () => {
+const PulseBeams = () => null;
   return null;
 };
 
