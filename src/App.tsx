@@ -8,23 +8,28 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RBACProvider } from "@/hooks/useRBAC"; 
 const InnerAppLogic = () => {
-useEffect(() => {
-  if (!profile) return;
+  const { profile, user } = useAuth();
+  const navigate = useNavigate();
 
-  const currentPath = window.location.pathname;
+  useEffect(() => {
+    if (!user) return;
 
-  // If NOT verified → force KYC
-  if (profile.kyc_status !== "verified" && currentPath !== "/apply") {
-    navigate("/apply");
-  }
+    const status = profile?.kyc_status;
 
-  // If verified → prevent going back to KYC
-  if (profile.kyc_status === "verified" && currentPath === "/apply") {
-  }
+    if (!user) {
+      navigate("/login");
+      return;
+    }
 
-}, [profile]);
+    if (status !== "verified") {
+      navigate("/apply");
+      return;
+    }
 
-return null;
+    // verified users: no forced redirect
+  }, [user, profile]);
+
+  return null;
 };
 import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
