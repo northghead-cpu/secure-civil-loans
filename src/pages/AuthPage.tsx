@@ -150,7 +150,7 @@ const AuthPage = () => {
           ))}
         </div>
       </div>
-      
+      <div className="absolute inset-0" />
       <div className="absolute inset-0 right-0 w-1/2 z-0 hidden md:block">
           id="auth-sparkles"
           background="transparent"
@@ -160,7 +160,6 @@ const AuthPage = () => {
           className="w-full h-full"
           particleColor="#6366f1"
           speed={0.5}
-        />
       </div>
       
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-transparent z-[1]" />
