@@ -9,7 +9,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RBACProvider } from "@/hooks/useRBAC"; 
 const InnerAppLogic = () => {
-const { profile } = useAuth();
 const navigate = useNavigate();
 
 useEffect(() => {
@@ -69,7 +68,6 @@ const App = () => {
       <BrowserRouter>
         <AuthProvider>
           <RBACProvider>
-            <InnerAppLogic />
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/compare" element={<ComparePage />} />
