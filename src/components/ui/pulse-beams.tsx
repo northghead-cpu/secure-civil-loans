@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils";
       y2: string;
     };
     animate: {
-      x1: string | string[];
-      x2: string | string[];
-      y1: string | string[];
-      y2: string | string[];
+      x1: string | string;
+      x2: string | string;
+      y1: string | string;
+      y2: string | string;
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transition?: Record<string, any>;
