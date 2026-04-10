@@ -1,5 +1,4 @@
 "use client";
-
 import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -28,9 +27,9 @@ import { cn } from "@/lib/utils";
 }
 
 interface PulseBeamsProps {
-  children?: React.ReactNode;
+  children?: .ReactNode;
   className?: string;
-  background?: React.ReactNode;
+  background?: .ReactNode;
   width?: number;
   height?: number;
   baseColor?: string;
