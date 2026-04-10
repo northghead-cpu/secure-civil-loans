@@ -152,7 +152,6 @@ const AuthPage = () => {
       </div>
       
       <div className="absolute inset-0 right-0 w-1/2 z-0 hidden md:block">
-        <SparklesCore
           id="auth-sparkles"
           background="transparent"
           minSize={0.4}
