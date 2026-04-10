@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { PulseBeams } from "@/components/ui/pulse-beams";
+import PulseBeams from "@/components/ui/pulse-beams";
 import {
   Activity,
   ArrowUpRight,
