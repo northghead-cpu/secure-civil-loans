@@ -66,9 +66,9 @@ const ComparePage = () => {
 
     // Check KYC status for regular users
     const kycStatus = profile?.kyc_status;
-    if (kycStatus !== "COMPLETED") {
-      // If KYC is pending or in review, redirect to profile/dashboard
-      navigate("/profile", { replace: true });
+    if (kycStatus !== "VERIFIED") {
+      // If KYC is not verified, redirect to KYC page
+      navigate("/apply", { replace: true });
     }
   }, [user, profile, loading, hasRole, navigate]);
 
