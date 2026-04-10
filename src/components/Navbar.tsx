@@ -3,43 +3,27 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Shield, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import ApplyLoanModal from "@/components/ApplyLoanModal";
+
 const Navbar = () => {
-  const [isOpen, setIsApplyOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
 
- const isLoggedIn = !!user;
-
-const navLinks = [
-  {
-    label: "Home",
-    path: isLoggedIn ? "/dashboard" : "/",
-  },
-  {
-    label: "Compare Loans",
-    path: "/compare",
-    show: isLoggedIn, // we will control visibility
-  },
-  {
-    label: "How It Works",
-    path: "/#how-it-works",
-    show: !isLoggedIn,
-  },
-  {
-    label: "About",
-    path: "/#about",
-    show: !isLoggedIn,
-  },
-];
+  const navLinks = [
+    { label: "Home", path: "/" },
+    { label: "Compare Loans", path: "/compare" },
+    { label: "How It Works", path: "/#how-it-works" },
+    { label: "About", path: "/#about" },
+  ];
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
 
-  const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
+  const displayName =
+    profile?.full_name || user?.email?.split("@")[0] || "User";
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
@@ -49,23 +33,25 @@ const navLinks = [
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
               <Shield className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-xl font-bold text-foreground">Riverbank</span>
+            <span className="font-display text-xl font-bold text-foreground">
+              Riverbank
+            </span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-           {navLinks
-  .filter((link) => link.show !== false)
-  .map((link) => (
-    <Link
-      key={link.path}
-      to={link.path}
-      className={`text-sm font-medium transition-colors hover:text-accent ${
-        location.pathname === link.path ? "text-accent" : "text-muted-foreground"
-      }`}
-    >
-      {link.label}
-    </Link>
-  ))}
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`text-sm font-medium transition-colors hover:text-accent ${
+                  location.pathname === link.path
+                    ? "text-accent"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -85,9 +71,8 @@ const navLinks = [
                   <Link to="/login">Sign In</Link>
                 </Button>
                 <Button size="sm" asChild>
-                  <Button size="sm" onClick={() => setApplyOpen(true)}>
-  Apply
-</Button> 
+                  <Link to="/apply">Get Started</Link>
+                </Button>
               </>
             )}
           </div>
@@ -112,6 +97,7 @@ const navLinks = [
                 {link.label}
               </Link>
             ))}
+
             <div className="flex gap-3 pt-2">
               {user ? (
                 <>
@@ -139,4 +125,5 @@ const navLinks = [
     </nav>
   );
 };
+
 export default Navbar;
