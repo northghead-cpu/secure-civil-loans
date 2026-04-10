@@ -10,12 +10,29 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
 
-  const navLinks = [
-    { label: "Home", path: "/" },
-    { label: "Compare Loans", path: "/compare" },
-    { label: "How It Works", path: "/#how-it-works" },
-    { label: "About", path: "/#about" },
-  ];
+ const isLoggedIn = !!user;
+
+const navLinks = [
+  {
+    label: "Home",
+    path: isLoggedIn ? "/dashboard" : "/",
+  },
+  {
+    label: "Compare Loans",
+    path: "/compare",
+    show: isLoggedIn, // we will control visibility
+  },
+  {
+    label: "How It Works",
+    path: "/#how-it-works",
+    show: !isLoggedIn,
+  },
+  {
+    label: "About",
+    path: "/#about",
+    show: !isLoggedIn,
+  },
+];
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,17 +53,19 @@ const Navbar = () => {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`text-sm font-medium transition-colors hover:text-accent ${
-                  location.pathname === link.path ? "text-accent" : "text-muted-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+           {navLinks
+  .filter((link) => link.show !== false)
+  .map((link) => (
+    <Link
+      key={link.path}
+      to={link.path}
+      className={`text-sm font-medium transition-colors hover:text-accent ${
+        location.pathname === link.path ? "text-accent" : "text-muted-foreground"
+      }`}
+    >
+      {link.label}
+    </Link>
+  ))}
           </div>
 
           <div className="hidden md:flex items-center gap-3">
