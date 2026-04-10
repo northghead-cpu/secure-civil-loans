@@ -36,17 +36,22 @@ const KYCPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect if KYC already completed or in review
+  // Redirect if KYC already verified or in review
   useEffect(() => {
-    if (profile?.kyc_status === "COMPLETED" || profile?.kyc_status === "IN_REVIEW") {
-      toast.info(
-        profile.kyc_status === "COMPLETED"
-          ? "Your KYC is already verified."
-          : "Your KYC is under review."
-      );
-      navigate("/profile");
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
     }
-  }, [profile, navigate]);
+    if (profile?.kyc_status === "VERIFIED") {
+      toast.info("Your KYC is already verified.");
+      navigate("/profile", { replace: true });
+      return;
+    }
+    if (profile?.kyc_status === "IN_REVIEW") {
+      toast.info("Your KYC is under review.");
+      navigate("/profile", { replace: true });
+    }
+  }, [user, profile, navigate]);
   const kycStatus = profile?.kyc_status || "PENDING";
   const [formData, setFormData] = useState({
     fullName: "",
@@ -263,7 +268,9 @@ const KYCPage = () => {
               <Badge
                 variant="outline"
                 className={
-                  kycStatus === "COMPLETED"
+                  kycStatus === "VERIFIED"
+                    ? "border-success text-success"
+                    : kycStatus === "COMPLETED"
                     ? "border-success text-success"
                     : kycStatus === "IN_REVIEW"
                     ? "border-warning text-warning"

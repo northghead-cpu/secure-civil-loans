@@ -22,11 +22,15 @@ const getDashboardPath = async (role: AppRole | null | undefined, profile: { kyc
   
   // For regular users, check KYC status
   const kycStatus = profile?.kyc_status;
-  if (kycStatus === "COMPLETED") {
-    return "/compare";
+  if (kycStatus === "VERIFIED") {
+    return "/profile";
   }
   
-  // PENDING, IN_REVIEW, or no profile data -> profile page
+  // Not verified → KYC page
+  if (kycStatus !== "VERIFIED") {
+    return "/apply";
+  }
+  
   return "/profile";
 };
 

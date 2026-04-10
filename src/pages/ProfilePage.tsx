@@ -58,6 +58,7 @@ const ProfilePage = () => {
 
   const getKycIcon = () => {
     switch (kycStatus) {
+      case "VERIFIED": return <CheckCircle2 className="h-5 w-5 text-success" />;
       case "COMPLETED": return <CheckCircle2 className="h-5 w-5 text-success" />;
       case "IN_REVIEW": return <Clock className="h-5 w-5 text-warning" />;
       case "REJECTED": return <XCircle className="h-5 w-5 text-destructive" />;
@@ -67,7 +68,8 @@ const ProfilePage = () => {
 
   const getKycLabel = () => {
     switch (kycStatus) {
-      case "COMPLETED": return "Verified";
+      case "VERIFIED": return "Verified";
+      case "COMPLETED": return "Completed";
       case "IN_REVIEW": return "Under Review";
       case "REJECTED": return "Rejected";
       default: return "Not Started";
@@ -135,14 +137,14 @@ const ProfilePage = () => {
                 {getKycIcon()}
                 <span className="text-lg sm:text-xl font-display font-bold text-foreground">{getKycLabel()}</span>
               </div>
-              {kycStatus === "PENDING" && (
+              {(kycStatus === "PENDING" || kycStatus === "COMPLETED") && (
                 <Button 
                   size="sm" 
                   variant="link" 
                   className="px-0 mt-2 h-auto text-xs text-primary" 
                   onClick={() => navigate("/apply")}
                 >
-                  Start KYC →
+                  {kycStatus === "PENDING" ? "Start KYC →" : "Complete Verification →"}
                 </Button>
               )}
               {kycStatus === "REJECTED" && (
@@ -272,7 +274,7 @@ const ProfilePage = () => {
             <CardContent className="space-y-3">
               <Button
                 onClick={() => {
-                  if (kycStatus === "COMPLETED") {
+                  if (kycStatus === "VERIFIED") {
                     navigate("/compare");
                   } else if (kycStatus === "IN_REVIEW") {
                     toast.info("Your KYC is still under review. Please wait for approval.");
@@ -287,10 +289,10 @@ const ProfilePage = () => {
                   <CreditCard className="h-5 w-5 text-primary shrink-0" />
                   <div className="text-left">
                     <p className="font-medium">
-                      {kycStatus === "COMPLETED" ? "Apply for a Loan" : "Complete KYC & Apply"}
+                      {kycStatus === "VERIFIED" ? "Apply for a Loan" : "Complete KYC & Apply"}
                     </p>
                     <p className="text-xs text-muted-foreground font-normal">
-                      {kycStatus === "COMPLETED" 
+                      {kycStatus === "VERIFIED" 
                         ? "Browse and compare loan options" 
                         : "Verify your identity first"}
                     </p>
