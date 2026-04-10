@@ -268,7 +268,9 @@ const KYCPage = () => {
               <Badge
                 variant="outline"
                 className={
-                  kycStatus === "COMPLETED"
+                  kycStatus === "VERIFIED"
+                    ? "border-success text-success"
+                    : kycStatus === "COMPLETED"
                     ? "border-success text-success"
                     : kycStatus === "IN_REVIEW"
                     ? "border-warning text-warning"
