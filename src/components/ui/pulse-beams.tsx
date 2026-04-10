@@ -79,14 +79,29 @@ export const PulseBeams = ({
   );
 };
 
+<<<<<<< HEAD
 const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }: {
+=======
+interface SVGsProps {
+>>>>>>> a83fa01 (Fix KYC routing flow)
   beams: BeamPath[];
   width: number;
   height: number;
   baseColor: string;
   accentColor: string;
+<<<<<<< HEAD
   gradientColors?: { start: string; middle: string; end: string };
 }) => {
+=======
+  gradientColors?: {
+    start: string;
+    middle: string;
+    end: string;
+  };
+}
+
+const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }: SVGsProps) => {
+>>>>>>> a83fa01 (Fix KYC routing flow)
   return (
     <svg
       width={width}
@@ -140,11 +155,13 @@ const SVGs = ({ beams, width, height, baseColor, accentColor, gradientColors }: 
   );
 };
 
-const GradientColors = ({ colors = {
-  start: "#18CCFC",
-  middle: "#6344F5",
-  end: "#AE48FF"
-} }) => {
+const GradientColors = ({
+  colors = {
+    start: "#18CCFC",
+    middle: "#6344F5",
+    end: "#AE48FF",
+  },
+}: { colors?: { start: string; middle: string; end: string } }) => {
   return (
     <>
       <stop offset="0%" stopColor={colors.start} stopOpacity="0" />

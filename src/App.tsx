@@ -1,10 +1,36 @@
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { RBACProvider } from "@/hooks/useRBAC";
+import { RBACProvider } from "@/hooks/useRBAC"; 
+const InnerAppLogic = () => {
+const { profile } = useAuth();
+const navigate = useNavigate();
+
+useEffect(() => {
+  if (!profile) return;
+
+  const currentPath = window.location.pathname;
+
+  // If NOT verified → force KYC
+  if (profile.kyc_status !== "verified" && currentPath !== "/apply") {
+    navigate("/apply");
+  }
+
+  // If verified → prevent going back to KYC
+  if (profile.kyc_status === "verified" && currentPath === "/apply") {
+    navigate("/compare");
+  }
+
+}, [profile]);
+
+return null;
+};
 import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import KYCPage from "./pages/KYCPage";
@@ -34,7 +60,8 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -42,6 +69,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <RBACProvider>
+            <InnerAppLogic />
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/compare" element={<ComparePage />} />
@@ -78,6 +106,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
