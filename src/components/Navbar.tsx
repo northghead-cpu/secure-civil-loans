@@ -128,7 +128,7 @@ const navLinks = [
                     <Link to="/login">Sign In</Link>
                   </Button>
                   <Button size="sm" asChild>
-                    <Button size="sm" onClick={() => setIsApplyOpen(true)}>
+                    <Link to="/apply">Get Started</Link>
                   </Button>
                 </>
               )}
@@ -139,5 +139,4 @@ const navLinks = [
     </nav>
   );
 };
-<ApplyLoanModal open={applyOpen} onClose={() => setApplyOpen(false)} />
 export default Navbar;
