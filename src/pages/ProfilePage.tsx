@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { User, FileCheck, CreditCard, TrendingUp, Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle, Mail, Phone, Building, Hash, Banknote } from "lucide-react";
+import { User, FileCheck, CreditCard, TrendingUp, Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle, Mail, Phone, Building, Hash, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,26 +17,38 @@ interface LoanApplication {
 }
 
 const ProfilePage = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, profileLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // Route guard: redirect if not logged in
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  // Refresh profile on mount to ensure fresh data
+  useEffect(() => {
+    if (user) {
+      refreshProfile();
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchApplications = async () => {
       if (!user) return;
-
       const { data } = await supabase
         .from("loan_applications")
         .select("id, status, created_at, updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10);
-
       setApplications(data || []);
-      setLoading(false);
+      setPageLoading(false);
     };
-
     fetchApplications();
   }, [user]);
 
@@ -76,7 +88,6 @@ const ProfilePage = () => {
     }
   };
 
-  // Profile fields with labels and icons for display
   const profileFields = [
     { key: "full_name" as const, label: "Full Name", icon: User },
     { key: "email" as const, label: "Email Address", icon: Mail },
@@ -89,13 +100,15 @@ const ProfilePage = () => {
   const completedFields = profileFields.filter(f => profile && profile[f.key]);
   const profileCompletion = (completedFields.length / profileFields.length) * 100;
 
-  if (loading) {
+  if (authLoading || pageLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading profile...</div>
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -111,7 +124,6 @@ const ProfilePage = () => {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {/* Profile Completion */}
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Profile</CardTitle>
@@ -120,13 +132,10 @@ const ProfilePage = () => {
             <CardContent>
               <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">{Math.round(profileCompletion)}%</div>
               <Progress value={profileCompletion} className="mt-2 h-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {profileFields.length - completedFields.length} fields remaining
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">{profileFields.length - completedFields.length} fields remaining</p>
             </CardContent>
           </Card>
 
-          {/* KYC Status */}
           <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">KYC Status</CardTitle>
@@ -138,29 +147,18 @@ const ProfilePage = () => {
                 <span className="text-lg sm:text-xl font-display font-bold text-foreground">{getKycLabel()}</span>
               </div>
               {(kycStatus === "PENDING" || kycStatus === "COMPLETED") && (
-                <Button 
-                  size="sm" 
-                  variant="link" 
-                  className="px-0 mt-2 h-auto text-xs text-primary" 
-                  onClick={() => navigate("/apply")}
-                >
+                <Button size="sm" variant="link" className="px-0 mt-2 h-auto text-xs text-primary" onClick={() => navigate("/apply")}>
                   {kycStatus === "PENDING" ? "Start KYC →" : "Complete Verification →"}
                 </Button>
               )}
               {kycStatus === "REJECTED" && (
-                <Button 
-                  size="sm" 
-                  variant="link" 
-                  className="px-0 mt-2 h-auto text-xs text-destructive" 
-                  onClick={() => navigate("/apply")}
-                >
+                <Button size="sm" variant="link" className="px-0 mt-2 h-auto text-xs text-destructive" onClick={() => navigate("/apply")}>
                   Resubmit →
                 </Button>
               )}
             </CardContent>
           </Card>
 
-          {/* Active Applications */}
           <Card className="bg-gradient-to-br from-info/5 to-info/10 border-info/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Active</CardTitle>
@@ -174,7 +172,6 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
 
-          {/* Total Applications */}
           <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total</CardTitle>
@@ -209,9 +206,7 @@ const ProfilePage = () => {
                       {value ? (
                         <p className="text-sm font-medium text-foreground truncate">{String(value)}</p>
                       ) : (
-                        <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">
-                          Not provided
-                        </Badge>
+                        <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">Not provided</Badge>
                       )}
                     </div>
                   </div>
@@ -221,10 +216,8 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
-        {/* Two Column Layout for Applications and Actions */}
+        {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Recent Applications */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-display flex items-center gap-2">
@@ -240,16 +233,10 @@ const ProfilePage = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">Loan Application</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(app.created_at).toLocaleDateString('en-ZA', { 
-                            day: '2-digit', 
-                            month: 'short', 
-                            year: 'numeric' 
-                          })}
+                          {new Date(app.created_at).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
-                      <Badge className={`${getStatusColor(app.status)} text-xs`}>
-                        {getStatusLabel(app.status)}
-                      </Badge>
+                      <Badge className={`${getStatusColor(app.status)} text-xs`}>{getStatusLabel(app.status)}</Badge>
                     </div>
                   ))}
                 </div>
@@ -263,7 +250,6 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-display flex items-center gap-2">
@@ -288,23 +274,15 @@ const ProfilePage = () => {
                 <div className="flex items-center gap-3 w-full">
                   <CreditCard className="h-5 w-5 text-primary shrink-0" />
                   <div className="text-left">
-                    <p className="font-medium">
-                      {kycStatus === "VERIFIED" ? "Apply for a Loan" : "Complete KYC & Apply"}
-                    </p>
+                    <p className="font-medium">{kycStatus === "VERIFIED" ? "Apply for a Loan" : "Complete KYC & Apply"}</p>
                     <p className="text-xs text-muted-foreground font-normal">
-                      {kycStatus === "VERIFIED" 
-                        ? "Browse and compare loan options" 
-                        : "Verify your identity first"}
+                      {kycStatus === "VERIFIED" ? "Browse and compare loan options" : "Verify your identity first"}
                     </p>
                   </div>
                 </div>
               </Button>
               
-              <Button
-                onClick={() => navigate("/compare")}
-                className="w-full justify-start h-12 text-left"
-                variant="outline"
-              >
+              <Button onClick={() => navigate("/compare")} className="w-full justify-start h-12 text-left" variant="outline">
                 <div className="flex items-center gap-3 w-full">
                   <TrendingUp className="h-5 w-5 text-primary shrink-0" />
                   <div className="text-left">
@@ -314,11 +292,7 @@ const ProfilePage = () => {
                 </div>
               </Button>
 
-              <Button
-                onClick={() => navigate("/profile")}
-                className="w-full justify-start h-12 text-left"
-                variant="outline"
-              >
+              <Button onClick={() => navigate("/profile")} className="w-full justify-start h-12 text-left" variant="outline">
                 <div className="flex items-center gap-3 w-full">
                   <User className="h-5 w-5 text-primary shrink-0" />
                   <div className="text-left">

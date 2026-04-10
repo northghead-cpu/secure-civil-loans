@@ -32,12 +32,18 @@ const steps = [
 
 const KYCPage = () => {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, profileLoading, refreshProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect if KYC already verified or in review
+  // Refresh profile on mount for fresh data
   useEffect(() => {
+    if (user) refreshProfile();
+  }, [user]);
+
+  // Route guard with loading protection
+  useEffect(() => {
+    if (authLoading || profileLoading) return;
     if (!user) {
       navigate("/login", { replace: true });
       return;
@@ -51,7 +57,7 @@ const KYCPage = () => {
       toast.info("Your KYC is under review.");
       navigate("/profile", { replace: true });
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, authLoading, profileLoading, navigate]);
   const kycStatus = profile?.kyc_status || "PENDING";
   const [formData, setFormData] = useState({
     fullName: "",
@@ -109,9 +115,14 @@ const KYCPage = () => {
         .update({ kyc_status: "IN_REVIEW" })
         .eq("user_id", user.id);
 
-      await refreshProfile();
+      const freshProfile = await refreshProfile();
       toast.success("Application submitted successfully");
-      navigate("/application-submitted");
+      // If KYC is now verified, go straight to profile/dashboard
+      if (freshProfile?.kyc_status === "VERIFIED") {
+        navigate("/profile", { replace: true });
+      } else {
+        navigate("/application-submitted");
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to submit application";
       toast.error(errorMessage);

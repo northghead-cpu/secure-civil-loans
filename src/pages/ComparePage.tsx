@@ -47,33 +47,33 @@ const ComparePage = () => {
   const [sortBy, setSortBy] = useState("rate");
   const [termFilter, setTermFilter] = useState("all");
   const navigate = useNavigate();
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading, refreshProfile } = useAuth();
   const { hasRole } = useRBAC();
 
-  // Redirect if not logged in or KYC not completed (unless they have admin role)
+  // Refresh profile on mount
   useEffect(() => {
-    if (loading) return;
+    if (user) refreshProfile();
+  }, [user]);
+
+  // Route guard with loading protection
+  useEffect(() => {
+    if (loading || profileLoading) return;
     
-    // If not logged in, redirect to login
     if (!user) {
       navigate("/login", { replace: true });
       return;
     }
 
-    // Check if user is admin (admins can access compare without KYC)
     const isAdmin = hasRole("super_admin") || hasRole("admin") || hasRole("super_user");
     if (isAdmin) return;
 
-    // Check KYC status for regular users
     const kycStatus = profile?.kyc_status;
     if (kycStatus !== "VERIFIED") {
-      // If KYC is not verified, redirect to KYC page
       navigate("/apply", { replace: true });
     }
-  }, [user, profile, loading, hasRole, navigate]);
+  }, [user, profile, loading, profileLoading, hasRole, navigate]);
 
-  // Show loading while checking auth
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />

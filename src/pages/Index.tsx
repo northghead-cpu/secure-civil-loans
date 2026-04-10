@@ -36,18 +36,19 @@ const getDashboardPath = async (role: AppRole | null | undefined, profile: { kyc
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, profileLoading, refreshProfile } = useAuth();
   const { highestRole, loading: rbacLoading } = useRBAC();
 
+  // Refresh profile on mount for fresh routing decisions
   useEffect(() => {
-    if (authLoading || rbacLoading) return;
-    
-    // If user is not logged in, stay on home page (show landing)
-    if (!user) {
-      return;
-    }
+    if (user) refreshProfile();
+  }, [user]);
 
-    // User is logged in, determine where to redirect
+  useEffect(() => {
+    if (authLoading || rbacLoading || profileLoading) return;
+    
+    if (!user) return;
+
     const redirect = async () => {
       const targetPath = await getDashboardPath(highestRole || "user", profile);
       if (window.location.pathname === "/") {
@@ -56,10 +57,9 @@ const Index = () => {
     };
     
     redirect();
-  }, [user, authLoading, rbacLoading, highestRole, profile, navigate]);
+  }, [user, authLoading, rbacLoading, profileLoading, highestRole, profile, navigate]);
 
-  // Show loading while checking auth
-  if (authLoading || rbacLoading) {
+  if (authLoading || rbacLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
