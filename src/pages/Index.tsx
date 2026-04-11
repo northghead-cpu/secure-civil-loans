@@ -11,52 +11,30 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRBAC, AppRole } from "@/hooks/useRBAC";
 import { Loader2 } from "lucide-react";
 
-/**
- * Determines redirect path based on role and KYC status
- */
-const getDashboardPath = async (role: AppRole | null | undefined, profile: { kyc_status: string | null } | null): Promise<string> => {
-  // Admin users go to admin dashboard
-  if (role && ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"].includes(role)) {
-    return "/admin";
-  }
-  
-  // For regular users, check KYC status
-  const kycStatus = profile?.kyc_status;
-  if (kycStatus === "VERIFIED") {
-    return "/profile";
-  }
-  
-  // Not verified → KYC page
-  if (kycStatus !== "VERIFIED") {
-    return "/apply";
-  }
-  
-  return "/profile";
-};
+const ADMIN_ROLES: AppRole[] = ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"];
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, profileLoading, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, profileLoading } = useAuth();
   const { highestRole, loading: rbacLoading } = useRBAC();
-
-  // Refresh profile on mount for fresh routing decisions
-  useEffect(() => {
-    if (user) refreshProfile();
-  }, [user]);
 
   useEffect(() => {
     if (authLoading || rbacLoading || profileLoading) return;
-    
-    if (!user) return;
+    if (!user) return; // Show landing page for non-logged-in users
 
-    const redirect = async () => {
-      const targetPath = await getDashboardPath(highestRole || "user", profile);
-      if (window.location.pathname === "/") {
-        navigate(targetPath, { replace: true });
-      }
-    };
-    
-    redirect();
+    // Admin roles → admin dashboard
+    if (highestRole && ADMIN_ROLES.includes(highestRole)) {
+      navigate("/admin", { replace: true });
+      return;
+    }
+
+    // Verified users → profile (dashboard)
+    if (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") {
+      navigate("/profile", { replace: true });
+      return;
+    }
+
+    // Other logged-in users stay on landing page (they can navigate to /apply)
   }, [user, authLoading, rbacLoading, profileLoading, highestRole, profile, navigate]);
 
   if (authLoading || rbacLoading || profileLoading) {

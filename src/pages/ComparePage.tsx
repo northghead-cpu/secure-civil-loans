@@ -14,11 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowRight, ArrowUpDown, Star, TrendingDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowRight, Star } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRBAC } from "@/hooks/useRBAC";
 import { Loader2 } from "lucide-react";
+import ApplyLoanModal from "@/components/ApplyLoanModal";
 
 interface LoanOffer {
   id: string;
@@ -46,16 +46,15 @@ const ComparePage = () => {
   const [amount, setAmount] = useState([100000]);
   const [sortBy, setSortBy] = useState("rate");
   const [termFilter, setTermFilter] = useState("all");
+  const [loanModalOpen, setLoanModalOpen] = useState(false);
   const navigate = useNavigate();
   const { user, profile, loading, profileLoading, refreshProfile } = useAuth();
   const { hasRole } = useRBAC();
 
-  // Refresh profile on mount
   useEffect(() => {
     if (user) refreshProfile();
   }, [user]);
 
-  // Route guard with loading protection
   useEffect(() => {
     if (loading || profileLoading) return;
     
@@ -68,7 +67,7 @@ const ComparePage = () => {
     if (isAdmin) return;
 
     const kycStatus = profile?.kyc_status;
-    if (kycStatus !== "VERIFIED") {
+    if (kycStatus !== "VERIFIED" && kycStatus !== "COMPLETED") {
       navigate("/apply", { replace: true });
     }
   }, [user, profile, loading, profileLoading, hasRole, navigate]);
@@ -81,7 +80,6 @@ const ComparePage = () => {
     );
   }
 
-  // If not logged in, don't render the page
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -121,7 +119,6 @@ const ComparePage = () => {
         </motion.div>
 
         <div className="container mx-auto px-4 lg:px-8 mt-6">
-          {/* Filters */}
           <motion.div
             className="bg-card rounded-xl p-6 border border-border/50 card-elevated mb-8"
             initial={{ opacity: 0, y: 16 }}
@@ -133,14 +130,7 @@ const ComparePage = () => {
                 <label className="text-sm font-medium text-foreground mb-2 block">
                   Loan Amount: K{amount[0].toLocaleString()}
                 </label>
-                <Slider
-                  value={amount}
-                  onValueChange={setAmount}
-                  min={10000}
-                  max={500000}
-                  step={5000}
-                  className="mt-3"
-                />
+                <Slider value={amount} onValueChange={setAmount} min={10000} max={500000} step={5000} className="mt-3" />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>K10,000</span>
                   <span>K500,000</span>
@@ -150,9 +140,7 @@ const ComparePage = () => {
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Term</label>
                 <Select value={termFilter} onValueChange={setTermFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Terms</SelectItem>
                     <SelectItem value="36">36 Months</SelectItem>
@@ -166,9 +154,7 @@ const ComparePage = () => {
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Sort By</label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="rate">Interest Rate</SelectItem>
                     <SelectItem value="monthly">Monthly Payment</SelectItem>
@@ -179,7 +165,6 @@ const ComparePage = () => {
             </div>
           </motion.div>
 
-          {/* Results */}
           <div className="space-y-4">
             {filtered.map((offer, i) => (
               <motion.div
@@ -194,9 +179,7 @@ const ComparePage = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center gap-6">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-display font-semibold text-foreground">
-                        {offer.lender}
-                      </h3>
+                      <h3 className="font-display font-semibold text-foreground">{offer.lender}</h3>
                       {offer.featured && (
                         <Badge className="bg-accent/10 text-accent border-accent/20 text-xs">
                           <Star className="w-3 h-3 mr-1" /> Top Pick
@@ -214,29 +197,21 @@ const ComparePage = () => {
 
                   <div className="grid grid-cols-3 gap-6 lg:gap-10 text-center">
                     <div>
-                      <p className="text-2xl font-display font-bold text-foreground">
-                        {offer.rate}%
-                      </p>
+                      <p className="text-2xl font-display font-bold text-foreground">{offer.rate}%</p>
                       <p className="text-xs text-muted-foreground">Annual Rate</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-display font-bold text-foreground">
-                        K{offer.monthlyPayment.toLocaleString()}
-                      </p>
+                      <p className="text-2xl font-display font-bold text-foreground">K{offer.monthlyPayment.toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">Monthly</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-display font-bold text-foreground">
-                        {offer.term} mo
-                      </p>
+                      <p className="text-2xl font-display font-bold text-foreground">{offer.term} mo</p>
                       <p className="text-xs text-muted-foreground">Term</p>
                     </div>
                   </div>
 
-                  <Button asChild>
-                    <Link to="/apply">
-                      Apply Now <ArrowRight className="w-4 h-4" />
-                    </Link>
+                  <Button onClick={() => setLoanModalOpen(true)}>
+                    Apply Now <ArrowRight className="w-4 h-4" />
                   </Button>
                 </div>
               </motion.div>
@@ -245,6 +220,7 @@ const ComparePage = () => {
         </div>
       </main>
       <Footer />
+      <ApplyLoanModal open={loanModalOpen} onClose={() => setLoanModalOpen(false)} />
     </div>
   );
 };

@@ -24,9 +24,9 @@ import {
 } from "lucide-react";
 
 const steps = [
-  { id: 1, title: "NRC Upload", icon: Upload, description: "Upload your National Registration Card" },
+  { id: 1, title: "Personal Info", icon: Upload, description: "Your personal details and NRC" },
   { id: 2, title: "Government ID", icon: CreditCard, description: "Verify your government-issued identity" },
-  { id: 3, title: "Payslip Upload", icon: FileText, description: "Upload your latest payslip" },
+  { id: 3, title: "Employment & Payslip", icon: FileText, description: "Employment details and payslip upload" },
   { id: 4, title: "E-Sign Consent", icon: FileSignature, description: "Sign your payroll deduction consent" },
 ];
 
@@ -36,19 +36,17 @@ const KYCPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  // Refresh profile on mount for fresh data
   useEffect(() => {
     if (user) refreshProfile();
   }, [user]);
 
-  // Route guard with loading protection
   useEffect(() => {
     if (authLoading || profileLoading) return;
     if (!user) {
       navigate("/login", { replace: true });
       return;
     }
-    if (profile?.kyc_status === "VERIFIED") {
+    if (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") {
       toast.info("Your KYC is already verified.");
       navigate("/profile", { replace: true });
       return;
@@ -58,10 +56,12 @@ const KYCPage = () => {
       navigate("/profile", { replace: true });
     }
   }, [user, profile, authLoading, profileLoading, navigate]);
+
   const kycStatus = profile?.kyc_status || "PENDING";
   const [formData, setFormData] = useState({
     fullName: "",
     nrcNumber: "",
+    phone: "",
     nrcFile: null as File | null,
     govIdType: "passport",
     govIdNumber: "",
@@ -82,7 +82,6 @@ const KYCPage = () => {
     if (!user) return;
     setSubmitting(true);
     try {
-      // Upload files
       const files: { field: string; file: File }[] = [];
       if (formData.nrcFile) files.push({ field: "nrc", file: formData.nrcFile });
       if (formData.govIdFile) files.push({ field: "gov-id", file: formData.govIdFile });
@@ -95,7 +94,7 @@ const KYCPage = () => {
         if (error) throw error;
       }
 
-      // Save application to database
+      // Save application
       const { error: insertError } = await supabase.from("loan_applications").insert({
         user_id: user.id,
         full_name: formData.fullName,
@@ -109,15 +108,22 @@ const KYCPage = () => {
       });
       if (insertError) throw insertError;
 
-      // Update profile KYC status to IN_REVIEW
+      // Update profile with KYC data
       await supabase
         .from("profiles")
-        .update({ kyc_status: "IN_REVIEW" })
+        .update({
+          kyc_status: "IN_REVIEW",
+          full_name: formData.fullName || undefined,
+          nrc_number: formData.nrcNumber || undefined,
+          phone: formData.phone || undefined,
+          employer: formData.employer || undefined,
+          employee_number: formData.employeeNumber || undefined,
+        })
         .eq("user_id", user.id);
 
       const freshProfile = await refreshProfile();
       toast.success("Application submitted successfully");
-      // If KYC is now verified, go straight to profile/dashboard
+
       if (freshProfile?.kyc_status === "VERIFIED") {
         navigate("/profile", { replace: true });
       } else {
@@ -145,6 +151,10 @@ const KYCPage = () => {
                 <Label htmlFor="nrcNumber">NRC Number</Label>
                 <Input id="nrcNumber" placeholder="e.g. 123456/78/1" value={formData.nrcNumber} onChange={(e) => updateField("nrcNumber", e.target.value)} className="mt-1.5" />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input id="phone" type="tel" placeholder="e.g. +260 97X XXXXXX" value={formData.phone} onChange={(e) => updateField("phone", e.target.value)} className="mt-1.5" />
             </div>
             <div>
               <Label>Upload NRC (Front & Back)</Label>
@@ -279,9 +289,7 @@ const KYCPage = () => {
               <Badge
                 variant="outline"
                 className={
-                  kycStatus === "VERIFIED"
-                    ? "border-success text-success"
-                    : kycStatus === "COMPLETED"
+                  kycStatus === "VERIFIED" || kycStatus === "COMPLETED"
                     ? "border-success text-success"
                     : kycStatus === "IN_REVIEW"
                     ? "border-warning text-warning"
