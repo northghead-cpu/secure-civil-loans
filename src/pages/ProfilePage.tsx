@@ -8,6 +8,8 @@ import { User, FileCheck, CreditCard, TrendingUp, Clock, ShieldCheck, CheckCircl
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import Navbar from "@/components/Navbar";
+import ApplyLoanModal from "@/components/ApplyLoanModal";
 
 interface LoanApplication {
   id: string;
@@ -21,8 +23,8 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
+  const [loanModalOpen, setLoanModalOpen] = useState(false);
 
-  // Route guard: redirect if not logged in
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -30,16 +32,15 @@ const ProfilePage = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Refresh profile on mount to ensure fresh data
   useEffect(() => {
-    if (user) {
-      refreshProfile();
-    }
+    if (user) refreshProfile();
   }, [user]);
 
+  // Fetch applications + realtime subscription
   useEffect(() => {
+    if (!user) return;
+
     const fetchApplications = async () => {
-      if (!user) return;
       const { data } = await supabase
         .from("loan_applications")
         .select("id, status, created_at, updated_at")
@@ -50,6 +51,35 @@ const ProfilePage = () => {
       setPageLoading(false);
     };
     fetchApplications();
+
+    // Realtime subscription for loan applications
+    const channel = supabase
+      .channel("user-applications")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "loan_applications", filter: `user_id=eq.${user.id}` },
+        () => {
+          fetchApplications();
+        }
+      )
+      .subscribe();
+
+    // Realtime subscription for profile changes
+    const profileChannel = supabase
+      .channel("user-profile")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
+        () => {
+          refreshProfile();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(profileChannel);
+    };
   }, [user]);
 
   const getStatusColor = (status: string) => {
@@ -110,9 +140,12 @@ const ProfilePage = () => {
 
   if (!user) return null;
 
+  const canApply = kycStatus === "VERIFIED" || kycStatus === "COMPLETED";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6">
+      <Navbar />
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6 pt-24">
         
         {/* Header */}
         <div className="text-center sm:text-left">
@@ -146,14 +179,9 @@ const ProfilePage = () => {
                 {getKycIcon()}
                 <span className="text-lg sm:text-xl font-display font-bold text-foreground">{getKycLabel()}</span>
               </div>
-              {(kycStatus === "PENDING" || kycStatus === "COMPLETED") && (
+              {(kycStatus === "PENDING" || kycStatus === "REJECTED") && (
                 <Button size="sm" variant="link" className="px-0 mt-2 h-auto text-xs text-primary" onClick={() => navigate("/apply")}>
-                  {kycStatus === "PENDING" ? "Start KYC →" : "Complete Verification →"}
-                </Button>
-              )}
-              {kycStatus === "REJECTED" && (
-                <Button size="sm" variant="link" className="px-0 mt-2 h-auto text-xs text-destructive" onClick={() => navigate("/apply")}>
-                  Resubmit →
+                  {kycStatus === "PENDING" ? "Start KYC →" : "Resubmit →"}
                 </Button>
               )}
             </CardContent>
@@ -258,53 +286,59 @@ const ProfilePage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button
-                onClick={() => {
-                  if (kycStatus === "VERIFIED") {
-                    navigate("/compare");
-                  } else if (kycStatus === "IN_REVIEW") {
-                    toast.info("Your KYC is still under review. Please wait for approval.");
-                  } else {
-                    navigate("/apply");
-                  }
-                }}
-                className="w-full justify-start h-12 text-left"
-                variant="outline"
-              >
-                <div className="flex items-center gap-3 w-full">
-                  <CreditCard className="h-5 w-5 text-primary shrink-0" />
-                  <div className="text-left">
-                    <p className="font-medium">{kycStatus === "VERIFIED" ? "Apply for a Loan" : "Complete KYC & Apply"}</p>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      {kycStatus === "VERIFIED" ? "Browse and compare loan options" : "Verify your identity first"}
-                    </p>
+              {canApply ? (
+                <Button
+                  onClick={() => setLoanModalOpen(true)}
+                  className="w-full justify-start h-12 text-left"
+                  variant="outline"
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <CreditCard className="h-5 w-5 text-primary shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium">Apply for a Loan</p>
+                      <p className="text-xs text-muted-foreground font-normal">Submit a new loan application</p>
+                    </div>
                   </div>
-                </div>
-              </Button>
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    if (kycStatus === "IN_REVIEW") {
+                      toast.info("Your KYC is still under review. Please wait for approval.");
+                    } else {
+                      navigate("/apply");
+                    }
+                  }}
+                  className="w-full justify-start h-12 text-left"
+                  variant="outline"
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <CreditCard className="h-5 w-5 text-primary shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium">Complete KYC & Apply</p>
+                      <p className="text-xs text-muted-foreground font-normal">Verify your identity first</p>
+                    </div>
+                  </div>
+                </Button>
+              )}
               
-              <Button onClick={() => navigate("/compare")} className="w-full justify-start h-12 text-left" variant="outline">
-                <div className="flex items-center gap-3 w-full">
-                  <TrendingUp className="h-5 w-5 text-primary shrink-0" />
-                  <div className="text-left">
-                    <p className="font-medium">Compare Loan Options</p>
-                    <p className="text-xs text-muted-foreground font-normal">View rates from different lenders</p>
+              {canApply && (
+                <Button onClick={() => navigate("/compare")} className="w-full justify-start h-12 text-left" variant="outline">
+                  <div className="flex items-center gap-3 w-full">
+                    <TrendingUp className="h-5 w-5 text-primary shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium">Compare Loan Options</p>
+                      <p className="text-xs text-muted-foreground font-normal">View rates from different lenders</p>
+                    </div>
                   </div>
-                </div>
-              </Button>
-
-              <Button onClick={() => navigate("/profile")} className="w-full justify-start h-12 text-left" variant="outline">
-                <div className="flex items-center gap-3 w-full">
-                  <User className="h-5 w-5 text-primary shrink-0" />
-                  <div className="text-left">
-                    <p className="font-medium">Edit Profile</p>
-                    <p className="text-xs text-muted-foreground font-normal">Update your personal information</p>
-                  </div>
-                </div>
-              </Button>
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <ApplyLoanModal open={loanModalOpen} onClose={() => setLoanModalOpen(false)} />
     </div>
   );
 };

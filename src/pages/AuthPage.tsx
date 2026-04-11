@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,12 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
-/**
- * Determines the redirect path after login based on user role and KYC status
- */
 const getRedirectPath = async (userId: string): Promise<string> => {
   try {
-    // Check user roles first
     const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
@@ -26,7 +22,6 @@ const getRedirectPath = async (userId: string): Promise<string> => {
       }
     }
 
-    // For regular users, check KYC status from profile
     const { data: profileData } = await supabase
       .from("profiles")
       .select("kyc_status")
@@ -34,17 +29,9 @@ const getRedirectPath = async (userId: string): Promise<string> => {
       .maybeSingle();
 
     const kycStatus = profileData?.kyc_status;
-
-    if (kycStatus === "VERIFIED") {
+    if (kycStatus === "VERIFIED" || kycStatus === "IN_REVIEW" || kycStatus === "COMPLETED") {
       return "/profile";
     }
-
-    // Not verified → KYC page
-    if (kycStatus === "IN_REVIEW" || kycStatus === "COMPLETED") {
-      return "/profile";
-    }
-
-    // PENDING or no status → apply
     return "/apply";
   } catch (error) {
     console.error("Error determining redirect path:", error);
@@ -53,12 +40,15 @@ const getRedirectPath = async (userId: string): Promise<string> => {
 };
 
 const AuthPage = () => {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [searchParams] = useSearchParams();
+  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -99,17 +89,16 @@ const AuthPage = () => {
           password,
           options: {
             data: { full_name: fullName },
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: window.location.origin + "/login",
           },
         });
         if (signUpError) throw signUpError;
+
+        setSignupSuccess(true);
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account before signing in.",
         });
-        setMode("login");
-        setPassword("");
-        setFullName("");
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -120,26 +109,59 @@ const AuthPage = () => {
     }
   };
 
+  const switchToLogin = () => {
+    setMode("login");
+    setError("");
+    setSignupSuccess(false);
+  };
+
   const onThirdPartySignIn = async (provider: "google" | "apple") => {
     try {
       const { error } = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
       if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    } catch (err) {
+    } catch {
       toast({ title: "Error", description: "Failed to sign in", variant: "destructive" });
     }
   };
 
+  // After signup success, show confirmation message with button to switch to login
+  if (signupSuccess) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center bg-background p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md text-center space-y-6"
+        >
+          <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-display font-bold text-foreground">Check Your Email</h2>
+          <p className="text-muted-foreground">
+            We've sent a confirmation link to <strong className="text-foreground">{email}</strong>. 
+            Please verify your email address, then sign in below.
+          </p>
+          <Button onClick={switchToLogin} className="w-full h-11">
+            Go to Login
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-background p-4 overflow-hidden">
-      {/* Sparkles Background - Mobile optimized */}
-      <div className="absolute inset-0 z-0 md:hidden">
+      {/* Sparkle dots background */}
+      <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
+          {[...Array(30)].map((_, i) => (
             <div
-              key={`mobile-sparkle-${i}`}
-              className="absolute w-1 h-1 bg-indigo-400/60 rounded-full animate-pulse"
+              key={`sparkle-${i}`}
+              className="absolute w-1 h-1 bg-primary/40 rounded-full animate-pulse"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
@@ -149,17 +171,6 @@ const AuthPage = () => {
             />
           ))}
         </div>
-      </div>
-      <div className="absolute inset-0" />
-      <div className="absolute inset-0 right-0 w-1/2 z-0 hidden md:block">
-          id="auth-sparkles"
-          background="transparent"
-          minSize={0.4}
-          maxSize={1}
-          particleDensity={400}
-          className="w-full h-full"
-          particleColor="#6366f1"
-          speed={0.5}
       </div>
       
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-transparent z-[1]" />

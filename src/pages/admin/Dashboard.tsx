@@ -1,7 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import PulseBeams from "@/components/ui/pulse-beams";
 import {
   Activity,
   ArrowUpRight,
@@ -15,140 +14,17 @@ import {
   Users,
 } from "lucide-react";
 
-const beams = [
-  {
-    path: "M269 220.5H16.5C10.9772 220.5 6.5 224.977 6.5 230.5V398.5",
-    gradientConfig: {
-      initial: { x1: "0%", x2: "0%", y1: "80%", y2: "100%" },
-      animate: {
-        x1: ["0%", "0%", "200%"],
-        x2: ["0%", "0%", "180%"],
-        y1: ["80%", "0%", "0%"],
-        y2: ["100%", "20%", "20%"],
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop" as const,
-        ease: "linear",
-        repeatDelay: 2,
-        delay: 0.2,
-      },
-    },
-    connectionPoints: [
-      { cx: 6.5, cy: 398.5, r: 6 },
-      { cx: 269, cy: 220.5, r: 6 },
-    ],
-  },
-  {
-    path: "M568 200H841C846.523 200 851 195.523 851 190V40",
-    gradientConfig: {
-      initial: { x1: "0%", x2: "0%", y1: "80%", y2: "100%" },
-      animate: {
-        x1: ["20%", "100%", "100%"],
-        x2: ["0%", "90%", "90%"],
-        y1: ["80%", "80%", "-20%"],
-        y2: ["100%", "100%", "0%"],
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop" as const,
-        ease: "linear",
-        repeatDelay: 2,
-        delay: 1,
-      },
-    },
-    connectionPoints: [
-      { cx: 851, cy: 34, r: 6.5 },
-      { cx: 568, cy: 200, r: 6 },
-    ],
-  },
-  {
-    path: "M425.5 274V333C425.5 338.523 421.023 343 415.5 343H152C146.477 343 142 347.477 142 353V426.5",
-    gradientConfig: {
-      initial: { x1: "0%", x2: "0%", y1: "80%", y2: "100%" },
-      animate: {
-        x1: ["20%", "100%", "100%"],
-        x2: ["0%", "90%", "90%"],
-        y1: ["80%", "80%", "-20%"],
-        y2: ["100%", "100%", "0%"],
-      },
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "loop" as const,
-        ease: "linear",
-        repeatDelay: 2,
-        delay: 1.4,
-      },
-    },
-    connectionPoints: [
-      { cx: 142, cy: 427, r: 6.5 },
-      { cx: 425.5, cy: 274, r: 6 },
-    ],
-  },
-];
-
-const gradientColors = {
-  start: "#18CCFC",
-  middle: "#6344F5",
-  end: "#AE48FF",
-};
-
 const stats = [
-  {
-    label: "Active borrowers",
-    value: "2,847",
-    delta: "+12% this month",
-    icon: Users,
-    tone: "from-sky-500/20 to-sky-400/5",
-  },
-  {
-    label: "Pending applications",
-    value: "34",
-    delta: "9 require review today",
-    icon: FileCheck,
-    tone: "from-amber-400/20 to-amber-300/5",
-  },
-  {
-    label: "Monthly revenue",
-    value: "K 245,000",
-    delta: "+18% versus March",
-    icon: Banknote,
-    tone: "from-emerald-400/20 to-emerald-300/5",
-  },
-  {
-    label: "Risk alerts",
-    value: "7",
-    delta: "2 escalated in the last hour",
-    icon: ShieldAlert,
-    tone: "from-rose-400/20 to-rose-300/5",
-  },
+  { label: "Active borrowers", value: "2,847", delta: "+12% this month", icon: Users, tone: "from-sky-500/20 to-sky-400/5" },
+  { label: "Pending applications", value: "34", delta: "9 require review today", icon: FileCheck, tone: "from-amber-400/20 to-amber-300/5" },
+  { label: "Monthly revenue", value: "K 245,000", delta: "+18% versus March", icon: Banknote, tone: "from-emerald-400/20 to-emerald-300/5" },
+  { label: "Risk alerts", value: "7", delta: "2 escalated in the last hour", icon: ShieldAlert, tone: "from-rose-400/20 to-rose-300/5" },
 ];
 
 const priorityQueue = [
-  {
-    title: "KYC mismatch on payroll upload",
-    owner: "Compliance team",
-    eta: "Due in 18 min",
-    badge: "Urgent",
-    badgeClass: "bg-rose-500/15 text-rose-200 border-rose-400/20",
-  },
-  {
-    title: "Manual review for civil service deduction cap",
-    owner: "Credit operations",
-    eta: "Due in 42 min",
-    badge: "Needs review",
-    badgeClass: "bg-amber-400/15 text-amber-100 border-amber-300/20",
-  },
-  {
-    title: "Stanbic payout reconciliation exception",
-    owner: "Finance desk",
-    eta: "Ready now",
-    badge: "Finance",
-    badgeClass: "bg-sky-500/15 text-sky-100 border-sky-400/20",
-  },
+  { title: "KYC mismatch on payroll upload", owner: "Compliance team", eta: "Due in 18 min", badge: "Urgent", badgeClass: "bg-rose-500/15 text-rose-200 border-rose-400/20" },
+  { title: "Manual review for civil service deduction cap", owner: "Credit operations", eta: "Due in 42 min", badge: "Needs review", badgeClass: "bg-amber-400/15 text-amber-100 border-amber-300/20" },
+  { title: "Stanbic payout reconciliation exception", owner: "Finance desk", eta: "Ready now", badge: "Finance", badgeClass: "bg-sky-500/15 text-sky-100 border-sky-400/20" },
 ];
 
 const recentActivity = [
@@ -175,13 +51,8 @@ const lenders = [
 const Dashboard = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <PulseBeams
-        beams={beams}
-        gradientColors={gradientColors}
-        width={1200}
-        height={520}
-        className="!h-auto min-h-[360px] overflow-hidden rounded-[28px] border border-white/10 bg-slate-950 shadow-2xl"
-      >
+      {/* Hero Banner */}
+      <div className="overflow-hidden rounded-[28px] border border-border/30 bg-gradient-to-br from-slate-950 via-slate-900 to-primary/20 shadow-2xl">
         <div className="w-full p-6 md:p-8 lg:p-10">
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
@@ -191,8 +62,7 @@ const Dashboard = () => {
                 </Badge>
                 <div className="space-y-3">
                   <h1 className="max-w-2xl text-4xl font-display font-bold leading-tight text-white md:text-5xl">
-                    Admin command center for
-                    {" "}
+                    Admin command center for{" "}
                     <span className="text-gradient">live lending activity</span>
                   </h1>
                   <p className="max-w-2xl text-base text-white/70 md:text-lg">
@@ -249,8 +119,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      </PulseBeams>
+      </div>
 
+      {/* Priority Queue + Live Activity */}
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Card className="card-elevated border-border/70 bg-card/95">
           <CardHeader className="space-y-4">
@@ -313,6 +184,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
+      {/* Pipeline + Lender Health */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="card-elevated border-border/70 bg-card/95">
           <CardHeader>
