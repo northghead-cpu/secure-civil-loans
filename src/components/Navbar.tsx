@@ -10,11 +10,13 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
 
+  const isLoggedIn = !!user;
+
   const navLinks = [
-    { label: "Home", path: "/" },
-    { label: "Compare Loans", path: "/compare" },
-    { label: "How It Works", path: "/#how-it-works" },
-    { label: "About", path: "/#about" },
+    { label: "Home", path: "/", show: true },
+    { label: "Compare Loans", path: "/compare", show: isLoggedIn },
+    { label: "How It Works", path: "/#how-it-works", show: !isLoggedIn },
+    { label: "About", path: "/#about", show: !isLoggedIn },
   ];
 
   const handleSignOut = async () => {
@@ -39,28 +41,30 @@ const Navbar = () => {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`text-sm font-medium transition-colors hover:text-accent ${
-                  location.pathname === link.path
-                    ? "text-accent"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks
+              .filter((link) => link.show)
+              .map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`text-sm font-medium transition-colors hover:text-accent ${
+                    location.pathname === link.path
+                      ? "text-accent"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
           </div>
 
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <div className="flex items-center gap-2 text-sm text-foreground">
+                <Link to="/profile" className="flex items-center gap-2 text-sm text-foreground hover:text-accent transition-colors">
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">{displayName}</span>
-                </div>
+                </Link>
                 <Button variant="ghost" size="sm" onClick={handleSignOut}>
                   <LogOut className="w-4 h-4 mr-1" /> Sign Out
                 </Button>
@@ -71,7 +75,7 @@ const Navbar = () => {
                   <Link to="/login">Sign In</Link>
                 </Button>
                 <Button size="sm" asChild>
-                  <Link to="/apply">Get Started</Link>
+                  <Link to="/login?mode=signup">Get Started</Link>
                 </Button>
               </>
             )}
@@ -87,23 +91,25 @@ const Navbar = () => {
 
         {isOpen && (
           <div className="md:hidden pb-4 border-t border-border mt-2 pt-4 space-y-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className="block text-sm font-medium text-muted-foreground hover:text-accent py-2"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks
+              .filter((link) => link.show)
+              .map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className="block text-sm font-medium text-muted-foreground hover:text-accent py-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
 
             <div className="flex gap-3 pt-2">
               {user ? (
                 <>
-                  <span className="text-sm font-medium text-foreground flex items-center gap-1">
+                  <Link to="/profile" className="text-sm font-medium text-foreground flex items-center gap-1">
                     <User className="w-4 h-4" /> {displayName}
-                  </span>
+                  </Link>
                   <Button variant="ghost" size="sm" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-1" /> Sign Out
                   </Button>
@@ -114,7 +120,7 @@ const Navbar = () => {
                     <Link to="/login">Sign In</Link>
                   </Button>
                   <Button size="sm" asChild>
-                    <Link to="/apply">Get Started</Link>
+                    <Link to="/login?mode=signup">Get Started</Link>
                   </Button>
                 </>
               )}
