@@ -94,35 +94,24 @@ const KYCPage = () => {
         if (error) throw error;
       }
 
-      // Save application
-      const { error: insertError } = await supabase.from("loan_applications").insert({
-        user_id: user.id,
-        full_name: formData.fullName,
-        nrc_number: formData.nrcNumber,
-        gov_id_type: formData.govIdType,
-        gov_id_number: formData.govIdNumber,
-        employer: formData.employer,
-        employee_number: formData.employeeNumber,
-        consent_accepted: formData.consentAccepted,
-        signature_name: formData.signatureName,
-      });
-      if (insertError) throw insertError;
-
-      // Update profile with KYC data
-      await supabase
+      // FIXED SECTION: We now upsert to profiles instead of inserting to loan_applications
+      const { error: profileError } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          user_id: user.id,
+          full_name: formData.fullName,
+          nrc_number: formData.nrcNumber,
+          phone: formData.phone,
+          employer: formData.employer,
+          employee_number: formData.employeeNumber,
           kyc_status: "IN_REVIEW",
-          full_name: formData.fullName || undefined,
-          nrc_number: formData.nrcNumber || undefined,
-          phone: formData.phone || undefined,
-          employer: formData.employer || undefined,
-          employee_number: formData.employeeNumber || undefined,
-        })
-        .eq("user_id", user.id);
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (profileError) throw profileError;
 
       const freshProfile = await refreshProfile();
-      toast.success("Application submitted successfully");
+      toast.success("KYC submitted successfully");
 
       if (freshProfile?.kyc_status === "VERIFIED") {
         navigate("/profile", { replace: true });
@@ -366,3 +355,5 @@ const KYCPage = () => {
 };
 
 export default KYCPage;
+
+// import
