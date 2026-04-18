@@ -91,10 +91,11 @@ const AdminPortal = () => {
   useEffect(() => {
     if (!isAdmin) return;
     const fetch = async () => {
-      const { data, error } = await supabase
-        .from("loan_applications")
-        .select("*")
-        .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+  .from("loan_applications")
+  // Fetch all application columns, PLUS the related profile columns
+  .select("*, profiles(full_name, employer, nrc)") 
+  .order("created_at", { ascending: false });
       if (error) {
         toast.error("Failed to load applications");
       } else {

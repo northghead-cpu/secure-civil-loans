@@ -129,11 +129,4 @@
   .glow-accent {
     box-shadow: var(--glow-accent);
   }
-
-  .text-gradient {
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
 }
