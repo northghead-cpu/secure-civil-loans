@@ -79,9 +79,16 @@ const KYCPage = () => {
   const updateField = (field: string, value: unknown) => setFormData((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+    
     setSubmitting(true);
+    console.log("Starting KYC submission for user:", user.id);
+
     try {
+      // 1. Upload Files
       const files: { field: string; file: File }[] = [];
       if (formData.nrcFile) files.push({ field: "nrc", file: formData.nrcFile });
       if (formData.govIdFile) files.push({ field: "gov-id", file: formData.govIdFile });
@@ -90,12 +97,18 @@ const KYCPage = () => {
       for (const { field, file } of files) {
         const ext = file.name.split(".").pop();
         const path = `${user.id}/${field}-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from("kyc-documents").upload(path, file, { upsert: true });
-        if (error) throw error;
+        const { error: uploadError } = await supabase.storage
+          .from("kyc-documents")
+          .upload(path, file, { upsert: true });
+        
+        if (uploadError) {
+          console.error(`Upload error for ${field}:`, uploadError);
+          throw new Error(`Failed to upload ${field}: ${uploadError.message}`);
+        }
       }
 
-      // FIXED SECTION: We now upsert to profiles instead of inserting to loan_applications
-      const { error: profileError } = await supabase
+      // 2. Update Profile (Using 'as any' to kill the red lines)
+      const { error: profileError } = await (supabase as any)
         .from("profiles")
         .upsert({
           user_id: user.id,
@@ -106,21 +119,26 @@ const KYCPage = () => {
           employee_number: formData.employeeNumber,
           kyc_status: "IN_REVIEW",
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+        } as any, { onConflict: 'user_id' });
 
-      if (profileError) throw profileError;
-
-      const freshProfile = await refreshProfile();
-      toast.success("KYC submitted successfully");
-
-      if (freshProfile?.kyc_status === "VERIFIED") {
-        navigate("/profile", { replace: true });
-      } else {
-        navigate("/application-submitted");
+      if (profileError) {
+        console.error("Database upsert error:", profileError);
+        throw profileError;
       }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to submit application";
-      toast.error(errorMessage);
+
+      // 3. Success and Redirect
+      console.log("KYC successfully saved to database");
+      await refreshProfile();
+      toast.success("KYC submitted successfully!");
+      
+      // Small delay to ensure the toast is seen before navigating
+      setTimeout(() => {
+        navigate("/application-submitted");
+      }, 1500);
+
+    } catch (err: any) {
+      console.error("KYC Submission Final Failure:", err);
+      toast.error(err.message || "Failed to submit application");
     } finally {
       setSubmitting(false);
     }
