@@ -31,6 +31,7 @@ import Automations from "./pages/admin/Automations";
 import SystemSettings from "./pages/admin/SystemSettings";
 import RolePermissions from "./pages/admin/RolePermissions";
 import CreditBureau from "./pages/admin/CreditBureau";
+import UnderwritingPage from "./pages/UnderwritingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
