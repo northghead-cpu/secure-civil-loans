@@ -52,6 +52,7 @@ const App = () => {
                 <Route path="/login" element={<AuthPage />} />
                 <Route path="/apply" element={<KYCPage />} />
                 <Route path="/application-submitted" element={<ApplicationConfirmation />} />
+                <Route path="/underwriting" element={<UnderwritingPage />} />
 
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Dashboard />} />
