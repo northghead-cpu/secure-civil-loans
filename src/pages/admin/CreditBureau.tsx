@@ -216,6 +216,43 @@ const CreditBureau = () => {
         </CardContent>
       </Card>
 
+      {/* Prominent Metric Cards */}
+      {currentReport && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="border-primary/20">
+            <CardContent className="pt-6 text-center space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Credit Score</p>
+              <div className={`text-4xl font-display font-bold ${getScoreColorClass(currentReport.score_rating)}`}>
+                {String(currentReport.credit_score).padStart(3, "0")}
+              </div>
+              <Badge className={getScoreColorClass(currentReport.score_rating)}>
+                {currentReport.score_rating.replace("_", " ")}
+              </Badge>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/20">
+            <CardContent className="pt-6 text-center space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Open Accounts</p>
+              <div className="text-4xl font-display font-bold text-foreground">
+                {currentReport.open_accounts}
+              </div>
+              <p className="text-xs text-muted-foreground">Active credit lines</p>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/20">
+            <CardContent className="pt-6 text-center space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Probability of Default</p>
+              <div className={`text-4xl font-display font-bold ${currentReport.probability_of_default > 50 ? "text-destructive" : currentReport.probability_of_default > 25 ? "text-warning" : "text-success"}`}>
+                {currentReport.probability_of_default}%
+              </div>
+              <Badge className={getRiskBadgeClass(currentReport.risk_level)}>
+                {currentReport.risk_level.replace("_", " ")} Risk
+              </Badge>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* History */}
       <Card>
         <CardHeader><CardTitle className="text-lg">Recent Checks</CardTitle></CardHeader>
