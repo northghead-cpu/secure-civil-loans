@@ -233,6 +233,41 @@ export type Database = {
         }
         Relationships: []
       }
+      loan_results: {
+        Row: {
+          created_at: string
+          id: string
+          interest_rate: number | null
+          max_limit_zmw: number | null
+          user_id: string
+          zmw_client_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interest_rate?: number | null
+          max_limit_zmw?: number | null
+          user_id: string
+          zmw_client_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interest_rate?: number | null
+          max_limit_zmw?: number | null
+          user_id?: string
+          zmw_client_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_results_zmw_client_id_fkey"
+            columns: ["zmw_client_id"]
+            isOneToOne: false
+            referencedRelation: "underwriting_queue"
+            referencedColumns: ["zmw_client_id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           application_id: string | null
@@ -440,6 +475,42 @@ export type Database = {
         }
         Relationships: []
       }
+      underwriting_queue: {
+        Row: {
+          created_at: string
+          debt_zmw: number
+          id: string
+          income_zmw: number
+          score_result: number | null
+          status: string
+          updated_at: string
+          user_id: string
+          zmw_client_id: string
+        }
+        Insert: {
+          created_at?: string
+          debt_zmw: number
+          id?: string
+          income_zmw: number
+          score_result?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          zmw_client_id: string
+        }
+        Update: {
+          created_at?: string
+          debt_zmw?: number
+          id?: string
+          income_zmw?: number
+          score_result?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          zmw_client_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -463,6 +534,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_zmw_underwriting: {
+        Args: { p_debt: number; p_income: number }
+        Returns: {
+          calculated_score: number
+          max_limit: number
+        }[]
+      }
       check_connection: { Args: never; Returns: Json }
       has_role: {
         Args: {
