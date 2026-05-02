@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,32 +7,34 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useRBAC } from "@/hooks/useRBAC";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ShieldAlert, Eye, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-type RiskStatus = "open" | "investigating" | "approved" | "rejected" | "needs_review";
 type Severity = "critical" | "high" | "medium" | "low";
 
 interface RiskFlag {
   id: string;
-  user: string;
-  type: string;
-  severity: Severity;
-  date: string;
-  status: RiskStatus;
-  notes?: string;
-  resolvedBy?: string;
-  resolvedAt?: string;
+  application_id: string;
+  user_id: string;
+  flag_type: string;
+  fraud_score: number;
+  flags: unknown[];
+  status: string;
+  resolution_notes: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-const mockFlags: RiskFlag[] = [
-  { id: "RF001", user: "John Mwale", type: "Duplicate NRC", severity: "high", date: "2026-03-11", status: "open" },
-  { id: "RF002", user: "Unknown", type: "Suspicious document", severity: "critical", date: "2026-03-10", status: "open" },
-  { id: "RF003", user: "Grace Banda", type: "Income mismatch", severity: "medium", date: "2026-03-09", status: "investigating" },
-  { id: "RF004", user: "Peter Zulu", type: "Multiple applications", severity: "low", date: "2026-03-08", status: "approved", notes: "Verified legitimate", resolvedBy: "Admin", resolvedAt: "2026-03-08" },
-  { id: "RF005", user: "Mary Phiri", type: "CRB adverse listing", severity: "high", date: "2026-03-07", status: "open" },
-  { id: "RF006", user: "James Chanda", type: "Name mismatch", severity: "medium", date: "2026-03-06", status: "rejected", notes: "Fraudulent submission", resolvedBy: "Super Admin", resolvedAt: "2026-03-06" },
-];
+const severityFromScore = (score: number): Severity => {
+  if (score >= 80) return "critical";
+  if (score >= 60) return "high";
+  if (score >= 30) return "medium";
+  return "low";
+};
 
 const severityColors: Record<Severity, string> = {
   critical: "bg-destructive/20 text-destructive border-destructive/30",
@@ -41,36 +43,43 @@ const severityColors: Record<Severity, string> = {
   low: "bg-info/10 text-info border-info/20",
 };
 
-const statusColors: Record<RiskStatus, string> = {
-  open: "bg-destructive/10 text-destructive",
-  investigating: "bg-warning/10 text-warning",
+const statusColors: Record<string, string> = {
+  pending: "bg-destructive/10 text-destructive",
   approved: "bg-success/10 text-success",
   rejected: "bg-destructive/10 text-destructive",
   needs_review: "bg-amber-500/10 text-amber-600",
 };
 
-const statusOptions: { value: RiskStatus; label: string; icon: typeof CheckCircle2 }[] = [
-  { value: "approved", label: "Approved", icon: CheckCircle2 },
-  { value: "rejected", label: "Rejected", icon: XCircle },
-  { value: "needs_review", label: "Needs Review", icon: AlertCircle },
-  { value: "investigating", label: "Investigating", icon: Eye },
-  { value: "open", label: "Reopen", icon: ShieldAlert },
-];
-
 const ComplianceRiskFlags = () => {
-  const { permissions, logAction, hasRole, highestRole } = useRBAC();
-  const [flags, setFlags] = useState<RiskFlag[]>(mockFlags);
+  const { hasRole, logAction } = useRBAC();
+  const { user } = useAuth();
   const isSuperAdmin = hasRole("super_admin");
+
+  const [flags, setFlags] = useState<RiskFlag[]>([]);
+  const [loadingFlags, setLoadingFlags] = useState(true);
   const [selectedFlag, setSelectedFlag] = useState<RiskFlag | null>(null);
   const [showResolutionModal, setShowResolutionModal] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [viewFlag, setViewFlag] = useState<RiskFlag | null>(null);
 
-  // Stats
+  const fetchFlags = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("risk_flags")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) setFlags(data as RiskFlag[]);
+    setLoadingFlags(false);
+  }, []);
+
+  useEffect(() => {
+    fetchFlags();
+  }, [fetchFlags]);
+
   const stats = {
-    critical: flags.filter((f) => f.severity === "critical" && f.status !== "approved" && f.status !== "rejected").length,
-    open: flags.filter((f) => f.status === "open").length,
-    investigating: flags.filter((f) => f.status === "investigating").length,
+    critical: flags.filter((f) => severityFromScore(f.fraud_score) === "critical" && f.status === "pending").length,
+    open: flags.filter((f) => f.status === "pending").length,
+    investigating: flags.filter((f) => f.status === "needs_review").length,
     resolved: flags.filter((f) => f.status === "approved" || f.status === "rejected").length,
   };
 
@@ -80,13 +89,13 @@ const ComplianceRiskFlags = () => {
       return;
     }
     setSelectedFlag(flag);
-    setResolutionNotes(flag.notes || "");
+    setResolutionNotes(flag.resolution_notes || "");
     setShowResolutionModal(true);
   };
 
-  const resolveFlag = async (newStatus: RiskStatus) => {
-    if (!selectedFlag) return;
-    
+  const resolveFlag = async (newStatus: string) => {
+    if (!selectedFlag || !user) return;
+
     if (!resolutionNotes.trim() && (newStatus === "approved" || newStatus === "rejected")) {
       toast.error("Please provide resolution notes");
       return;
@@ -94,34 +103,35 @@ const ComplianceRiskFlags = () => {
 
     setSaving(true);
     try {
-      const resolvedFlag: RiskFlag = {
-        ...selectedFlag,
-        status: newStatus,
-        notes: resolutionNotes,
-        resolvedBy: highestRole || "Unknown",
-        resolvedAt: new Date().toISOString().split("T")[0],
-      };
+      const { error } = await supabase
+        .from("risk_flags")
+        .update({
+          status: newStatus,
+          resolution_notes: resolutionNotes,
+          resolved_by: user.id,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("id", selectedFlag.id);
 
-      await logAction(
-        "resolve_risk_flag",
-        selectedFlag.id,
-        "risk_flags",
-        selectedFlag,
-        resolvedFlag
-      );
+      if (error) throw error;
 
-      setFlags((prev) =>
-        prev.map((f) => (f.id === selectedFlag.id ? resolvedFlag : f))
-      );
-      
+      await logAction("resolve_risk_flag", selectedFlag.id, "risk_flags", { status: selectedFlag.status }, { status: newStatus, notes: resolutionNotes });
+
       toast.success(`Risk flag ${newStatus === "approved" ? "approved" : newStatus === "rejected" ? "rejected" : "updated"}`);
       setShowResolutionModal(false);
-    } catch (error) {
+      fetchFlags();
+    } catch {
       toast.error("Failed to resolve risk flag");
     } finally {
       setSaving(false);
     }
   };
+
+  const statusOptions = [
+    { value: "approved", label: "Approved", icon: CheckCircle2, cls: "border-success/50 text-success hover:bg-success/10" },
+    { value: "rejected", label: "Rejected", icon: XCircle, cls: "border-destructive/50 text-destructive hover:bg-destructive/10" },
+    { value: "needs_review", label: "Needs Review", icon: AlertCircle, cls: "border-amber-500/50 text-amber-600 hover:bg-amber-500/10" },
+  ];
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -136,104 +146,97 @@ const ComplianceRiskFlags = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className={stats.critical > 0 ? "border-destructive/50" : ""}>
           <CardContent className="pt-6">
-            <div className={`text-2xl font-display font-bold ${stats.critical > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-              {stats.critical}
-            </div>
+            <div className={`text-2xl font-display font-bold ${stats.critical > 0 ? "text-destructive" : "text-muted-foreground"}`}>{stats.critical}</div>
             <p className="text-xs sm:text-sm text-muted-foreground">Critical</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-warning">{stats.open}</div>
-            <p className="text-xs sm:text-sm text-muted-foreground">Open</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-info">{stats.investigating}</div>
-            <p className="text-xs sm:text-sm text-muted-foreground">Investigating</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-success">{stats.resolved}</div>
-            <p className="text-xs sm:text-sm text-muted-foreground">Resolved</p>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-warning">{stats.open}</div><p className="text-xs sm:text-sm text-muted-foreground">Open</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-info">{stats.investigating}</div><p className="text-xs sm:text-sm text-muted-foreground">Investigating</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-success">{stats.resolved}</div><p className="text-xs sm:text-sm text-muted-foreground">Resolved</p></CardContent></Card>
       </div>
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="hidden sm:table-cell">Flag ID</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead className="hidden md:table-cell">Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {flags.map((f) => (
-                <TableRow key={f.id} className={f.status === "open" || f.status === "needs_review" ? "bg-destructive/5" : ""}>
-                  <TableCell className="hidden sm:table-cell font-mono text-sm">{f.id}</TableCell>
-                  <TableCell className="font-medium">{f.user}</TableCell>
-                  <TableCell>{f.type}</TableCell>
-                  <TableCell><Badge className={severityColors[f.severity]}>{f.severity}</Badge></TableCell>
-                  <TableCell className="hidden md:table-cell"><Badge className={statusColors[f.status]}>{f.status.replace("_", " ")}</Badge></TableCell>
-                  <TableCell className="hidden lg:table-cell text-muted-foreground">{f.date}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
-                      <Button size="sm" variant="ghost" title="View Details">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {isSuperAdmin && (f.status !== "approved" && f.status !== "rejected") && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="text-success" 
-                          onClick={() => openResolutionModal(f)}
-                          title="Resolve Flag"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+          {loadingFlags ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead className="hidden md:table-cell">Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {flags.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No risk flags</TableCell></TableRow>
+                ) : flags.map((f) => {
+                  const severity = severityFromScore(f.fraud_score);
+                  return (
+                    <TableRow key={f.id} className={f.status === "pending" ? "bg-destructive/5" : ""}>
+                      <TableCell className="font-medium">{f.flag_type}</TableCell>
+                      <TableCell><Badge className={severityColors[severity]}>{severity}</Badge></TableCell>
+                      <TableCell className="hidden md:table-cell"><Badge className={statusColors[f.status] || "bg-muted text-muted-foreground"}>{f.status.replace("_", " ")}</Badge></TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground">{new Date(f.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button size="sm" variant="ghost" title="View Details" onClick={() => setViewFlag(f)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {isSuperAdmin && f.status === "pending" && (
+                            <Button size="sm" variant="ghost" className="text-success" onClick={() => openResolutionModal(f)} title="Resolve Flag">
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
-      {/* Super Admin Risk Resolution Modal */}
+      {/* View Details Modal */}
+      <Dialog open={!!viewFlag} onOpenChange={() => setViewFlag(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader><DialogTitle>Risk Flag Details</DialogTitle></DialogHeader>
+          {viewFlag && (
+            <div className="space-y-3 py-2">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Type:</span><span className="font-medium">{viewFlag.flag_type}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Fraud Score:</span><span className="font-medium">{viewFlag.fraud_score}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Severity:</span><Badge className={severityColors[severityFromScore(viewFlag.fraud_score)]}>{severityFromScore(viewFlag.fraud_score)}</Badge></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Status:</span><Badge className={statusColors[viewFlag.status] || "bg-muted"}>{viewFlag.status}</Badge></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Created:</span><span>{new Date(viewFlag.created_at).toLocaleString()}</span></div>
+                {viewFlag.resolution_notes && <div className="flex justify-between"><span className="text-muted-foreground">Notes:</span><span>{viewFlag.resolution_notes}</span></div>}
+                {viewFlag.resolved_at && <div className="flex justify-between"><span className="text-muted-foreground">Resolved:</span><span>{new Date(viewFlag.resolved_at).toLocaleString()}</span></div>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Resolution Modal */}
       <Dialog open={showResolutionModal} onOpenChange={setShowResolutionModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-destructive" />
-              Resolve Risk Flag - {selectedFlag?.id}
+              Resolve Risk Flag
             </DialogTitle>
           </DialogHeader>
           {selectedFlag && (
             <div className="space-y-4 py-4">
               <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">User:</span>
-                  <span className="text-sm font-medium">{selectedFlag.user}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Type:</span>
-                  <span className="text-sm font-medium">{selectedFlag.type}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Severity:</span>
-                  <Badge className={severityColors[selectedFlag.severity]}>{selectedFlag.severity}</Badge>
-                </div>
+                <div className="flex justify-between"><span className="text-sm text-muted-foreground">Type:</span><span className="text-sm font-medium">{selectedFlag.flag_type}</span></div>
+                <div className="flex justify-between"><span className="text-sm text-muted-foreground">Fraud Score:</span><span className="text-sm font-medium">{selectedFlag.fraud_score}</span></div>
+                <div className="flex justify-between"><span className="text-sm text-muted-foreground">Severity:</span><Badge className={severityColors[severityFromScore(selectedFlag.fraud_score)]}>{severityFromScore(selectedFlag.fraud_score)}</Badge></div>
               </div>
 
               <div className="space-y-2">
@@ -249,20 +252,9 @@ const ComplianceRiskFlags = () => {
 
               <div className="space-y-2">
                 <Label>Resolution Action</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {statusOptions.map((option) => (
-                    <Button
-                      key={option.value}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => resolveFlag(option.value)}
-                      disabled={saving}
-                      className={`
-                        ${option.value === "approved" ? "border-success/50 text-success hover:bg-success/10" : ""}
-                        ${option.value === "rejected" ? "border-destructive/50 text-destructive hover:bg-destructive/10" : ""}
-                        ${option.value === "needs_review" ? "border-amber-500/50 text-amber-600 hover:bg-amber-500/10" : ""}
-                      `}
-                    >
+                    <Button key={option.value} variant="outline" size="sm" onClick={() => resolveFlag(option.value)} disabled={saving} className={option.cls}>
                       <option.icon className="h-4 w-4 mr-1" />
                       {option.label}
                     </Button>
@@ -272,9 +264,7 @@ const ComplianceRiskFlags = () => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowResolutionModal(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setShowResolutionModal(false)}>Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

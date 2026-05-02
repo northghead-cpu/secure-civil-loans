@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { ShieldCheck, Search, AlertTriangle, Loader2, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRBAC } from "@/hooks/useRBAC";
+import { useAuth } from "@/hooks/useAuth";
 
-// Summary-only type returned by the edge function
 interface CRBSummary {
   credit_score: number;
   score_rating: string;
@@ -26,15 +27,21 @@ interface CRBSummary {
   checked_at: string;
 }
 
-interface CheckHistoryItem {
+interface CreditCheck {
   id: string;
-  nrcNumber: string;
-  fullName: string;
+  nrc_number: string;
+  full_name: string;
   status: string;
-  riskLevel: string;
-  recommendation: string;
-  checkedAt: string;
-  score?: number;
+  score: number | null;
+  score_rating: string | null;
+  risk_level: string | null;
+  recommendation: string | null;
+  open_accounts: number | null;
+  probability_of_default: number | null;
+  total_outstanding_zmw: number | null;
+  adverse_count: number | null;
+  summary: string | null;
+  created_at: string;
 }
 
 const formatZMW = (amount: number): string => `K ${amount.toLocaleString("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -88,18 +95,52 @@ const statusIcon = (status: string) => {
   }
 };
 
+const ratingFromScore = (score: number): string => {
+  if (score >= 700) return "EXCELLENT";
+  if (score >= 600) return "GOOD";
+  if (score >= 500) return "FAIR";
+  if (score >= 400) return "POOR";
+  return "VERY_POOR";
+};
+
 const CreditBureau = () => {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const { hasRole, logAction } = useRBAC();
+  const isSuperAdmin = hasRole("super_admin");
+  const isAdmin = hasRole("admin");
+  const canWrite = isSuperAdmin || isAdmin;
+
   const [nrcNumber, setNrcNumber] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentReport, setCurrentReport] = useState<CRBSummary | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [checkHistory, setCheckHistory] = useState<CheckHistoryItem[]>([
-    { id: "1", nrcNumber: "123456/12/1", fullName: "John Mwale", status: "CLEAR", riskLevel: "LOW", recommendation: "APPROVE", checkedAt: "2026-03-10 14:30", score: 720 },
-    { id: "2", nrcNumber: "234567/12/2", fullName: "Grace Banda", status: "ADVERSE", riskLevel: "HIGH", recommendation: "REVIEW", checkedAt: "2026-03-09 11:20", score: 380 },
-    { id: "3", nrcNumber: "345678/12/3", fullName: "Peter Zulu", status: "CLEAR", riskLevel: "MEDIUM", recommendation: "APPROVE_WITH_CONDITIONS", checkedAt: "2026-03-08 09:15", score: 550 },
-  ]);
+  const [checks, setChecks] = useState<CreditCheck[]>([]);
+  const [fetchingChecks, setFetchingChecks] = useState(true);
+
+  const fetchChecks = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("credit_checks")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (!error && data) setChecks(data as CreditCheck[]);
+    setFetchingChecks(false);
+  }, []);
+
+  useEffect(() => {
+    fetchChecks();
+
+    const channel = supabase
+      .channel("credit_checks_realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "credit_checks" }, () => {
+        fetchChecks();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchChecks]);
 
   useEffect(() => {
     const nrcParam = searchParams.get("nrc");
@@ -109,6 +150,7 @@ const CreditBureau = () => {
   }, [searchParams]);
 
   const runCRBCheck = async () => {
+    if (!canWrite) { toast.error("Only admins can run CRB checks"); return; }
     if (!nrcNumber.trim()) { toast.error("Please enter NRC Number"); return; }
     if (!fullName.trim()) { toast.error("Please enter Full Name"); return; }
 
@@ -118,31 +160,37 @@ const CreditBureau = () => {
         body: { nrc_number: nrcNumber.trim(), full_name: fullName.trim() },
       });
 
-      if (error) {
-        toast.error(error.message || "CRB check failed");
-        return;
-      }
+      if (error) { toast.error(error.message || "CRB check failed"); return; }
 
       if (data?.success && data.data) {
         const summary: CRBSummary = data.data;
         setCurrentReport(summary);
         setShowReportModal(true);
-        toast.success("Credit Bureau Check Complete");
 
-        // Add to local history (summary only)
-        setCheckHistory((prev) => [
-          {
-            id: crypto.randomUUID(),
-            nrcNumber: nrcNumber.trim(),
-            fullName: fullName.trim(),
-            status: summary.status,
-            riskLevel: summary.risk_level,
-            recommendation: summary.recommendation,
-            checkedAt: new Date(summary.checked_at).toLocaleString(),
-            score: summary.credit_score,
-          },
-          ...prev,
-        ]);
+        // Persist to credit_checks table
+        const { error: insertError } = await supabase.from("credit_checks").insert({
+          checked_by: user!.id,
+          nrc_number: nrcNumber.trim(),
+          full_name: fullName.trim(),
+          status: summary.status,
+          score: summary.credit_score,
+          score_rating: summary.score_rating,
+          risk_level: summary.risk_level,
+          recommendation: summary.recommendation,
+          open_accounts: summary.open_accounts,
+          probability_of_default: summary.probability_of_default,
+          total_outstanding_zmw: summary.total_outstanding_zmw,
+          adverse_count: summary.adverse_count,
+          summary: summary.summary,
+        });
+
+        if (insertError) {
+          console.error("Failed to save credit check:", insertError);
+        } else {
+          await logAction("run_crb_check", nrcNumber.trim(), "credit_checks", null, { full_name: fullName.trim(), status: summary.status, score: summary.credit_score });
+        }
+
+        toast.success("Credit Bureau Check Complete");
       } else {
         toast.error(data?.error || "Check failed");
       }
@@ -154,10 +202,10 @@ const CreditBureau = () => {
   };
 
   const stats = {
-    total: checkHistory.length,
-    clear: checkHistory.filter((h) => h.status === "CLEAR").length,
-    adverse: checkHistory.filter((h) => h.status === "ADVERSE").length,
-    pending: checkHistory.filter((h) => h.status === "NO_RECORD").length,
+    total: checks.length,
+    clear: checks.filter((h) => h.status === "CLEAR").length,
+    adverse: checks.filter((h) => h.status === "ADVERSE").length,
+    noRecord: checks.filter((h) => h.status === "NO_RECORD").length,
   };
 
   return (
@@ -178,7 +226,7 @@ const CreditBureau = () => {
         <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-foreground">{stats.total}</div><p className="text-sm text-muted-foreground">Total Checks</p></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-success">{stats.clear}</div><p className="text-sm text-muted-foreground">Clear</p></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-destructive">{stats.adverse}</div><p className="text-sm text-muted-foreground">Adverse</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-warning">{stats.pending}</div><p className="text-sm text-muted-foreground">No Record</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-warning">{stats.noRecord}</div><p className="text-sm text-muted-foreground">No Record</p></CardContent></Card>
       </div>
 
       {/* Check Form */}
@@ -208,7 +256,7 @@ const CreditBureau = () => {
               <span className="text-sm font-medium text-foreground">Fetching live Bureau data...</span>
             </div>
           ) : (
-            <Button onClick={runCRBCheck} className="w-full sm:w-auto">
+            <Button onClick={runCRBCheck} disabled={!canWrite} className="w-full sm:w-auto">
               <Search className="h-4 w-4 mr-2" />
               Run CRB Check
             </Button>
@@ -233,9 +281,7 @@ const CreditBureau = () => {
           <Card className="border-primary/20">
             <CardContent className="pt-6 text-center space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Open Accounts</p>
-              <div className="text-4xl font-display font-bold text-foreground">
-                {currentReport.open_accounts}
-              </div>
+              <div className="text-4xl font-display font-bold text-foreground">{currentReport.open_accounts}</div>
               <p className="text-xs text-muted-foreground">Active credit lines</p>
             </CardContent>
           </Card>
@@ -257,32 +303,57 @@ const CreditBureau = () => {
       <Card>
         <CardHeader><CardTitle className="text-lg">Recent Checks</CardTitle></CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>NRC Number</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Score</TableHead>
-                <TableHead className="hidden md:table-cell">Risk Level</TableHead>
-                <TableHead>Recommendation</TableHead>
-                <TableHead className="hidden lg:table-cell">Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {checkHistory.map((check) => (
-                <TableRow key={check.id}>
-                  <TableCell className="font-mono text-sm">{check.nrcNumber}</TableCell>
-                  <TableCell className="font-medium">{check.fullName}</TableCell>
-                  <TableCell><div className="flex items-center gap-2">{statusIcon(check.status)}<span className="text-sm">{check.status === "CLEAR" ? "Clear" : check.status === "ADVERSE" ? "Adverse" : "No Record"}</span></div></TableCell>
-                  <TableCell className="hidden sm:table-cell">{check.score !== undefined ? <Badge className={getScoreColorClass(check.score >= 600 ? "EXCELLENT" : check.score >= 500 ? "GOOD" : check.score >= 400 ? "FAIR" : "POOR")}>{String(check.score).padStart(3, "0")}</Badge> : <span className="text-muted-foreground">N/A</span>}</TableCell>
-                  <TableCell className="hidden md:table-cell"><Badge className={getRiskBadgeClass(check.riskLevel)}>{check.riskLevel.replace("_", " ")}</Badge></TableCell>
-                  <TableCell><Badge className={getRecBadgeClass(check.recommendation)}>{recLabel(check.recommendation)}</Badge></TableCell>
-                  <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">{check.checkedAt}</TableCell>
+          {fetchingChecks ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>NRC Number</TableHead>
+                  <TableHead>Full Name</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Score</TableHead>
+                  <TableHead className="hidden md:table-cell">Risk Level</TableHead>
+                  <TableHead>Recommendation</TableHead>
+                  <TableHead className="hidden lg:table-cell">Date</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {checks.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No checks yet</TableCell></TableRow>
+                ) : checks.map((check) => (
+                  <TableRow key={check.id}>
+                    <TableCell className="font-mono text-sm">{check.nrc_number}</TableCell>
+                    <TableCell className="font-medium">{check.full_name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {statusIcon(check.status)}
+                        <span className="text-sm">{check.status === "CLEAR" ? "Clear" : check.status === "ADVERSE" ? "Adverse" : "No Record"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {check.score != null ? (
+                        <Badge className={getScoreColorClass(check.score_rating || ratingFromScore(check.score))}>
+                          {String(check.score).padStart(3, "0")}
+                        </Badge>
+                      ) : <span className="text-muted-foreground">N/A</span>}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {check.risk_level ? <Badge className={getRiskBadgeClass(check.risk_level)}>{check.risk_level.replace("_", " ")}</Badge> : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {check.recommendation ? <Badge className={getRecBadgeClass(check.recommendation)}>{recLabel(check.recommendation)}</Badge> : "—"}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                      {new Date(check.created_at).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -298,7 +369,6 @@ const CreditBureau = () => {
           </DialogHeader>
           {currentReport && (
             <div className="space-y-6 py-4">
-              {/* Status Banner */}
               <div className={`p-4 rounded-lg ${currentReport.status === "CLEAR" ? "bg-success/10 border border-success/20" : "bg-destructive/10 border border-destructive/20"}`}>
                 <div className="flex items-center gap-3">
                   {currentReport.status === "CLEAR" ? <CheckCircle2 className="h-8 w-8 text-success" /> : <XCircle className="h-8 w-8 text-destructive" />}
@@ -309,21 +379,15 @@ const CreditBureau = () => {
                 </div>
               </div>
 
-              {/* Key Metrics */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <div className={`text-3xl font-display font-bold ${getScoreColorClass(currentReport.score_rating)}`}>
                     {String(currentReport.credit_score).padStart(3, "0")}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Credit Score</p>
-                  <Badge className={`mt-1 ${getScoreColorClass(currentReport.score_rating)}`}>
-                    {currentReport.score_rating.replace("_", " ")}
-                  </Badge>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-3xl font-display font-bold text-foreground">
-                    {currentReport.open_accounts}
-                  </div>
+                  <div className="text-3xl font-display font-bold text-foreground">{currentReport.open_accounts}</div>
                   <p className="text-xs text-muted-foreground mt-1">Open Accounts</p>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -334,7 +398,6 @@ const CreditBureau = () => {
                 </div>
               </div>
 
-              {/* Outstanding */}
               {currentReport.total_outstanding_zmw > 0 && (
                 <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-1">
@@ -345,7 +408,6 @@ const CreditBureau = () => {
                 </div>
               )}
 
-              {/* Risk & Recommendation */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <Badge className={`${getRiskBadgeClass(currentReport.risk_level)} text-sm px-3 py-1`}>
