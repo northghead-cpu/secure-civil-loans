@@ -86,6 +86,60 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_checks: {
+        Row: {
+          adverse_count: number | null
+          checked_by: string
+          created_at: string
+          full_name: string
+          id: string
+          nrc_number: string
+          open_accounts: number | null
+          probability_of_default: number | null
+          recommendation: string | null
+          risk_level: string | null
+          score: number | null
+          score_rating: string | null
+          status: string
+          summary: string | null
+          total_outstanding_zmw: number | null
+        }
+        Insert: {
+          adverse_count?: number | null
+          checked_by: string
+          created_at?: string
+          full_name: string
+          id?: string
+          nrc_number: string
+          open_accounts?: number | null
+          probability_of_default?: number | null
+          recommendation?: string | null
+          risk_level?: string | null
+          score?: number | null
+          score_rating?: string | null
+          status?: string
+          summary?: string | null
+          total_outstanding_zmw?: number | null
+        }
+        Update: {
+          adverse_count?: number | null
+          checked_by?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          nrc_number?: string
+          open_accounts?: number | null
+          probability_of_default?: number | null
+          recommendation?: string | null
+          risk_level?: string | null
+          score?: number | null
+          score_rating?: string | null
+          status?: string
+          summary?: string | null
+          total_outstanding_zmw?: number | null
+        }
+        Relationships: []
+      }
       kyc: {
         Row: {
           created_at: string | null
@@ -292,6 +346,42 @@ export type Database = {
           message?: string | null
           title?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      payouts: {
+        Row: {
+          amount_zmw: number
+          created_at: string
+          id: string
+          lender: string
+          paid_date: string | null
+          period: string
+          processed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_zmw?: number
+          created_at?: string
+          id?: string
+          lender: string
+          paid_date?: string | null
+          period: string
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_zmw?: number
+          created_at?: string
+          id?: string
+          lender?: string
+          paid_date?: string | null
+          period?: string
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
