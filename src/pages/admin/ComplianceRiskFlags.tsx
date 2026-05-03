@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useRBAC } from "@/hooks/useRBAC";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ShieldAlert, Eye, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { ShieldAlert, Eye, CheckCircle2, XCircle, AlertCircle, Loader2, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
 type Severity = "critical" | "high" | "medium" | "low";
