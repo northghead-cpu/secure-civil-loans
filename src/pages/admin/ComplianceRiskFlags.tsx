@@ -63,6 +63,9 @@ const ComplianceRiskFlags = () => {
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [viewFlag, setViewFlag] = useState<RiskFlag | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchFlags = useCallback(async () => {
     const { data, error } = await supabase
