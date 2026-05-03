@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,18 @@ const ComplianceRiskFlags = () => {
   const { user } = useAuth();
   const isSuperAdmin = hasRole("super_admin");
 
+  const STORAGE_KEY = "riskFlags_filters";
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const getInitial = (key: string, fallback: string) => {
+    const urlVal = searchParams.get(key);
+    if (urlVal) return urlVal;
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      return stored[key] || fallback;
+    } catch { return fallback; }
+  };
+
   const [flags, setFlags] = useState<RiskFlag[]>([]);
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [selectedFlag, setSelectedFlag] = useState<RiskFlag | null>(null);
@@ -63,9 +76,18 @@ const ComplianceRiskFlags = () => {
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [viewFlag, setViewFlag] = useState<RiskFlag | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [severityFilter, setSeverityFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState(() => getInitial("q", ""));
+  const [severityFilter, setSeverityFilter] = useState(() => getInitial("severity", "all"));
+  const [statusFilter, setStatusFilter] = useState(() => getInitial("status", "all"));
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (searchQuery) params.q = searchQuery;
+    if (severityFilter !== "all") params.severity = severityFilter;
+    if (statusFilter !== "all") params.status = statusFilter;
+    setSearchParams(params, { replace: true });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ q: searchQuery, severity: severityFilter, status: statusFilter }));
+  }, [searchQuery, severityFilter, statusFilter, setSearchParams]);
 
   const fetchFlags = useCallback(async () => {
     const { data, error } = await supabase
