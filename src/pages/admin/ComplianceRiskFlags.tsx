@@ -78,7 +78,25 @@ const ComplianceRiskFlags = () => {
 
   useEffect(() => {
     fetchFlags();
+    const channel = supabase
+      .channel("risk_flags_realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "risk_flags" }, () => {
+        fetchFlags();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [fetchFlags]);
+
+  const filteredFlags = flags.filter((f) => {
+    const severity = severityFromScore(f.fraud_score);
+    if (severityFilter !== "all" && severity !== severityFilter) return false;
+    if (statusFilter !== "all" && f.status !== statusFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return f.flag_type.toLowerCase().includes(q) || f.application_id.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const stats = {
     critical: flags.filter((f) => severityFromScore(f.fraud_score) === "critical" && f.status === "pending").length,
