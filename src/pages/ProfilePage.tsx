@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
-import ApplyLoanModal from "@/components/ApplyLoanModal";
+
 
 interface LoanApplication {
   id: string;
