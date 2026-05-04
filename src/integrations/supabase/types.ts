@@ -454,6 +454,8 @@ export type Database = {
       profiles: {
         Row: {
           account_status: string
+          consent_accepted: boolean
+          consent_signed_at: string | null
           created_at: string
           email: string | null
           employee_number: string | null
@@ -476,6 +478,8 @@ export type Database = {
         }
         Insert: {
           account_status?: string
+          consent_accepted?: boolean
+          consent_signed_at?: string | null
           created_at?: string
           email?: string | null
           employee_number?: string | null
@@ -498,6 +502,8 @@ export type Database = {
         }
         Update: {
           account_status?: string
+          consent_accepted?: boolean
+          consent_signed_at?: string | null
           created_at?: string
           email?: string | null
           employee_number?: string | null
