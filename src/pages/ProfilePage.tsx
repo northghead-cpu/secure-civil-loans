@@ -23,7 +23,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
-  const [loanModalOpen, setLoanModalOpen] = useState(false);
+  
 
   useEffect(() => {
     if (authLoading) return;
@@ -318,7 +318,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <ApplyLoanModal open={loanModalOpen} onClose={() => setLoanModalOpen(false)} />
+      
     </div>
   );
 };
