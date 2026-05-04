@@ -13,6 +13,8 @@ interface ProfileData {
   salary: number | null;
   nrc_verified: boolean;
   phone_verified: boolean;
+  consent_accepted: boolean;
+  consent_signed_at: string | null;
 }
 
 interface AuthContextType {
@@ -47,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary, nrc_verified, phone_verified")
+        .select("full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary, nrc_verified, phone_verified, consent_accepted, consent_signed_at")
         .eq("user_id", userId)
         .maybeSingle();
       setProfile(data);
