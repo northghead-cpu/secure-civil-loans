@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { User, FileCheck, CreditCard, TrendingUp, Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle, Mail, Phone, Building, Hash, Loader2 } from "lucide-react";
+import { User, FileCheck, CreditCard, TrendingUp, Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle, Mail, Phone, Building, Hash, Loader2, FileSignature } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -211,6 +211,65 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Payroll Deduction E-Sign Consent */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-display flex items-center gap-2">
+              <FileSignature className="h-5 w-5 text-primary" />
+              Payroll Deduction Consent
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profile?.consent_accepted ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">E-Sign consent completed</p>
+                    <p className="text-xs text-muted-foreground">
+                      Signed on{" "}
+                      {profile.consent_signed_at
+                        ? new Date(profile.consent_signed_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" })
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => navigate("/apply")}>
+                  Re-sign
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Consent not yet signed</p>
+                    <p className="text-xs text-muted-foreground">
+                      {kycStatus === "PENDING"
+                        ? "Complete KYC verification to sign the payroll deduction consent."
+                        : kycStatus === "IN_REVIEW"
+                        ? "Your KYC is under review. You'll be able to sign once approved."
+                        : kycStatus === "REJECTED"
+                        ? "Resubmit your KYC documents before you can sign."
+                        : "Sign the payroll deduction consent to proceed with loan applications."}
+                    </p>
+                  </div>
+                </div>
+                {(kycStatus === "VERIFIED" || kycStatus === "COMPLETED") && (
+                  <Button size="sm" onClick={() => navigate("/apply")}>
+                    Sign Now
+                  </Button>
+                )}
+                {(kycStatus === "PENDING" || kycStatus === "REJECTED") && (
+                  <Button size="sm" variant="outline" onClick={() => navigate("/apply")}>
+                    {kycStatus === "PENDING" ? "Start KYC" : "Resubmit KYC"}
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Profile Details */}
         <Card>
