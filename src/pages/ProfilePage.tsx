@@ -286,32 +286,53 @@ const ProfilePage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {canApply && (
-                <Button
-                  onClick={() => navigate("/compare")}
-                  className="w-full justify-start h-12 text-left"
-                  variant="outline"
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <CreditCard className="h-5 w-5 text-primary shrink-0" />
-                    <div className="text-left">
-                      <p className="font-medium">Apply for a Loan</p>
-                      <p className="text-xs text-muted-foreground font-normal">Compare lenders and submit an application</p>
+              {canApply ? (
+                <>
+                  <Button
+                    onClick={() => navigate("/compare")}
+                    className="w-full justify-start h-12 text-left"
+                    variant="outline"
+                  >
+                    <div className="flex items-center gap-3 w-full">
+                      <CreditCard className="h-5 w-5 text-primary shrink-0" />
+                      <div className="text-left">
+                        <p className="font-medium">Apply for a Loan</p>
+                        <p className="text-xs text-muted-foreground font-normal">Compare lenders and submit an application</p>
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              )}
+                  </Button>
 
-              {canApply && (
-                <Button onClick={() => navigate("/compare")} className="w-full justify-start h-12 text-left" variant="outline">
-                  <div className="flex items-center gap-3 w-full">
-                    <TrendingUp className="h-5 w-5 text-primary shrink-0" />
-                    <div className="text-left">
-                      <p className="font-medium">Compare Loan Options</p>
-                      <p className="text-xs text-muted-foreground font-normal">View rates from different lenders</p>
+                  <Button onClick={() => navigate("/compare")} className="w-full justify-start h-12 text-left" variant="outline">
+                    <div className="flex items-center gap-3 w-full">
+                      <TrendingUp className="h-5 w-5 text-primary shrink-0" />
+                      <div className="text-left">
+                        <p className="font-medium">Compare Loan Options</p>
+                        <p className="text-xs text-muted-foreground font-normal">View rates from different lenders</p>
+                      </div>
+                    </div>
+                  </Button>
+                </>
+              ) : (
+                <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    {getKycIcon()}
+                    <div>
+                      <p className="font-medium text-sm text-foreground">KYC Status: {getKycLabel()}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {kycStatus === "PENDING" && "You haven't started identity verification yet. Complete KYC to unlock loan applications."}
+                        {kycStatus === "IN_REVIEW" && "Your documents are being reviewed. You'll be able to apply for a loan once verification is complete."}
+                        {kycStatus === "REJECTED" && "Your verification was unsuccessful. Please resubmit your documents to proceed."}
+                        {kycStatus === "COMPLETED" && "Your KYC is complete and awaiting final approval."}
+                      </p>
                     </div>
                   </div>
-                </Button>
+                  {(kycStatus === "PENDING" || kycStatus === "REJECTED") && (
+                    <Button size="sm" onClick={() => navigate("/apply")} className="w-full">
+                      <ShieldCheck className="h-4 w-4 mr-2" />
+                      {kycStatus === "PENDING" ? "Start KYC Verification" : "Resubmit Documents"}
+                    </Button>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
