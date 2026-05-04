@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
-import ApplyLoanModal from "@/components/ApplyLoanModal";
+
 
 interface LoanApplication {
   id: string;
@@ -23,7 +23,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
-  const [loanModalOpen, setLoanModalOpen] = useState(false);
+  
 
   useEffect(() => {
     if (authLoading) return;
@@ -286,9 +286,9 @@ const ProfilePage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {canApply ? (
+              {canApply && (
                 <Button
-                  onClick={() => setLoanModalOpen(true)}
+                  onClick={() => navigate("/compare")}
                   className="w-full justify-start h-12 text-left"
                   variant="outline"
                 >
@@ -296,32 +296,12 @@ const ProfilePage = () => {
                     <CreditCard className="h-5 w-5 text-primary shrink-0" />
                     <div className="text-left">
                       <p className="font-medium">Apply for a Loan</p>
-                      <p className="text-xs text-muted-foreground font-normal">Submit a new loan application</p>
-                    </div>
-                  </div>
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => {
-                    if (kycStatus === "IN_REVIEW") {
-                      toast.info("Your KYC is still under review. Please wait for approval.");
-                    } else {
-                      navigate("/apply");
-                    }
-                  }}
-                  className="w-full justify-start h-12 text-left"
-                  variant="outline"
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <CreditCard className="h-5 w-5 text-primary shrink-0" />
-                    <div className="text-left">
-                      <p className="font-medium">Complete KYC & Apply</p>
-                      <p className="text-xs text-muted-foreground font-normal">Verify your identity first</p>
+                      <p className="text-xs text-muted-foreground font-normal">Compare lenders and submit an application</p>
                     </div>
                   </div>
                 </Button>
               )}
-              
+
               {canApply && (
                 <Button onClick={() => navigate("/compare")} className="w-full justify-start h-12 text-left" variant="outline">
                   <div className="flex items-center gap-3 w-full">
@@ -338,7 +318,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <ApplyLoanModal open={loanModalOpen} onClose={() => setLoanModalOpen(false)} />
+      
     </div>
   );
 };
