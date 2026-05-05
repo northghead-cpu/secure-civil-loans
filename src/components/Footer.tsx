@@ -11,7 +11,7 @@ const Footer = () => {
               <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
                 <Shield className="w-4 h-4 text-accent-foreground" />
               </div>
-              <span className="font-display text-lg font-bold text-primary-foreground">Riverbank</span>
+              <span className="font-display text-lg font-bold text-primary-foreground">Riverbanc</span>
             </Link>
             <p className="text-primary-foreground/50 text-sm leading-relaxed">
             Zambia's leading digital loan comparison platform for civil servants.
@@ -48,7 +48,7 @@ const Footer = () => {
 
         <div className="border-t border-primary-foreground/10 pt-6 text-center">
           <p className="text-primary-foreground/40 text-xs">
-            © {new Date().getFullYear()} Riverbank. Regulated by the Bank of Zambia. All rights reserved.
+            © {new Date().getFullYear()} Riverbanc. Regulated by the Bank of Zambia. All rights reserved.
           </p>
         </div>
       </div>

@@ -14,7 +14,7 @@ const SystemSettings = () => {
   const [saving, setSaving] = useState(false);
   
   // Form state
-  const [platformName, setPlatformName] = useState("Riverbank");
+  const [platformName, setPlatformName] = useState("Riverbanc");
   const [supportEmail, setSupportEmail] = useState("support@riverbank.co.zm");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [twoFactorAuth, setTwoFactorAuth] = useState(true);
