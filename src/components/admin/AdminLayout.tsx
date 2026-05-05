@@ -61,7 +61,7 @@ const AdminContent = () => {
             {/* 5. Semi-transparent header */}
             <header className="h-14 flex items-center border-b border-white/10 px-4 bg-black/20 backdrop-blur-md">
               <SidebarTrigger className="mr-4" />
-              <span className="font-display text-sm font-semibold text-white">Riverbank Admin</span>
+              <span className="font-display text-sm font-semibold text-white">Riverbanc Admin</span>
               {highestRole && (
                 <span className="ml-3 px-2 py-0.5 text-xs rounded-full bg-primary/20 text-primary-foreground font-medium">
                   {highestRole.replace("_", " ")}
