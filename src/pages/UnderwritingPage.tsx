@@ -48,6 +48,7 @@ const UnderwritingPage = () => {
   const [queue, setQueue] = useState<QueueRecord[]>([]);
   const [results, setResults] = useState<LoanResult[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoadingData(true);
@@ -65,7 +66,23 @@ const UnderwritingPage = () => {
       navigate("/login");
       return;
     }
-    if (user) fetchData();
+    if (user) {
+      // Check if user has admin or super_admin role
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .then(({ data }) => {
+          const roles = (data || []).map((r: { role: string }) => r.role);
+          const hasAdminRole = roles.some((r: string) => ["admin", "super_admin"].includes(r));
+          setIsAdmin(hasAdminRole);
+          if (!hasAdminRole) {
+            navigate("/");
+          } else {
+            fetchData();
+          }
+        });
+    }
   }, [user, authLoading, navigate, fetchData]);
 
   const handleSubmit = async () => {
@@ -115,12 +132,16 @@ const UnderwritingPage = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   const getScoreBadge = (score: number | null) => {
