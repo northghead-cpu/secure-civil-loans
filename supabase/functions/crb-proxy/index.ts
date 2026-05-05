@@ -49,6 +49,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Verify admin/super_admin role
+    const { data: roleRow } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .in('role', ['admin', 'super_admin'])
+      .maybeSingle();
+    if (!roleRow) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Parse and validate input
     const body = await req.json();
     const { nrc_number, full_name } = body;
