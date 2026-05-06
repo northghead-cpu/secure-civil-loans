@@ -36,6 +36,8 @@ const KYCPage = () => {
   const { user, profile, loading: authLoading, profileLoading, refreshProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [parsingPayslip, setParsingPayslip] = useState(false);
+  const [payrollResult, setPayrollResult] = useState<PayrollParseResult | null>(null);
 
   useEffect(() => {
     if (user) refreshProfile();
