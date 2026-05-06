@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { parsePayslip, type PayrollParseResult } from "@/services/payrollParsingService";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,8 @@ const KYCPage = () => {
   const { user, profile, loading: authLoading, profileLoading, refreshProfile } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [parsingPayslip, setParsingPayslip] = useState(false);
+  const [payrollResult, setPayrollResult] = useState<PayrollParseResult | null>(null);
 
   useEffect(() => {
     if (user) refreshProfile();
@@ -77,6 +80,31 @@ const KYCPage = () => {
   const next = () => setCurrentStep((s) => Math.min(s + 1, steps.length));
   const prev = () => setCurrentStep((s) => Math.max(s - 1, 1));
   const updateField = (field: string, value: unknown) => setFormData((prev) => ({ ...prev, [field]: value }));
+
+  const handlePayslipUpload = async (file: File | null) => {
+    updateField("payslipFile", file);
+    if (!file) {
+      setPayrollResult(null);
+      return;
+    }
+    setParsingPayslip(true);
+    try {
+      const result = await parsePayslip(file);
+      setPayrollResult(result);
+      if (result.success) {
+        // Auto-fill fields from parsed payslip
+        if (result.employer && !formData.employer) updateField("employer", result.employer);
+        if (result.employee_number && !formData.employeeNumber) updateField("employeeNumber", result.employee_number);
+        toast.success("Payslip parsed — fields auto-filled where possible.");
+      } else {
+        toast.info("Could not auto-extract payslip data. Please fill in manually.");
+      }
+    } catch {
+      toast.info("Payslip parsing unavailable. Please fill in manually.");
+    } finally {
+      setParsingPayslip(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -219,20 +247,10 @@ const KYCPage = () => {
       case 3:
         return (
           <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="employer">Employer / Ministry</Label>
-                <Input id="employer" placeholder="e.g. Ministry of Education" value={formData.employer} onChange={(e) => updateField("employer", e.target.value)} className="mt-1.5" />
-              </div>
-              <div>
-                <Label htmlFor="employeeNumber">Employee Number</Label>
-                <Input id="employeeNumber" placeholder="Your payroll number" value={formData.employeeNumber} onChange={(e) => updateField("employeeNumber", e.target.value)} className="mt-1.5" />
-              </div>
-            </div>
             <div>
               <Label>Upload Latest Payslip</Label>
               <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
-                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("payslipFile", e.target.files?.[0] || null)} />
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => handlePayslipUpload(e.target.files?.[0] || null)} />
                 <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 {formData.payslipFile ? (
                   <p className="text-sm text-foreground font-medium">{formData.payslipFile.name}</p>
@@ -243,6 +261,33 @@ const KYCPage = () => {
                   </>
                 )}
               </label>
+              {parsingPayslip && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                  Extracting payslip data…
+                </div>
+              )}
+            </div>
+
+            {payrollResult?.success && (
+              <div className="bg-success/10 border border-success/30 rounded-lg p-4 space-y-1 text-sm">
+                <p className="font-medium text-success">Payslip data extracted</p>
+                {payrollResult.gross_salary != null && <p className="text-muted-foreground">Gross Salary: <span className="text-foreground font-medium">K {payrollResult.gross_salary.toLocaleString()}</span></p>}
+                {payrollResult.total_deductions != null && <p className="text-muted-foreground">Total Deductions: <span className="text-foreground font-medium">K {payrollResult.total_deductions.toLocaleString()}</span></p>}
+                {payrollResult.net_salary != null && <p className="text-muted-foreground">Net Salary: <span className="text-foreground font-medium">K {payrollResult.net_salary.toLocaleString()}</span></p>}
+                {payrollResult.pay_period && <p className="text-muted-foreground">Pay Period: <span className="text-foreground font-medium">{payrollResult.pay_period}</span></p>}
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="employer">Employer / Ministry</Label>
+                <Input id="employer" placeholder="e.g. Ministry of Education" value={formData.employer} onChange={(e) => updateField("employer", e.target.value)} className="mt-1.5" />
+              </div>
+              <div>
+                <Label htmlFor="employeeNumber">Employee Number</Label>
+                <Input id="employeeNumber" placeholder="Your payroll number" value={formData.employeeNumber} onChange={(e) => updateField("employeeNumber", e.target.value)} className="mt-1.5" />
+              </div>
             </div>
             <div className="bg-muted/50 rounded-lg p-4 border border-border/50">
               <p className="text-sm text-muted-foreground">
