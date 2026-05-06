@@ -81,6 +81,31 @@ const KYCPage = () => {
   const prev = () => setCurrentStep((s) => Math.max(s - 1, 1));
   const updateField = (field: string, value: unknown) => setFormData((prev) => ({ ...prev, [field]: value }));
 
+  const handlePayslipUpload = async (file: File | null) => {
+    updateField("payslipFile", file);
+    if (!file) {
+      setPayrollResult(null);
+      return;
+    }
+    setParsingPayslip(true);
+    try {
+      const result = await parsePayslip(file);
+      setPayrollResult(result);
+      if (result.success) {
+        // Auto-fill fields from parsed payslip
+        if (result.employer && !formData.employer) updateField("employer", result.employer);
+        if (result.employee_number && !formData.employeeNumber) updateField("employeeNumber", result.employee_number);
+        toast.success("Payslip parsed — fields auto-filled where possible.");
+      } else {
+        toast.info("Could not auto-extract payslip data. Please fill in manually.");
+      }
+    } catch {
+      toast.info("Payslip parsing unavailable. Please fill in manually.");
+    } finally {
+      setParsingPayslip(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       toast.error("You must be logged in");
