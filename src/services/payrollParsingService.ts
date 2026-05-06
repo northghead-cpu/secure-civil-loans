@@ -73,8 +73,8 @@ const extractAmountNear = (text: string, keywords: string[]): number | null => {
 const extractEmployer = (text: string): string | null => {
   const patterns = [
     /(?:employer|ministry|department|organisation|organization|company)[:\s]+([A-Za-z\s&,.-]{4,60})/i,
-    /(?:MINISTRY\s+OF\s+[A-Z\s&]+)/i,
-    /(?:REPUBLIC\s+OF\s+ZAMBIA[\s\S]*?)(MINISTRY\s+OF\s+[A-Z\s&]+)/i,
+    /(MINISTRY\s+OF\s+[A-Z][A-Z\s&]*[A-Z])/i,
+    /(?:REPUBLIC\s+OF\s+ZAMBIA[\s\S]*?)(MINISTRY\s+OF\s+[A-Z][A-Z\s&]*[A-Z])/i,
   ];
 
   for (const p of patterns) {
