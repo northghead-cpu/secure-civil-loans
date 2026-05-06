@@ -1,0 +1,223 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { parsePayslip } from "@/services/payrollParsingService";
+
+// Mock the OCR service so we can inject sample text without real files
+vi.mock("@/services/ocrService", () => ({
+  processDocument: vi.fn(),
+}));
+
+// Keep OCR enabled
+vi.mock("@/config/features", () => ({
+  features: { enableOCR: true, enableOCROLogging: false, enableFraudDetection: false },
+}));
+
+import { processDocument } from "@/services/ocrService";
+const mockProcessDocument = vi.mocked(processDocument);
+
+const dummyFile = new File(["x"], "payslip.png", { type: "image/png" });
+
+const makeOCR = (text: string, extra?: Partial<any>) => ({
+  success: true,
+  extracted_text: text,
+  confidence: 85,
+  document_type: "payslip" as const,
+  full_name: null,
+  document_number: null,
+  date_of_birth: null,
+  ...extra,
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+// ── Sample payslip texts modelled on real Zambian civil-service payslips ──
+
+const SAMPLE_MOE = `
+REPUBLIC OF ZAMBIA
+MINISTRY OF EDUCATION
+
+PAY SLIP
+Pay Period: March 2026
+Employee No: 45892
+Name: JOHN MWANSA BANDA
+
+EARNINGS
+Basic Salary            K 12,450.00
+Housing Allowance       K  2,500.00
+Transport Allowance     K    800.00
+Total Earnings          K 15,750.00
+
+DEDUCTIONS
+PAYE                    K  2,100.00
+NAPSA                   K    623.00
+NHIMA                   K    157.50
+Union Dues              K    120.00
+Total Deductions        K  3,000.50
+
+Net Salary              K 12,749.50
+`;
+
+const SAMPLE_MOH = `
+REPUBLIC OF ZAMBIA
+Employer: Ministry of Health
+
+PAYSLIP FOR THE MONTH OF January 2026
+
+Staff No: MH-00234
+CHOMBA CHIPETA
+
+Gross Pay:   ZMW 18 200.00
+Less Deductions:  ZMW 4 350.00
+Net Pay:     ZMW 13 850.00
+`;
+
+const SAMPLE_GENERIC = `
+Company: Zambia Revenue Authority
+Payroll Number: ZRA/7891
+Period: December 2025
+
+Gross Salary: 22,000.00
+Total Deductions: 5,500.00
+Net Amount: 16,500.00
+Employee Number: ZRA/7891
+`;
+
+const SAMPLE_TAKE_HOME = `
+Department: Ministry of Agriculture
+Emp No: AG-1122
+
+Basic Salary  K8,900.00
+Deductions Total K2,100.00
+Take-home Pay K6,800.00
+
+For the month of February 2026
+`;
+
+const SAMPLE_MINIMAL = `
+Some random text that doesn't look like a payslip at all.
+No amounts, no employer, nothing useful here.
+`;
+
+// ─────────────────────────── Tests ───────────────────────────
+
+describe("parsePayslip", () => {
+  describe("Ministry of Education payslip", () => {
+    it("extracts net salary, deductions, employer, and employee number", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_MOE, { full_name: "JOHN MWANSA BANDA" }));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.net_salary).toBe(12749.5);
+      expect(r.total_deductions).toBe(3000.5);
+      expect(r.gross_salary).toBeCloseTo(15750);
+      expect(r.employer).toMatch(/MINISTRY OF EDUCATION/i);
+      expect(r.employee_number).toBe("45892");
+      expect(r.pay_period).toMatch(/March\s*2026/i);
+      expect(r.full_name).toBe("JOHN MWANSA BANDA");
+    });
+  });
+
+  describe("Ministry of Health payslip (ZMW prefix, space-separated amounts)", () => {
+    it("extracts amounts with ZMW prefix and space grouping", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_MOH, { full_name: "CHOMBA CHIPETA" }));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.gross_salary).toBe(18200);
+      expect(r.total_deductions).toBe(4350);
+      expect(r.net_salary).toBe(13850);
+      expect(r.employer).toMatch(/Ministry of Health/i);
+      expect(r.employee_number).toBe("MH-00234");
+      expect(r.pay_period).toMatch(/January\s*2026/i);
+    });
+  });
+
+  describe("Generic employer payslip (no K/ZMW prefix)", () => {
+    it("extracts amounts and payroll number", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_GENERIC));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.gross_salary).toBe(22000);
+      expect(r.total_deductions).toBe(5500);
+      expect(r.net_salary).toBe(16500);
+      expect(r.employer).toMatch(/Zambia Revenue Authority/i);
+      expect(r.employee_number).toBe("ZRA/7891");
+      expect(r.pay_period).toMatch(/December\s*2025/i);
+    });
+  });
+
+  describe("Take-home keyword and K prefix", () => {
+    it("parses take-home as net salary", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_TAKE_HOME));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.net_salary).toBe(6800);
+      expect(r.gross_salary).toBe(8900);
+      expect(r.total_deductions).toBe(2100);
+      expect(r.employee_number).toBe("AG-1122");
+      expect(r.pay_period).toMatch(/February\s*2026/i);
+    });
+  });
+
+  describe("Minimal / non-payslip text", () => {
+    it("returns success true but null amounts", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_MINIMAL));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.net_salary).toBeNull();
+      expect(r.gross_salary).toBeNull();
+      expect(r.total_deductions).toBeNull();
+      expect(r.employer).toBeNull();
+      expect(r.employee_number).toBeNull();
+    });
+  });
+
+  describe("OCR failure", () => {
+    it("returns success false when OCR fails", async () => {
+      mockProcessDocument.mockResolvedValue({
+        success: false,
+        extracted_text: "",
+        confidence: 0,
+        document_type: "payslip",
+        full_name: null,
+        document_number: null,
+        date_of_birth: null,
+        error: "OCR engine error",
+      });
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(false);
+      expect(r.error).toBe("OCR engine error");
+    });
+  });
+
+  describe("OCR disabled", () => {
+    it("returns success false when OCR feature flag is off", async () => {
+      // Temporarily override features
+      const featMod = await import("@/config/features");
+      const orig = (featMod.features as any).enableOCR;
+      (featMod.features as any).enableOCR = false;
+
+      const r = await parsePayslip(dummyFile);
+      expect(r.success).toBe(false);
+      expect(r.error).toBe("OCR is disabled");
+
+      (featMod.features as any).enableOCR = orig;
+    });
+  });
+
+  describe("Employee number fallback to OCR document_number", () => {
+    it("uses OCR document_number when no employee number pattern found", async () => {
+      const text = "Net Salary: 10000\nNo employee info here.";
+      mockProcessDocument.mockResolvedValue(makeOCR(text, { document_number: "FALLBACK-999" }));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.employee_number).toBe("FALLBACK-999");
+    });
+  });
+});
