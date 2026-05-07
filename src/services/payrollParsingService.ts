@@ -95,6 +95,7 @@ const extractEmployeeNumber = (text: string): string | null => {
   const patterns = [
     /(?:employee\s*(?:no|number|#|id)|payroll\s*(?:no|number|#|id)|emp\s*(?:no|#))[:\s]*([A-Z0-9/-]{3,15})/i,
     /(?:staff\s*(?:no|number|#|id))[:\s]*([A-Z0-9/-]{3,15})/i,
+    /(?:employee\s*id)[:\s]*([A-Z0-9/-]{3,15})/i,
   ];
   for (const p of patterns) {
     const m = text.match(p);
@@ -108,7 +109,8 @@ const extractEmployeeNumber = (text: string): string | null => {
  */
 const extractPayPeriod = (text: string): string | null => {
   const patterns = [
-    /(?:pay\s*period|period|month|for\s+the\s+month\s+of)[:\s]*([A-Za-z]+\s*\d{4})/i,
+    /(?:pay\s*period|period|month|salary\s*period|for\s+the\s+month\s+of)[:\s]*([A-Za-z]+\s*\d{4})/i,
+    /(?:pay\s*slip\s*for)[:\s]*([A-Za-z]+\s*\d{4})/i,
     /\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b/i,
   ];
   for (const p of patterns) {
@@ -174,6 +176,8 @@ export const parsePayslip = async (file: File): Promise<PayrollParseResult> => {
       "gross\\s*(?:salary|pay|earnings|income)",
       "total\\s*earnings",
       "basic\\s*salary",
+      "gross\\s*earnings",
+      "gross\\s*income",
     ]);
 
     const total_deductions = extractAmountNear(text, [
@@ -183,7 +187,7 @@ export const parsePayslip = async (file: File): Promise<PayrollParseResult> => {
     ]);
 
     const net_salary = extractAmountNear(text, [
-      "net\\s*(?:salary|pay|income|amount)",
+      "net\\s*(?:salary|pay|income|amount|payable)",
       "take[\\s-]*home(?:\\s*pay)?",
       "amount\\s*payable",
       "net\\s*payable",
