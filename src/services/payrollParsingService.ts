@@ -95,6 +95,7 @@ const extractEmployeeNumber = (text: string): string | null => {
   const patterns = [
     /(?:employee\s*(?:no|number|#|id)|payroll\s*(?:no|number|#|id)|emp\s*(?:no|#))[:\s]*([A-Z0-9/-]{3,15})/i,
     /(?:staff\s*(?:no|number|#|id))[:\s]*([A-Z0-9/-]{3,15})/i,
+    /(?:employee\s*id)[:\s]*([A-Z0-9/-]{3,15})/i,
   ];
   for (const p of patterns) {
     const m = text.match(p);
