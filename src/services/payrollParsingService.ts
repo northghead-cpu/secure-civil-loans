@@ -176,6 +176,8 @@ export const parsePayslip = async (file: File): Promise<PayrollParseResult> => {
       "gross\\s*(?:salary|pay|earnings|income)",
       "total\\s*earnings",
       "basic\\s*salary",
+      "gross\\s*earnings",
+      "gross\\s*income",
     ]);
 
     const total_deductions = extractAmountNear(text, [
