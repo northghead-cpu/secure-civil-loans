@@ -241,7 +241,7 @@ const KYCPage = () => {
             <div>
               <Label>Upload NRC (Front & Back)</Label>
               <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
-                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("nrcFile", e.target.files?.[0] || null)} />
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => handleNrcUpload(e.target.files?.[0] || null)} />
                 <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 {formData.nrcFile ? (
                   <p className="text-sm text-foreground font-medium">{formData.nrcFile.name}</p>
@@ -252,6 +252,21 @@ const KYCPage = () => {
                   </>
                 )}
               </label>
+              {parsingNrc && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                  Extracting NRC data…
+                </div>
+              )}
+              {nrcResult?.success && (
+                <div className="mt-2 bg-success/10 border border-success/30 rounded-lg p-3 space-y-1 text-sm">
+                  <p className="font-medium text-success">NRC data extracted</p>
+                  {nrcResult.full_name && <p className="text-muted-foreground">Name: <span className="text-foreground font-medium">{nrcResult.full_name}</span></p>}
+                  {nrcResult.document_number && <p className="text-muted-foreground">NRC #: <span className="text-foreground font-medium">{nrcResult.document_number}</span></p>}
+                  {nrcResult.date_of_birth && <p className="text-muted-foreground">Date of Birth: <span className="text-foreground font-medium">{nrcResult.date_of_birth}</span></p>}
+                  {nrcResult.gender && <p className="text-muted-foreground">Gender: <span className="text-foreground font-medium">{nrcResult.gender}</span></p>}
+                </div>
+              )}
             </div>
           </div>
         );
