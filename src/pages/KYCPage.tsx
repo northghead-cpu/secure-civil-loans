@@ -291,7 +291,7 @@ const KYCPage = () => {
             <div>
               <Label>Upload Government ID</Label>
               <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
-                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("govIdFile", e.target.files?.[0] || null)} />
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => handleGovIdUpload(e.target.files?.[0] || null)} />
                 <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 {formData.govIdFile ? (
                   <p className="text-sm text-foreground font-medium">{formData.govIdFile.name}</p>
@@ -302,6 +302,22 @@ const KYCPage = () => {
                   </>
                 )}
               </label>
+              {parsingGovId && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                  Extracting ID data…
+                </div>
+              )}
+              {govIdResult?.success && (
+                <div className="mt-2 bg-success/10 border border-success/30 rounded-lg p-3 space-y-1 text-sm">
+                  <p className="font-medium text-success">ID data extracted</p>
+                  {govIdResult.full_name && <p className="text-muted-foreground">Name: <span className="text-foreground font-medium">{govIdResult.full_name}</span></p>}
+                  {govIdResult.document_number && <p className="text-muted-foreground">ID #: <span className="text-foreground font-medium">{govIdResult.document_number}</span></p>}
+                  {govIdResult.expiry_date && <p className="text-muted-foreground">Expiry: <span className="text-foreground font-medium">{govIdResult.expiry_date}</span></p>}
+                  {govIdResult.date_of_birth && <p className="text-muted-foreground">DOB: <span className="text-foreground font-medium">{govIdResult.date_of_birth}</span></p>}
+                  {govIdResult.nationality && <p className="text-muted-foreground">Nationality: <span className="text-foreground font-medium">{govIdResult.nationality}</span></p>}
+                </div>
+              )}
             </div>
           </div>
         );
