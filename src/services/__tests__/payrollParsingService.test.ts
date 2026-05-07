@@ -268,6 +268,110 @@ describe("parsePayslip", () => {
     });
   });
 
+  describe("Ministry of Local Government (long ministry name)", () => {
+    it("extracts employer with multi-word ministry name", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_LOCAL_GOVT, { full_name: "MULENGA KABWE" }));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.net_salary).toBe(12800);
+      expect(r.total_deductions).toBe(5200);
+      expect(r.gross_salary).toBeCloseTo(18000);
+      expect(r.employer).toMatch(/MINISTRY OF LOCAL GOVERNMENT/i);
+      expect(r.employee_number).toBe("LG-30421");
+      expect(r.pay_period).toMatch(/April\s*2026/i);
+    });
+  });
+
+  describe("Ministry of Defence with ampersand", () => {
+    it("extracts employer containing & symbol", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_DEFENCE));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.net_salary).toBe(19400);
+      expect(r.total_deductions).toBe(6100);
+      expect(r.gross_salary).toBe(25500);
+      expect(r.employer).toMatch(/MINISTRY OF DEFENCE/i);
+      expect(r.employee_number).toBe("MDS/0088");
+      expect(r.pay_period).toMatch(/May\s*2026/i);
+    });
+  });
+
+  describe("Space-separated ZMW amounts (National Assembly)", () => {
+    it("parses ZMW amounts with space thousands separator", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_SPACE_SEPARATED));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.gross_salary).toBe(35000);
+      expect(r.total_deductions).toBe(8750);
+      expect(r.net_salary).toBe(26250);
+      expect(r.employer).toMatch(/National Assembly of Zambia/i);
+      expect(r.employee_number).toBe("NA/2045");
+      expect(r.pay_period).toMatch(/November\s*2025/i);
+    });
+  });
+
+  describe("'for the month of' pay-period wording + Amount Payable", () => {
+    it("extracts period from 'for the month of' and net from 'Amount Payable'", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_PERIOD_WORDING_1));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.gross_salary).toBe(19000);
+      expect(r.total_deductions).toBe(4750);
+      expect(r.net_salary).toBe(14250);
+      expect(r.employer).toMatch(/Road Development Agency/i);
+      expect(r.employee_number).toBe("RDA-5567");
+      expect(r.pay_period).toMatch(/October\s*2025/i);
+    });
+  });
+
+  describe("'Period:' wording + Net Payable keyword", () => {
+    it("parses 'Net Payable' and 'Period:' format", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_PERIOD_WORDING_2));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.gross_salary).toBe(28400);
+      expect(r.total_deductions).toBe(7100);
+      expect(r.net_salary).toBe(21300);
+      expect(r.employer).toMatch(/Ministry of Finance/i);
+      expect(r.employee_number).toBe("MF/7823");
+      expect(r.pay_period).toMatch(/July\s*2025/i);
+    });
+  });
+
+  describe("No currency prefix (plain numbers)", () => {
+    it("extracts amounts without K or ZMW prefix", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_NO_CURRENCY_PREFIX));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.gross_salary).toBe(31500);
+      expect(r.total_deductions).toBe(7875);
+      expect(r.net_salary).toBe(23625);
+      expect(r.employer).toMatch(/ZESCO Limited/i);
+      expect(r.employee_number).toBe("ZES-1190");
+    });
+  });
+
+  describe("Teacher payslip with Take-home Pay and TSC number", () => {
+    it("extracts take-home pay and Teaching Service Commission details", async () => {
+      mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_TEACHER, { full_name: "KALABA MUTALE" }));
+      const r = await parsePayslip(dummyFile);
+
+      expect(r.success).toBe(true);
+      expect(r.net_salary).toBe(11770);
+      expect(r.total_deductions).toBe(2230);
+      expect(r.gross_salary).toBeCloseTo(14000);
+      expect(r.employer).toMatch(/MINISTRY OF EDUCATION/i);
+      expect(r.employee_number).toBe("TSC/44210");
+      expect(r.pay_period).toMatch(/August\s*2026/i);
+    });
+  });
+
   describe("Minimal / non-payslip text", () => {
     it("returns success true but null amounts", async () => {
       mockProcessDocument.mockResolvedValue(makeOCR(SAMPLE_MINIMAL));
