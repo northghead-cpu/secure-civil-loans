@@ -71,8 +71,8 @@ const extractPassportNumber = (text: string): string | null => {
  */
 const extractDrivingLicenceNumber = (text: string): string | null => {
   const patterns = [
-    /(?:licen[cs]e\s*(?:no|number|#)?)[:\s]*([A-Z0-9/-]{4,15})/i,
-    /(?:dl\s*(?:no|number|#)?)[:\s]*([A-Z0-9/-]{4,15})/i,
+    /(?:licen[cs]e\s*(?:no|number|#)?)[:\s]+([A-Z0-9/-]{4,15})/i,
+    /(?:dl\s*(?:no|number|#)?)[:\s]+([A-Z0-9/-]{4,15})/i,
   ];
   for (const p of patterns) {
     const m = text.match(p);
