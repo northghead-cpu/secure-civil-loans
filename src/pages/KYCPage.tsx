@@ -39,6 +39,10 @@ const KYCPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [parsingPayslip, setParsingPayslip] = useState(false);
   const [payrollResult, setPayrollResult] = useState<PayrollParseResult | null>(null);
+  const [parsingNrc, setParsingNrc] = useState(false);
+  const [nrcResult, setNrcResult] = useState<IDParseResult | null>(null);
+  const [parsingGovId, setParsingGovId] = useState(false);
+  const [govIdResult, setGovIdResult] = useState<IDParseResult | null>(null);
 
   useEffect(() => {
     if (user) refreshProfile();
