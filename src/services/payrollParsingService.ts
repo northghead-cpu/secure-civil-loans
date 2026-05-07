@@ -109,7 +109,8 @@ const extractEmployeeNumber = (text: string): string | null => {
  */
 const extractPayPeriod = (text: string): string | null => {
   const patterns = [
-    /(?:pay\s*period|period|month|for\s+the\s+month\s+of)[:\s]*([A-Za-z]+\s*\d{4})/i,
+    /(?:pay\s*period|period|month|salary\s*period|for\s+the\s+month\s+of)[:\s]*([A-Za-z]+\s*\d{4})/i,
+    /(?:pay\s*slip\s*for)[:\s]*([A-Za-z]+\s*\d{4})/i,
     /\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b/i,
   ];
   for (const p of patterns) {
