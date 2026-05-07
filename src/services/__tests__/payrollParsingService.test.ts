@@ -94,6 +94,112 @@ Take-home Pay K6,800.00
 For the month of February 2026
 `;
 
+// ── Additional employer formats, amount spacing, period wording ──
+
+const SAMPLE_LOCAL_GOVT = `
+REPUBLIC OF ZAMBIA
+MINISTRY OF LOCAL GOVERNMENT AND RURAL DEVELOPMENT
+
+PAYSLIP
+Pay Period: April 2026
+Employee No: LG-30421
+Name: MULENGA KABWE
+
+EARNINGS
+Basic Salary            K 14,800.00
+Rural Hardship Allow.   K  3,200.00
+Total Earnings          K 18,000.00
+
+DEDUCTIONS
+PAYE                    K  2,800.00
+NAPSA                   K    720.00
+NHIMA                   K    180.00
+Loan Repayment          K  1,500.00
+Total Deductions        K  5,200.00
+
+Net Salary              K 12,800.00
+`;
+
+const SAMPLE_DEFENCE = `
+REPUBLIC OF ZAMBIA
+MINISTRY OF DEFENCE & NATIONAL SECURITY
+
+Pay Slip For: May 2026
+
+Staff No: MDS/0088
+BWALYA MUSONDA
+
+Gross Income:   K25,500.00
+Less Deductions: K6,100.00
+Net Pay:        K19,400.00
+`;
+
+const SAMPLE_SPACE_SEPARATED = `
+Organisation: National Assembly of Zambia
+Payroll Number: NA/2045
+
+Salary Period: November 2025
+
+Gross Salary       ZMW 35 000.00
+Total Deductions   ZMW 8 750.00
+Net Amount         ZMW 26 250.00
+`;
+
+const SAMPLE_PERIOD_WORDING_1 = `
+Employer: Road Development Agency
+Employee Number: RDA-5567
+
+Payslip for the month of October 2025
+
+Basic Salary    K19,000.00
+Deductions Total K4,750.00
+Amount Payable  K14,250.00
+`;
+
+const SAMPLE_PERIOD_WORDING_2 = `
+Department: Ministry of Finance
+Emp No: MF/7823
+
+Period: July 2025
+
+Gross Pay: 28,400.00
+Total Deductions: 7,100.00
+Net Payable: 21,300.00
+`;
+
+const SAMPLE_NO_CURRENCY_PREFIX = `
+Company: ZESCO Limited
+Employee ID: ZES-1190
+
+Month: September 2025
+
+Gross Earnings    31500.00
+Total Deductions  7875.00
+Net Income        23625.00
+`;
+
+const SAMPLE_TEACHER = `
+REPUBLIC OF ZAMBIA
+MINISTRY OF EDUCATION
+
+PAYSLIP - Teaching Service Commission
+For the month of August 2026
+Employee No: TSC/44210
+KALABA MUTALE
+
+Basic Salary            K  9,800.00
+Teaching Allowance      K  2,400.00
+Housing Allowance       K  1,800.00
+Total Earnings          K 14,000.00
+
+PAYE                    K  1,600.00
+NAPSA                   K    490.00
+NHIMA                   K    140.00
+Total Deductions        K  2,230.00
+
+Take-home Pay           K 11,770.00
+`;
+
 const SAMPLE_MINIMAL = `
 Some random text that doesn't look like a payslip at all.
 No amounts, no employer, nothing useful here.
