@@ -86,6 +86,49 @@ const KYCPage = () => {
   const prev = () => setCurrentStep((s) => Math.max(s - 1, 1));
   const updateField = (field: string, value: unknown) => setFormData((prev) => ({ ...prev, [field]: value }));
 
+  const handleNrcUpload = async (file: File | null) => {
+    updateField("nrcFile", file);
+    if (!file) { setNrcResult(null); return; }
+    setParsingNrc(true);
+    try {
+      const result = await parseNRC(file);
+      setNrcResult(result);
+      if (result.success) {
+        if (result.full_name && !formData.fullName) updateField("fullName", result.full_name);
+        if (result.document_number && !formData.nrcNumber) updateField("nrcNumber", result.document_number);
+        toast.success("NRC parsed — fields auto-filled where possible.");
+      } else {
+        toast.info("Could not auto-extract NRC data. Please fill in manually.");
+      }
+    } catch {
+      toast.info("NRC parsing unavailable. Please fill in manually.");
+    } finally {
+      setParsingNrc(false);
+    }
+  };
+
+  const handleGovIdUpload = async (file: File | null) => {
+    updateField("govIdFile", file);
+    if (!file) { setGovIdResult(null); return; }
+    setParsingGovId(true);
+    try {
+      const govIdType: IDDocumentType = formData.govIdType === "driving_license" ? "driving_license" : formData.govIdType === "employee_id" ? "employee_id" : "passport";
+      const result = await parseGovernmentID(file, govIdType);
+      setGovIdResult(result);
+      if (result.success) {
+        if (result.document_number && !formData.govIdNumber) updateField("govIdNumber", result.document_number);
+        if (result.full_name && !formData.fullName) updateField("fullName", result.full_name);
+        toast.success("Government ID parsed — fields auto-filled where possible.");
+      } else {
+        toast.info("Could not auto-extract ID data. Please fill in manually.");
+      }
+    } catch {
+      toast.info("ID parsing unavailable. Please fill in manually.");
+    } finally {
+      setParsingGovId(false);
+    }
+  };
+
   const handlePayslipUpload = async (file: File | null) => {
     updateField("payslipFile", file);
     if (!file) {
@@ -97,7 +140,6 @@ const KYCPage = () => {
       const result = await parsePayslip(file);
       setPayrollResult(result);
       if (result.success) {
-        // Auto-fill fields from parsed payslip
         if (result.employer && !formData.employer) updateField("employer", result.employer);
         if (result.employee_number && !formData.employeeNumber) updateField("employeeNumber", result.employee_number);
         toast.success("Payslip parsed — fields auto-filled where possible.");
