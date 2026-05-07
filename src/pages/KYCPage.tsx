@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { parsePayslip, type PayrollParseResult } from "@/services/payrollParsingService";
+import { parseNRC, parseGovernmentID, type IDParseResult, type IDDocumentType } from "@/services/idDocumentParsingService";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,10 @@ const KYCPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [parsingPayslip, setParsingPayslip] = useState(false);
   const [payrollResult, setPayrollResult] = useState<PayrollParseResult | null>(null);
+  const [parsingNrc, setParsingNrc] = useState(false);
+  const [nrcResult, setNrcResult] = useState<IDParseResult | null>(null);
+  const [parsingGovId, setParsingGovId] = useState(false);
+  const [govIdResult, setGovIdResult] = useState<IDParseResult | null>(null);
 
   useEffect(() => {
     if (user) refreshProfile();
@@ -81,6 +86,49 @@ const KYCPage = () => {
   const prev = () => setCurrentStep((s) => Math.max(s - 1, 1));
   const updateField = (field: string, value: unknown) => setFormData((prev) => ({ ...prev, [field]: value }));
 
+  const handleNrcUpload = async (file: File | null) => {
+    updateField("nrcFile", file);
+    if (!file) { setNrcResult(null); return; }
+    setParsingNrc(true);
+    try {
+      const result = await parseNRC(file);
+      setNrcResult(result);
+      if (result.success) {
+        if (result.full_name && !formData.fullName) updateField("fullName", result.full_name);
+        if (result.document_number && !formData.nrcNumber) updateField("nrcNumber", result.document_number);
+        toast.success("NRC parsed — fields auto-filled where possible.");
+      } else {
+        toast.info("Could not auto-extract NRC data. Please fill in manually.");
+      }
+    } catch {
+      toast.info("NRC parsing unavailable. Please fill in manually.");
+    } finally {
+      setParsingNrc(false);
+    }
+  };
+
+  const handleGovIdUpload = async (file: File | null) => {
+    updateField("govIdFile", file);
+    if (!file) { setGovIdResult(null); return; }
+    setParsingGovId(true);
+    try {
+      const govIdType: IDDocumentType = formData.govIdType === "driving_license" ? "driving_license" : formData.govIdType === "employee_id" ? "employee_id" : "passport";
+      const result = await parseGovernmentID(file, govIdType);
+      setGovIdResult(result);
+      if (result.success) {
+        if (result.document_number && !formData.govIdNumber) updateField("govIdNumber", result.document_number);
+        if (result.full_name && !formData.fullName) updateField("fullName", result.full_name);
+        toast.success("Government ID parsed — fields auto-filled where possible.");
+      } else {
+        toast.info("Could not auto-extract ID data. Please fill in manually.");
+      }
+    } catch {
+      toast.info("ID parsing unavailable. Please fill in manually.");
+    } finally {
+      setParsingGovId(false);
+    }
+  };
+
   const handlePayslipUpload = async (file: File | null) => {
     updateField("payslipFile", file);
     if (!file) {
@@ -92,7 +140,6 @@ const KYCPage = () => {
       const result = await parsePayslip(file);
       setPayrollResult(result);
       if (result.success) {
-        // Auto-fill fields from parsed payslip
         if (result.employer && !formData.employer) updateField("employer", result.employer);
         if (result.employee_number && !formData.employeeNumber) updateField("employeeNumber", result.employee_number);
         toast.success("Payslip parsed — fields auto-filled where possible.");
@@ -194,7 +241,7 @@ const KYCPage = () => {
             <div>
               <Label>Upload NRC (Front & Back)</Label>
               <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
-                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("nrcFile", e.target.files?.[0] || null)} />
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => handleNrcUpload(e.target.files?.[0] || null)} />
                 <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 {formData.nrcFile ? (
                   <p className="text-sm text-foreground font-medium">{formData.nrcFile.name}</p>
@@ -205,6 +252,21 @@ const KYCPage = () => {
                   </>
                 )}
               </label>
+              {parsingNrc && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                  Extracting NRC data…
+                </div>
+              )}
+              {nrcResult?.success && (
+                <div className="mt-2 bg-success/10 border border-success/30 rounded-lg p-3 space-y-1 text-sm">
+                  <p className="font-medium text-success">NRC data extracted</p>
+                  {nrcResult.full_name && <p className="text-muted-foreground">Name: <span className="text-foreground font-medium">{nrcResult.full_name}</span></p>}
+                  {nrcResult.document_number && <p className="text-muted-foreground">NRC #: <span className="text-foreground font-medium">{nrcResult.document_number}</span></p>}
+                  {nrcResult.date_of_birth && <p className="text-muted-foreground">Date of Birth: <span className="text-foreground font-medium">{nrcResult.date_of_birth}</span></p>}
+                  {nrcResult.gender && <p className="text-muted-foreground">Gender: <span className="text-foreground font-medium">{nrcResult.gender}</span></p>}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -229,7 +291,7 @@ const KYCPage = () => {
             <div>
               <Label>Upload Government ID</Label>
               <label className="mt-1.5 border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent/50 transition-colors cursor-pointer block">
-                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => updateField("govIdFile", e.target.files?.[0] || null)} />
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf" className="hidden" onChange={(e) => handleGovIdUpload(e.target.files?.[0] || null)} />
                 <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 {formData.govIdFile ? (
                   <p className="text-sm text-foreground font-medium">{formData.govIdFile.name}</p>
@@ -240,6 +302,22 @@ const KYCPage = () => {
                   </>
                 )}
               </label>
+              {parsingGovId && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                  Extracting ID data…
+                </div>
+              )}
+              {govIdResult?.success && (
+                <div className="mt-2 bg-success/10 border border-success/30 rounded-lg p-3 space-y-1 text-sm">
+                  <p className="font-medium text-success">ID data extracted</p>
+                  {govIdResult.full_name && <p className="text-muted-foreground">Name: <span className="text-foreground font-medium">{govIdResult.full_name}</span></p>}
+                  {govIdResult.document_number && <p className="text-muted-foreground">ID #: <span className="text-foreground font-medium">{govIdResult.document_number}</span></p>}
+                  {govIdResult.expiry_date && <p className="text-muted-foreground">Expiry: <span className="text-foreground font-medium">{govIdResult.expiry_date}</span></p>}
+                  {govIdResult.date_of_birth && <p className="text-muted-foreground">DOB: <span className="text-foreground font-medium">{govIdResult.date_of_birth}</span></p>}
+                  {govIdResult.nationality && <p className="text-muted-foreground">Nationality: <span className="text-foreground font-medium">{govIdResult.nationality}</span></p>}
+                </div>
+              )}
             </div>
           </div>
         );
