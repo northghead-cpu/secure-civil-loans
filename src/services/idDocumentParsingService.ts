@@ -136,7 +136,7 @@ const extractFullName = (text: string): string | null => {
     const trimmed = line.trim();
     if (/^[A-Z][A-Z\s.'-]{3,50}$/.test(trimmed)) {
       const words = trimmed.split(/\s+/);
-      if (words.length >= 2 && words.length <= 5 && !/REPUBLIC|ZAMBIA|PASSPORT|LICEN|MINISTRY|NATIONAL|GOVERNMENT/i.test(trimmed)) {
+      if (words.length >= 2 && words.length <= 5 && !/REPUBLIC|ZAMBIA|PASSPORT|LICEN|MINISTRY|NATIONAL|GOVERNMENT|TRANSPORT|SAFETY|AGENCY|REGISTRATION|AUTHORITY|DRIVING|DOCUMENT|IDENTITY/i.test(trimmed)) {
         return trimmed;
       }
     }
