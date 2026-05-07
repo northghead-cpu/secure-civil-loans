@@ -187,7 +187,7 @@ export const parsePayslip = async (file: File): Promise<PayrollParseResult> => {
     ]);
 
     const net_salary = extractAmountNear(text, [
-      "net\\s*(?:salary|pay|income|amount)",
+      "net\\s*(?:salary|pay|income|amount|payable)",
       "take[\\s-]*home(?:\\s*pay)?",
       "amount\\s*payable",
       "net\\s*payable",
