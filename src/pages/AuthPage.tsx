@@ -7,6 +7,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { checkThrottle, recordFailure, recordSuccess, formatRetry } from "@/lib/authThrottle";
 
 const getRedirectPath = async (userId: string): Promise<string> => {
   try {
@@ -69,11 +70,27 @@ const AuthPage = () => {
       return;
     }
 
+    // Client-side throttling: per-email + per-mode bucket.
+    const throttleScope = `${mode}:${email.trim().toLowerCase()}`;
+    const globalScope = `${mode}:_global`;
+    const emailGate = checkThrottle(throttleScope);
+    const globalGate = checkThrottle(globalScope);
+    if (!emailGate.allowed || !globalGate.allowed) {
+      const wait = Math.max(emailGate.retryInMs, globalGate.retryInMs);
+      const msg = `Too many attempts. Please try again in ${formatRetry(wait)}.`;
+      setError(msg);
+      toast({ title: "Temporarily blocked", description: msg, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     try {
       if (mode === "login") {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
 
+        recordSuccess(throttleScope);
+        recordSuccess(globalScope);
         toast({ title: "Welcome back!", description: "You've signed in successfully." });
 
         const userId = data?.user?.id;
@@ -94,6 +111,8 @@ const AuthPage = () => {
         });
         if (signUpError) throw signUpError;
 
+        recordSuccess(throttleScope);
+        recordSuccess(globalScope);
         setSignupSuccess(true);
         toast({
           title: "Account created!",
@@ -114,8 +133,17 @@ const AuthPage = () => {
       const displayMessage = isAuthLookupError
         ? "Invalid email or password combination."
         : rawMessage;
-      setError(displayMessage);
-      toast({ title: "Error", description: displayMessage, variant: "destructive" });
+
+      // Record failure against both the per-email and global buckets.
+      recordFailure(throttleScope);
+      const { lockedUntil } = recordFailure(globalScope);
+      const lockMsg =
+        lockedUntil && lockedUntil > Date.now()
+          ? ` Too many attempts — locked for ${formatRetry(lockedUntil - Date.now())}.`
+          : "";
+
+      setError(displayMessage + lockMsg);
+      toast({ title: "Error", description: displayMessage + lockMsg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
