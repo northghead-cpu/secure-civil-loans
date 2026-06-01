@@ -101,9 +101,21 @@ const AuthPage = () => {
         });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setError(message);
-      toast({ title: "Error", description: message, variant: "destructive" });
+      const rawMessage = err instanceof Error ? err.message : "Unknown error";
+      // Auth-enumeration hardening: collapse credential/lookup errors into one generic message.
+      const lower = rawMessage.toLowerCase();
+      const isAuthLookupError =
+        mode === "login" ||
+        lower.includes("invalid") ||
+        lower.includes("password") ||
+        lower.includes("user not found") ||
+        lower.includes("email not confirmed") ||
+        lower.includes("credentials");
+      const displayMessage = isAuthLookupError
+        ? "Invalid email or password combination."
+        : rawMessage;
+      setError(displayMessage);
+      toast({ title: "Error", description: displayMessage, variant: "destructive" });
     } finally {
       setLoading(false);
     }
