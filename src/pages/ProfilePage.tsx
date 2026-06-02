@@ -397,6 +397,8 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
         </div>
+
+        <DataErasureSection />
       </div>
 
       
