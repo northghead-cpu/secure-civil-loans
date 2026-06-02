@@ -50,6 +50,7 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -270,7 +271,25 @@ const AuthPage = () => {
           {error && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-destructive text-sm bg-destructive/10 px-3 py-2 rounded-md">{error}</motion.div>
           )}
-          <Button type="submit" disabled={loading} className="w-full h-11 text-base font-medium">
+          {mode === "signup" && (
+            <label className="flex items-start gap-3 text-sm text-foreground/90 leading-relaxed cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-border accent-primary"
+              />
+              <span>
+                I am at least 18 years old and a resident of Zambia. I explicitly consent to Riverbanc
+                collecting, processing, and sharing my personal data (NRC, PMEC number, payslips) to
+                evaluate my loan applications as detailed in the{" "}
+                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</a>{" "}
+                and{" "}
+                <a href="/retention-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Data Retention Policy</a>.
+              </span>
+            </label>
+          )}
+          <Button type="submit" disabled={loading || (mode === "signup" && !consentChecked)} className="w-full h-11 text-base font-medium">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             {mode === "login" ? "Log in" : "Sign up"}
           </Button>

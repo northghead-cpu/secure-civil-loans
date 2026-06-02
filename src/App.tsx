@@ -14,6 +14,8 @@ import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RetentionPolicy from "./pages/RetentionPolicy";
 
 // Authenticated routes — lazy loaded so unauthenticated visitors never
 // download these JS bundles. ProtectedRoute short-circuits the lazy
@@ -68,6 +70,8 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/compare" element={<ComparePage />} />
                   <Route path="/login" element={<AuthPage />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/retention-policy" element={<RetentionPolicy />} />
 
                   <Route
                     path="/profile"
