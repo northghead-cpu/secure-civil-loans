@@ -50,6 +50,7 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
