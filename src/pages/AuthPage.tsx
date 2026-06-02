@@ -114,7 +114,7 @@ const AuthPage = () => {
         if (signUpError) throw signUpError;
 
         recordSuccess(throttleScope);
-        recordSuccess(globalScope);
+        recordSuccess(globalScope, { mode });
         setSignupSuccess(true);
         toast({
           title: "Account created!",
