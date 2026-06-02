@@ -14,6 +14,8 @@ import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RetentionPolicy from "./pages/RetentionPolicy";
 
 // Authenticated routes — lazy loaded so unauthenticated visitors never
 // download these JS bundles. ProtectedRoute short-circuits the lazy
