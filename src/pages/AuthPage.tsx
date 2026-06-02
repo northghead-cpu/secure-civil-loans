@@ -136,9 +136,11 @@ const AuthPage = () => {
         ? "Invalid email or password combination."
         : rawMessage;
 
-      // Record failure against both the per-email and global buckets.
+      // Record failure against both the per-email and global buckets. The
+      // global bucket also tracks distinct emails so rotating addresses
+      // can't bypass throttling.
       recordFailure(throttleScope);
-      const { lockedUntil } = recordFailure(globalScope);
+      const { lockedUntil } = recordFailure(globalScope, { mode, email: normalized });
       const lockMsg =
         lockedUntil && lockedUntil > Date.now()
           ? ` Too many attempts — locked for ${formatRetry(lockedUntil - Date.now())}.`
