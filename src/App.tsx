@@ -70,6 +70,8 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/compare" element={<ComparePage />} />
                   <Route path="/login" element={<AuthPage />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/retention-policy" element={<RetentionPolicy />} />
 
                   <Route
                     path="/profile"
