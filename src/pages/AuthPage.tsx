@@ -71,8 +71,9 @@ const AuthPage = () => {
       return;
     }
 
-    // Client-side throttling: per-email + per-mode bucket.
-    const throttleScope = `${mode}:${email.trim().toLowerCase()}`;
+    // Client-side throttling: per-email + per-mode-global bucket.
+    const normalized = normalizeEmail(email);
+    const throttleScope = `${mode}:${normalized}`;
     const globalScope = `${mode}:_global`;
     const emailGate = checkThrottle(throttleScope);
     const globalGate = checkThrottle(globalScope);
@@ -91,7 +92,7 @@ const AuthPage = () => {
         if (signInError) throw signInError;
 
         recordSuccess(throttleScope);
-        recordSuccess(globalScope);
+        recordSuccess(globalScope, { mode });
         toast({ title: "Welcome back!", description: "You've signed in successfully." });
 
         const userId = data?.user?.id;
