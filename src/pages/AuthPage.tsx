@@ -7,7 +7,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { checkThrottle, recordFailure, recordSuccess, formatRetry } from "@/lib/authThrottle";
+import { checkThrottle, recordFailure, recordSuccess, formatRetry, normalizeEmail } from "@/lib/authThrottle";
 
 const getRedirectPath = async (userId: string): Promise<string> => {
   try {
@@ -71,8 +71,9 @@ const AuthPage = () => {
       return;
     }
 
-    // Client-side throttling: per-email + per-mode bucket.
-    const throttleScope = `${mode}:${email.trim().toLowerCase()}`;
+    // Client-side throttling: per-email + per-mode-global bucket.
+    const normalized = normalizeEmail(email);
+    const throttleScope = `${mode}:${normalized}`;
     const globalScope = `${mode}:_global`;
     const emailGate = checkThrottle(throttleScope);
     const globalGate = checkThrottle(globalScope);
@@ -91,7 +92,7 @@ const AuthPage = () => {
         if (signInError) throw signInError;
 
         recordSuccess(throttleScope);
-        recordSuccess(globalScope);
+        recordSuccess(globalScope, { mode });
         toast({ title: "Welcome back!", description: "You've signed in successfully." });
 
         const userId = data?.user?.id;
@@ -113,7 +114,7 @@ const AuthPage = () => {
         if (signUpError) throw signUpError;
 
         recordSuccess(throttleScope);
-        recordSuccess(globalScope);
+        recordSuccess(globalScope, { mode });
         setSignupSuccess(true);
         toast({
           title: "Account created!",
@@ -135,9 +136,11 @@ const AuthPage = () => {
         ? "Invalid email or password combination."
         : rawMessage;
 
-      // Record failure against both the per-email and global buckets.
+      // Record failure against both the per-email and global buckets. The
+      // global bucket also tracks distinct emails so rotating addresses
+      // can't bypass throttling.
       recordFailure(throttleScope);
-      const { lockedUntil } = recordFailure(globalScope);
+      const { lockedUntil } = recordFailure(globalScope, { mode, email: normalized });
       const lockMsg =
         lockedUntil && lockedUntil > Date.now()
           ? ` Too many attempts — locked for ${formatRetry(lockedUntil - Date.now())}.`
