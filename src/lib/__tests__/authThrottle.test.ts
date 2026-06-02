@@ -4,6 +4,8 @@ import {
   recordFailure,
   recordSuccess,
   formatRetry,
+  normalizeEmail,
+  subscribeThrottle,
 } from "../authThrottle";
 
 const SCOPE = "login:user@example.com";
