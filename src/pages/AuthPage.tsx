@@ -7,7 +7,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { checkThrottle, recordFailure, recordSuccess, formatRetry } from "@/lib/authThrottle";
+import { checkThrottle, recordFailure, recordSuccess, formatRetry, normalizeEmail } from "@/lib/authThrottle";
 
 const getRedirectPath = async (userId: string): Promise<string> => {
   try {
