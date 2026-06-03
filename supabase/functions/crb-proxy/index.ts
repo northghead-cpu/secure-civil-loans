@@ -96,9 +96,40 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Rate limit per admin
+    if (rateLimited(user.id)) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+
+    // Replay protection: require X-Request-Id (UUID-like nonce) — single-use within 5 min
+    const nonce = req.headers.get("x-request-id") ?? "";
+    if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
+      return new Response(JSON.stringify({ error: "Missing or invalid X-Request-Id" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (isReplay(`${user.id}:${nonce}`)) {
+      return new Response(JSON.stringify({ error: "Duplicate request" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Parse and validate input
-    const body = await req.json();
-    const { nrc_number, full_name } = body;
+    const rawBody = await req.text();
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: "Payload too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let body: Record<string, unknown>;
+    try { body = JSON.parse(rawBody); } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { nrc_number, full_name } = body as { nrc_number?: string; full_name?: string };
 
     if (!nrc_number || typeof nrc_number !== "string" || !nrc_number.trim()) {
       return new Response(
