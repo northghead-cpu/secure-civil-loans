@@ -5,9 +5,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MAX_BODY_BYTES = 4 * 1024;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 20;
+const NONCE_TTL_MS = 5 * 60_000;
+const rateBuckets = new Map<string, number[]>();
+const seenNonces = new Map<string, number>();
+const rateLimited = (k: string) => {
+  const now = Date.now();
+  const arr = (rateBuckets.get(k) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) { rateBuckets.set(k, arr); return true; }
+  arr.push(now); rateBuckets.set(k, arr); return false;
+};
+const isReplay = (n: string) => {
+  const now = Date.now();
+  for (const [k, t] of seenNonces) if (now - t > NONCE_TTL_MS) seenNonces.delete(k);
+  if (seenNonces.has(n)) return true;
+  seenNonces.set(n, now); return false;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST" },
+    });
+  }
+  if (parseInt(req.headers.get("content-length") ?? "0", 10) > MAX_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: "Payload too large" }), {
+      status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
