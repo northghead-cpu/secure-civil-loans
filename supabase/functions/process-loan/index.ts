@@ -83,8 +83,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body = await req.json();
-    const { zmw_client_id, income_zmw, debt_zmw } = body;
+    if (rateLimited(user.id)) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+    const nonce = req.headers.get("x-request-id") ?? "";
+    if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
+      return new Response(JSON.stringify({ error: "Missing or invalid X-Request-Id" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (isReplay(`${user.id}:${nonce}`)) {
+      return new Response(JSON.stringify({ error: "Duplicate request" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const rawBody = await req.text();
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: "Payload too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let body: Record<string, unknown>;
+    try { body = JSON.parse(rawBody); } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { zmw_client_id, income_zmw, debt_zmw } = body as { zmw_client_id?: string; income_zmw?: number; debt_zmw?: number };
 
     if (!zmw_client_id || income_zmw == null || debt_zmw == null) {
       return new Response(JSON.stringify({ error: "Missing required fields: zmw_client_id, income_zmw, debt_zmw" }), {
