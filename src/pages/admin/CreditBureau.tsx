@@ -156,8 +156,11 @@ const CreditBureau = () => {
 
     setLoading(true);
     try {
+      const requestId = (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.()
+        ?? `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
       const { data, error } = await supabase.functions.invoke("crb-proxy", {
         body: { nrc_number: nrcNumber.trim(), full_name: fullName.trim() },
+        headers: { "x-request-id": requestId },
       });
 
       if (error) { toast.error(error.message || "CRB check failed"); return; }
