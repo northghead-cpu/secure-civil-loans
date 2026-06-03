@@ -109,8 +109,11 @@ const UnderwritingPage = () => {
         return;
       }
 
+      const requestId = (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.()
+        ?? `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
       const res = await supabase.functions.invoke("process-loan", {
         body: { zmw_client_id: clientId.trim(), income_zmw: incomeVal, debt_zmw: debtVal },
+        headers: { "x-request-id": requestId },
       });
 
       if (res.error) throw new Error(res.error.message);

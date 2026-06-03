@@ -20,9 +20,42 @@ interface CRBSummary {
   checked_at: string;
 }
 
+// --- Hardening: replay + rate-limit (in-memory, per-instance) ---
+const MAX_BODY_BYTES = 8 * 1024; // 8 KB is plenty for {nrc, name}
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10; // per user per minute
+const NONCE_TTL_MS = 5 * 60_000; // 5 min replay window
+const rateBuckets = new Map<string, number[]>();
+const seenNonces = new Map<string, number>();
+
+const rateLimited = (userId: string): boolean => {
+  const now = Date.now();
+  const arr = (rateBuckets.get(userId) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) { rateBuckets.set(userId, arr); return true; }
+  arr.push(now); rateBuckets.set(userId, arr); return false;
+};
+
+const isReplay = (nonce: string): boolean => {
+  const now = Date.now();
+  for (const [k, t] of seenNonces) if (now - t > NONCE_TTL_MS) seenNonces.delete(k);
+  if (seenNonces.has(nonce)) return true;
+  seenNonces.set(nonce, now); return false;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST" },
+    });
+  }
+  const contentLength = parseInt(req.headers.get("content-length") ?? "0", 10);
+  if (contentLength > MAX_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: "Payload too large" }), {
+      status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -63,9 +96,40 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Rate limit per admin
+    if (rateLimited(user.id)) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+
+    // Replay protection: require X-Request-Id (UUID-like nonce) — single-use within 5 min
+    const nonce = req.headers.get("x-request-id") ?? "";
+    if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
+      return new Response(JSON.stringify({ error: "Missing or invalid X-Request-Id" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (isReplay(`${user.id}:${nonce}`)) {
+      return new Response(JSON.stringify({ error: "Duplicate request" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Parse and validate input
-    const body = await req.json();
-    const { nrc_number, full_name } = body;
+    const rawBody = await req.text();
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: "Payload too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let body: Record<string, unknown>;
+    try { body = JSON.parse(rawBody); } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { nrc_number, full_name } = body as { nrc_number?: string; full_name?: string };
 
     if (!nrc_number || typeof nrc_number !== "string" || !nrc_number.trim()) {
       return new Response(
@@ -135,6 +199,19 @@ Deno.serve(async (req) => {
       total_outstanding_zmw: totalOutstanding,
       checked_at: new Date().toISOString(),
     };
+
+    // Audit log: record who ran the inquiry (best-effort, never blocks response)
+    try {
+      await supabase.rpc("log_audit", {
+        _user_id: user.id,
+        _role: roleRow.role,
+        _action: "crb_inquiry",
+        _record_id: normalizedNRC,
+        _table_name: "crb_proxy",
+        _old_value: null,
+        _new_value: { status: summary.status, score_rating: summary.score_rating, request_id: nonce },
+      });
+    } catch (e) { console.error("[crb-proxy] audit log failed:", e); }
 
     return new Response(JSON.stringify({ success: true, data: summary }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
