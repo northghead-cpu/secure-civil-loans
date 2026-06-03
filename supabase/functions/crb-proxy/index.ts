@@ -200,6 +200,19 @@ Deno.serve(async (req) => {
       checked_at: new Date().toISOString(),
     };
 
+    // Audit log: record who ran the inquiry (best-effort, never blocks response)
+    try {
+      await supabase.rpc("log_audit", {
+        _user_id: user.id,
+        _role: roleRow.role,
+        _action: "crb_inquiry",
+        _record_id: normalizedNRC,
+        _table_name: "crb_proxy",
+        _old_value: null,
+        _new_value: { status: summary.status, score_rating: summary.score_rating, request_id: nonce },
+      });
+    } catch (e) { console.error("[crb-proxy] audit log failed:", e); }
+
     return new Response(JSON.stringify({ success: true, data: summary }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
