@@ -9,6 +9,11 @@ import { AdminSidebar } from "./AdminSidebar";
 // 1. The Import (Make sure this path matches your file name exactly)
 import { CosmicParallaxBg } from "../ui/parallax-cosmic-background";
 
+// NOTE: This component is a UX-level guard only (defense-in-depth).
+// Real authorization is enforced server-side via Supabase RLS policies on
+// every admin table and via role checks inside edge functions (e.g.
+// process-loan). A user who bypasses this client guard via devtools will
+// still receive no data from the backend.
 const ADMIN_ROLES: AppRole[] = ["admin", "super_admin", "super_user", "compliance_team", "data_entry_team"];
 
 const AdminContent = () => {
