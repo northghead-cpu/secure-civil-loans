@@ -1,8 +1,17 @@
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Privacy Policy — Riverbanc</title>
+        <meta name="description" content="Riverbanc's privacy practices, compliant with Zambia's Data Protection Act No. 3 of 2021." />
+        <link rel="canonical" href="https://secure-civil-loans.lovable.app/privacy-policy" />
+        <meta property="og:title" content="Privacy Policy — Riverbanc" />
+        <meta property="og:description" content="How Riverbanc collects, stores, and protects civil-servant data under Zambian law." />
+        <meta property="og:url" content="https://secure-civil-loans.lovable.app/privacy-policy" />
+      </Helmet>
       <Navbar />
       <main className="container mx-auto max-w-3xl px-4 py-12">
         <h1 className="text-3xl font-display font-bold text-foreground mb-6">Privacy Policy</h1>

@@ -1,8 +1,17 @@
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 
 const RetentionPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Data Retention Policy — Riverbanc</title>
+        <meta name="description" content="Riverbanc's data retention windows aligned with Zambia's Banking and Financial Services Act and the FIC Act." />
+        <link rel="canonical" href="https://secure-civil-loans.lovable.app/retention-policy" />
+        <meta property="og:title" content="Data Retention Policy — Riverbanc" />
+        <meta property="og:description" content="How long Riverbanc keeps applications, accounts, and credit records under Zambian law." />
+        <meta property="og:url" content="https://secure-civil-loans.lovable.app/retention-policy" />
+      </Helmet>
       <Navbar />
       <main className="container mx-auto max-w-3xl px-4 py-12">
         <h1 className="text-3xl font-display font-bold text-foreground mb-6">Data Retention Policy</h1>
