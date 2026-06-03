@@ -35,7 +35,7 @@ const ApplicationConfirmation = () => {
             </p>
 
             <div className="bg-muted/50 rounded-lg p-6 border border-border/50 mb-8 text-left space-y-3">
-              <h3 className="font-display font-semibold text-foreground text-sm">What happens next?</h3>
+              <h2 className="font-display font-semibold text-foreground text-sm">What happens next?</h2>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <FileText className="w-4 h-4 mt-0.5 text-accent shrink-0" />

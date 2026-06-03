@@ -23,9 +23,9 @@ const TrustSection = () => {
               transition={{ delay: i * 0.1 }}
             >
               <item.icon className="w-8 h-8 text-accent mx-auto mb-3" />
-              <h4 className="font-display font-semibold text-primary-foreground text-sm mb-1">
+              <h3 className="font-display font-semibold text-primary-foreground text-sm mb-1">
                 {item.title}
-              </h4>
+              </h3>
               <p className="text-primary-foreground/60 text-xs">{item.desc}</p>
             </motion.div>
           ))}

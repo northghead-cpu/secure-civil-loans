@@ -82,6 +82,9 @@ const Navbar = () => {
           </div>
 
           <button
+            type="button"
+            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isOpen}
             className="md:hidden text-foreground"
             onClick={() => setIsOpen(!isOpen)}
           >

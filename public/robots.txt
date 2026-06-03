@@ -12,3 +12,10 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /profile
+Disallow: /apply
+Disallow: /underwriting
+Disallow: /application-submitted
+
+Sitemap: https://secure-civil-loans.lovable.app/sitemap.xml

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -99,6 +100,22 @@ const ComparePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Compare Loan Offers — Riverbanc</title>
+        <meta name="description" content="Compare real-time loan offers from Bank of Zambia-licensed lenders. Filter by term and sort by rate, monthly payment, or total cost." />
+        <link rel="canonical" href="https://secure-civil-loans.lovable.app/compare" />
+        <meta property="og:title" content="Compare Loan Offers — Riverbanc" />
+        <meta property="og:description" content="Real-time rates from licensed lenders across Zambia." />
+        <meta property="og:url" content="https://secure-civil-loans.lovable.app/compare" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Loan Comparison",
+          "provider": { "@type": "Organization", "name": "Riverbanc" },
+          "areaServed": "ZM",
+          "serviceType": "FinancialProduct"
+        })}</script>
+      </Helmet>
       <Navbar />
       <main className="pt-24 pb-16">
         <LampContainer className="h-48 bg-background">
@@ -179,7 +196,7 @@ const ComparePage = () => {
                 <div className="flex flex-col lg:flex-row lg:items-center gap-6">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-display font-semibold text-foreground">{offer.lender}</h3>
+                      <h2 className="font-display font-semibold text-foreground text-base">{offer.lender}</h2>
                       {offer.featured && (
                         <Badge className="bg-accent/10 text-accent border-accent/20 text-xs">
                           <Star className="w-3 h-3 mr-1" /> Top Pick
