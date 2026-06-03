@@ -20,9 +20,42 @@ interface CRBSummary {
   checked_at: string;
 }
 
+// --- Hardening: replay + rate-limit (in-memory, per-instance) ---
+const MAX_BODY_BYTES = 8 * 1024; // 8 KB is plenty for {nrc, name}
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10; // per user per minute
+const NONCE_TTL_MS = 5 * 60_000; // 5 min replay window
+const rateBuckets = new Map<string, number[]>();
+const seenNonces = new Map<string, number>();
+
+const rateLimited = (userId: string): boolean => {
+  const now = Date.now();
+  const arr = (rateBuckets.get(userId) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) { rateBuckets.set(userId, arr); return true; }
+  arr.push(now); rateBuckets.set(userId, arr); return false;
+};
+
+const isReplay = (nonce: string): boolean => {
+  const now = Date.now();
+  for (const [k, t] of seenNonces) if (now - t > NONCE_TTL_MS) seenNonces.delete(k);
+  if (seenNonces.has(nonce)) return true;
+  seenNonces.set(nonce, now); return false;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST" },
+    });
+  }
+  const contentLength = parseInt(req.headers.get("content-length") ?? "0", 10);
+  if (contentLength > MAX_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: "Payload too large" }), {
+      status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
