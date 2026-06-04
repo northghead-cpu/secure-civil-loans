@@ -1,4 +1,27 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { z } from "https://esm.sh/zod@3.23.8";
+
+// Strict allowlist schema — rejects unknown keys, enforces NRC format & length bounds
+const CRBRequestSchema = z.object({
+  nrc_number: z
+    .string()
+    .trim()
+    .min(8, "nrc_number too short")
+    .max(20, "nrc_number too long")
+    .regex(/^[0-9\/\s-]+$/, "nrc_number contains invalid characters"),
+  full_name: z
+    .string()
+    .trim()
+    .min(2, "full_name too short")
+    .max(120, "full_name too long")
+    .regex(/^[A-Za-z][A-Za-z\s'.\-]*$/, "full_name contains invalid characters"),
+}).strict();
+
+const badRequest = (corsHeaders: Record<string, string>, message: string, details?: unknown) =>
+  new Response(JSON.stringify({ error: "Bad Request", message, ...(details ? { details } : {}) }), {
+    status: 400,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -123,26 +146,22 @@ Deno.serve(async (req) => {
         status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    let body: Record<string, unknown>;
-    try { body = JSON.parse(rawBody); } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let json: unknown;
+    try { json = JSON.parse(rawBody); } catch {
+      return badRequest(corsHeaders, "Request body must be valid JSON");
+    }
+    if (typeof json !== "object" || json === null || Array.isArray(json)) {
+      return badRequest(corsHeaders, "Request body must be a JSON object");
+    }
+    const parsed = CRBRequestSchema.safeParse(json);
+    if (!parsed.success) {
+      const flat = parsed.error.flatten();
+      return badRequest(corsHeaders, "Schema validation failed", {
+        fieldErrors: flat.fieldErrors,
+        formErrors: flat.formErrors,
       });
     }
-    const { nrc_number, full_name } = body as { nrc_number?: string; full_name?: string };
-
-    if (!nrc_number || typeof nrc_number !== "string" || !nrc_number.trim()) {
-      return new Response(
-        JSON.stringify({ error: "nrc_number is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    if (!full_name || typeof full_name !== "string" || !full_name.trim()) {
-      return new Response(
-        JSON.stringify({ error: "full_name is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { nrc_number, full_name } = parsed.data;
 
     const normalizedNRC = nrc_number.replace(/[\s-]/g, "").toUpperCase();
     const nrcPattern = /^\d{6}\/\d{2}\/\d{1}$/;
