@@ -385,6 +385,77 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_deduction_authorizations: {
+        Row: {
+          agreement_text: string
+          agreement_version: string
+          authorized_amount: number | null
+          authorized_term_months: number | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          loan_application_id: string | null
+          revoked_at: string | null
+          signature_name: string
+          signed_at: string
+          signer_employee_number: string | null
+          signer_employer: string | null
+          signer_full_name: string | null
+          signer_nrc: string | null
+          status: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          agreement_text: string
+          agreement_version: string
+          authorized_amount?: number | null
+          authorized_term_months?: number | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          loan_application_id?: string | null
+          revoked_at?: string | null
+          signature_name: string
+          signed_at?: string
+          signer_employee_number?: string | null
+          signer_employer?: string | null
+          signer_full_name?: string | null
+          signer_nrc?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          agreement_text?: string
+          agreement_version?: string
+          authorized_amount?: number | null
+          authorized_term_months?: number | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          loan_application_id?: string | null
+          revoked_at?: string | null
+          signature_name?: string
+          signed_at?: string
+          signer_employee_number?: string | null
+          signer_employer?: string | null
+          signer_full_name?: string | null
+          signer_nrc?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_deduction_authorizations_loan_application_id_fkey"
+            columns: ["loan_application_id"]
+            isOneToOne: false
+            referencedRelation: "loan_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_integrations: {
         Row: {
           api_endpoint: string | null
