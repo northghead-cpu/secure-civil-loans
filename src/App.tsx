@@ -100,7 +100,7 @@ const App = () => {
                   <Route
                     path="/underwriting"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
                         <UnderwritingPage />
                       </ProtectedRoute>
                     }
