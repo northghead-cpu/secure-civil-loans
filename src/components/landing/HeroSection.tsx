@@ -52,7 +52,7 @@ const HeroSection = () => {
           </motion.h1>
 
           <motion.p
-            className="text-lg md:text-xl text-white/70 max-w-2xl mb-8"
+            className="text-lg md:text-xl text-white/90 max-w-2xl mb-8"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -90,7 +90,7 @@ const HeroSection = () => {
                 <p className="text-2xl font-display font-bold text-white">
                   {stat.value}
                 </p>
-                <p className="text-xs text-white/50">{stat.label}</p>
+                <p className="text-xs text-white/80">{stat.label}</p>
               </div>
             ))}
           </motion.div>
