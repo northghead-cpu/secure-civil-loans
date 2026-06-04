@@ -1,4 +1,31 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { z } from "https://esm.sh/zod@3.23.8";
+
+const MAX_AMOUNT_ZMW = 100_000_000; // 100M ZMW upper bound sanity cap
+const ProcessLoanSchema = z.object({
+  zmw_client_id: z
+    .string()
+    .trim()
+    .min(3, "zmw_client_id too short")
+    .max(64, "zmw_client_id too long")
+    .regex(/^[A-Za-z0-9_\-]+$/, "zmw_client_id must be alphanumeric (with _ or -)"),
+  income_zmw: z
+    .number()
+    .finite("income_zmw must be a finite number")
+    .nonnegative("income_zmw must be >= 0")
+    .max(MAX_AMOUNT_ZMW, `income_zmw exceeds max ${MAX_AMOUNT_ZMW}`),
+  debt_zmw: z
+    .number()
+    .finite("debt_zmw must be a finite number")
+    .nonnegative("debt_zmw must be >= 0")
+    .max(MAX_AMOUNT_ZMW, `debt_zmw exceeds max ${MAX_AMOUNT_ZMW}`),
+}).strict();
+
+const badRequest = (corsHeaders: Record<string, string>, message: string, details?: unknown) =>
+  new Response(JSON.stringify({ error: "Bad Request", message, ...(details ? { details } : {}) }), {
+    status: 400,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
