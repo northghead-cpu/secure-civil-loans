@@ -23,6 +23,8 @@ interface AuthContextType {
   profile: ProfileData | null;
   loading: boolean;
   profileLoading: boolean;
+  isPasswordRecovery: boolean;
+  clearPasswordRecovery: () => void;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<ProfileData | null>;
 }
@@ -33,9 +35,21 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   profileLoading: false,
+  isPasswordRecovery: false,
+  clearPasswordRecovery: () => {},
   signOut: async () => {},
   refreshProfile: async () => null,
 });
+
+// Detect recovery token in the URL BEFORE the Supabase client parses it
+// away. This lets us flip into recovery mode immediately on first paint so
+// no other route redirects the user into an authenticated area.
+const hasRecoveryTokenInUrl = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const hash = window.location.hash || "";
+  const search = window.location.search || "";
+  return /(?:^|[#&?])type=recovery(?:&|$)/.test(hash) || /(?:[?&])type=recovery(?:&|$)/.test(search);
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
