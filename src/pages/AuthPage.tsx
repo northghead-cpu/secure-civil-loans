@@ -298,7 +298,7 @@ const AuthPage = () => {
           </Button>
           {mode === "login" && (
             <div className="text-center">
-              <button type="button" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Forgot password?</button>
+              <a href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Forgot password?</a>
             </div>
           )}
         </motion.form>
