@@ -16,6 +16,8 @@ import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import RetentionPolicy from "./pages/RetentionPolicy";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Authenticated routes — lazy loaded so unauthenticated visitors never
 // download these JS bundles. ProtectedRoute short-circuits the lazy
