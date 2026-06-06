@@ -16,8 +16,15 @@ interface ProtectedRouteProps {
  */
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const location = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isPasswordRecovery } = useAuth();
   const { highestRole, loading: rbacLoading } = useRBAC();
+
+  // A recovery session must never unlock authenticated areas. Always bounce
+  // the user to the dedicated reset page until they complete (or abandon)
+  // the password change.
+  if (isPasswordRecovery) {
+    return <Navigate to="/reset-password" replace />;
+  }
 
   if (authLoading || (allowedRoles && rbacLoading)) {
     return (

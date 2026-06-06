@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -52,7 +52,18 @@ const AuthPage = () => {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const notice = (location.state as { notice?: string } | null)?.notice;
+
+  useEffect(() => {
+    if (notice) {
+      toast({ title: "Success", description: notice });
+      // Clear the state so the toast doesn't fire again on re-render.
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

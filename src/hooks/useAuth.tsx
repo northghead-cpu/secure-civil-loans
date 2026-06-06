@@ -23,6 +23,8 @@ interface AuthContextType {
   profile: ProfileData | null;
   loading: boolean;
   profileLoading: boolean;
+  isPasswordRecovery: boolean;
+  clearPasswordRecovery: () => void;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<ProfileData | null>;
 }
@@ -33,9 +35,21 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   profileLoading: false,
+  isPasswordRecovery: false,
+  clearPasswordRecovery: () => {},
   signOut: async () => {},
   refreshProfile: async () => null,
 });
+
+// Detect recovery token in the URL BEFORE the Supabase client parses it away.
+// This lets us flip into recovery mode immediately on first paint so no other
+// route redirects the user into an authenticated area.
+const hasRecoveryTokenInUrl = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const hash = window.location.hash || "";
+  const search = window.location.search || "";
+  return /(?:^|[#&?])type=recovery(?:&|$)/.test(hash) || /(?:[?&])type=recovery(?:&|$)/.test(search);
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -43,6 +57,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  // Seed from URL so the first render already knows we're in recovery mode.
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() => hasRecoveryTokenInUrl());
 
   const fetchProfile = useCallback(async (userId: string): Promise<ProfileData | null> => {
     setProfileLoading(true);
@@ -60,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const refreshProfile = useCallback(async (): Promise<ProfileData | null> => {
-    // Always get the current auth user fresh
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (currentUser) {
       return fetchProfile(currentUser.id);
@@ -68,13 +83,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return null;
   }, [fetchProfile]);
 
+  const clearPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setIsPasswordRecovery(true);
+        }
+        if (event === "SIGNED_OUT") {
+          setIsPasswordRecovery(false);
+        }
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Use setTimeout to avoid Supabase deadlock
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
@@ -99,10 +121,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setIsPasswordRecovery(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, isPasswordRecovery, clearPasswordRecovery, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
