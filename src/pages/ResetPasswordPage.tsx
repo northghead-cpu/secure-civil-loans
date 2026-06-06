@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
@@ -14,26 +15,35 @@ const ResetPasswordPage = () => {
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [linkInvalid, setLinkInvalid] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isPasswordRecovery, clearPasswordRecovery } = useAuth();
 
   useEffect(() => {
-    // Supabase delivers a recovery session via the URL hash. The client
-    // parses it automatically and emits a PASSWORD_RECOVERY event.
+    // Recovery sessions arrive via URL hash; Supabase parses it and fires
+    // PASSWORD_RECOVERY. Track readiness from either signal.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+      if (event === "PASSWORD_RECOVERY") {
         setReady(true);
       }
     });
 
-    // Also check existing session for users who land here already signed in
-    // via the recovery link.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+    if (isPasswordRecovery) setReady(true);
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // If user lands here with neither a recovery token nor an existing
+    // recovery session, the link is missing/expired.
+    const timer = setTimeout(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session && !isPasswordRecovery) setLinkInvalid(true);
+      });
+    }, 1500);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
+  }, [isPasswordRecovery]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +64,19 @@ const ResetPasswordPage = () => {
       if (updateError) throw updateError;
 
       setSuccess(true);
-      toast({ title: "Password updated", description: "You can now sign in with your new password." });
+      toast({ title: "Password updated", description: "Please sign in with your new password." });
 
-      // Sign out the recovery session so the user must log in fresh.
+      // Tear down the recovery session entirely so the user must log in fresh.
       await supabase.auth.signOut();
-      setTimeout(() => navigate("/login"), 1500);
+      clearPasswordRecovery();
+      setTimeout(
+        () =>
+          navigate("/login", {
+            replace: true,
+            state: { notice: "Password updated successfully. Please log in." },
+          }),
+        1200,
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to update password";
       setError(msg);
@@ -81,11 +99,22 @@ const ResetPasswordPage = () => {
           <p className="text-muted-foreground text-sm sm:text-base">
             {ready
               ? "Choose a new password for your account."
-              : "Verifying your reset link..."}
+              : linkInvalid
+                ? "This password reset link is invalid or has expired."
+                : "Verifying your reset link..."}
           </p>
         </div>
 
-        {!ready ? (
+        {linkInvalid && !ready ? (
+          <div className="text-center space-y-4">
+            <div className="text-destructive text-sm bg-destructive/10 px-3 py-3 rounded-md">
+              Please request a new password reset link.
+            </div>
+            <Button onClick={() => navigate("/forgot-password")} className="w-full h-11">
+              Request a new link
+            </Button>
+          </div>
+        ) : !ready ? (
           <div className="flex justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
@@ -108,7 +137,7 @@ const ResetPasswordPage = () => {
               />
             </div>
             <div>
-              <label htmlFor="confirm" className="block mb-2 text-sm font-medium text-foreground">Confirm password</label>
+              <label htmlFor="confirm" className="block mb-2 text-sm font-medium text-foreground">Confirm new password</label>
               <Input
                 id="confirm"
                 type="password"
