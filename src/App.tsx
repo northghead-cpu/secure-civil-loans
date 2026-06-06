@@ -74,6 +74,8 @@ const App = () => {
                   <Route path="/login" element={<AuthPage />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/retention-policy" element={<RetentionPolicy />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                   <Route
                     path="/profile"
