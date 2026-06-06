@@ -52,7 +52,18 @@ const AuthPage = () => {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const notice = (location.state as { notice?: string } | null)?.notice;
+
+  useEffect(() => {
+    if (notice) {
+      toast({ title: "Success", description: notice });
+      // Clear the state so the toast doesn't fire again on re-render.
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
