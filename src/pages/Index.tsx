@@ -15,27 +15,29 @@ const ADMIN_ROLES: AppRole[] = ["super_admin", "admin", "super_user", "complianc
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, profileLoading } = useAuth();
+  const { user, profile, loading: authLoading, profileLoading, isPasswordRecovery } = useAuth();
   const { highestRole, loading: rbacLoading } = useRBAC();
 
   useEffect(() => {
+    // Recovery sessions must go to the dedicated reset page, never to an
+    // authenticated dashboard.
+    if (isPasswordRecovery) {
+      navigate("/reset-password", { replace: true });
+      return;
+    }
     if (authLoading || rbacLoading || profileLoading) return;
     if (!user) return; // Show landing page for non-logged-in users
 
-    // Admin roles → admin dashboard
     if (highestRole && ADMIN_ROLES.includes(highestRole)) {
       navigate("/admin", { replace: true });
       return;
     }
 
-    // Verified users → profile (dashboard)
     if (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") {
       navigate("/profile", { replace: true });
       return;
     }
-
-    // Other logged-in users stay on landing page (they can navigate to /apply)
-  }, [user, authLoading, rbacLoading, profileLoading, highestRole, profile, navigate]);
+  }, [user, authLoading, rbacLoading, profileLoading, highestRole, profile, navigate, isPasswordRecovery]);
 
   if (authLoading || rbacLoading || profileLoading) {
     return (
