@@ -54,7 +54,12 @@ const KYCPage = () => {
       navigate("/login", { replace: true });
       return;
     }
-    if (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") {
+    // Allow verified users back into the wizard if they still need to sign the
+    // payroll deduction consent (step 4). Otherwise send them to their profile.
+    if (
+      (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") &&
+      profile?.consent_accepted
+    ) {
       toast.info("Your KYC is already verified.");
       navigate("/profile", { replace: true });
       return;
