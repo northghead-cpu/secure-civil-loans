@@ -223,22 +223,17 @@ const ProfilePage = () => {
           </CardHeader>
           <CardContent>
             {profile?.consent_accepted ? (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">E-Sign consent completed</p>
-                    <p className="text-xs text-muted-foreground">
-                      Signed on{" "}
-                      {profile.consent_signed_at
-                        ? new Date(profile.consent_signed_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" })
-                        : "—"}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">E-Sign consent completed</p>
+                  <p className="text-xs text-muted-foreground">
+                    Signed on{" "}
+                    {profile.consent_signed_at
+                      ? new Date(profile.consent_signed_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" })
+                      : "—"}
+                  </p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => navigate("/apply")}>
-                  Re-sign
-                </Button>
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">

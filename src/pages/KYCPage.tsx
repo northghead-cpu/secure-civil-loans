@@ -54,7 +54,12 @@ const KYCPage = () => {
       navigate("/login", { replace: true });
       return;
     }
-    if (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") {
+    // Allow verified users back into the wizard if they still need to sign the
+    // payroll deduction consent (step 4). Otherwise send them to their profile.
+    if (
+      (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") &&
+      profile?.consent_accepted
+    ) {
       toast.info("Your KYC is already verified.");
       navigate("/profile", { replace: true });
       return;
@@ -66,6 +71,17 @@ const KYCPage = () => {
   }, [user, profile, authLoading, profileLoading, navigate]);
 
   const kycStatus = profile?.kyc_status || "PENDING";
+
+  // Verified users returning solely to e-sign the payroll consent should jump
+  // straight to the consent step instead of walking the full wizard.
+  useEffect(() => {
+    if (
+      (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") &&
+      profile?.consent_accepted === false
+    ) {
+      setCurrentStep(4);
+    }
+  }, [profile?.kyc_status, profile?.consent_accepted]);
   const [formData, setFormData] = useState({
     fullName: "",
     nrcNumber: "",
