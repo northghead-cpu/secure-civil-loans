@@ -34,8 +34,9 @@ const ForgotPasswordPage = () => {
 
     setLoading(true);
     try {
+      // Use dynamic origin to support multiple environments (Lovable preview + custom domain)
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
       // Always show generic success to prevent email enumeration.
       if (resetError) {
@@ -92,31 +93,36 @@ const ForgotPasswordPage = () => {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Link to="/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back to login
+        <Link to="/login" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to login
         </Link>
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-2">Reset your password</h1>
+
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-2">Forgot your password?</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Enter your email and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link to reset your password.
           </p>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block mb-2 text-sm font-medium text-foreground">Email</label>
+            <label htmlFor="email" className="block mb-2 text-sm font-medium text-foreground">
+              Email address
+            </label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="you@example.com"
               autoComplete="email"
               className="w-full h-11 px-4"
             />
           </div>
-          {error && (
-            <div className="text-destructive text-sm bg-destructive/10 px-3 py-2 rounded-md">{error}</div>
-          )}
+
+          {error && <div className="text-destructive text-sm bg-destructive/10 px-3 py-2 rounded-md">{error}</div>}
+
           <Button type="submit" disabled={loading} className="w-full h-11 text-base font-medium">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Send reset link
