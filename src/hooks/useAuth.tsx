@@ -44,11 +44,16 @@ const AuthContext = createContext<AuthContextType>({
 // Detect recovery token in the URL BEFORE the Supabase client parses it away.
 // This lets us flip into recovery mode immediately on first paint so no other
 // route redirects the user into an authenticated area.
+// Supports both hash-based (legacy) and query parameter (PKCE) flows.
 const hasRecoveryTokenInUrl = (): boolean => {
   if (typeof window === "undefined") return false;
   const hash = window.location.hash || "";
   const search = window.location.search || "";
-  return /(?:^|[#&?])type=recovery(?:&|$)/.test(hash) || /(?:[?&])type=recovery(?:&|$)/.test(search);
+  // Legacy hash-based recovery: type=recovery in hash
+  const hashRecovery = /(?:^|[#&?])type=recovery(?:&|$)/.test(hash);
+  // Query parameter PKCE flow: code parameter present
+  const pkceCode = /[?&]code=/.test(search);
+  return hashRecovery || pkceCode;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {

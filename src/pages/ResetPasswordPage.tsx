@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +19,30 @@ const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isPasswordRecovery, clearPasswordRecovery } = useAuth();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    // If there's a code query parameter (PKCE flow), exchange it for a session immediately
+    const code = searchParams.get("code");
+    if (code) {
+      (async () => {
+        try {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.error("Failed to exchange code for session:", exchangeError);
+            setLinkInvalid(true);
+            return;
+          }
+          // Session established successfully
+          setReady(true);
+        } catch (err) {
+          console.error("Error exchanging code:", err);
+          setLinkInvalid(true);
+        }
+      })();
+      return;
+    }
+
     // Recovery sessions arrive via URL hash; Supabase parses it and fires
     // PASSWORD_RECOVERY. Track readiness from either signal.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -43,7 +65,7 @@ const ResetPasswordPage = () => {
       subscription.unsubscribe();
       clearTimeout(timer);
     };
-  }, [isPasswordRecovery]);
+  }, [isPasswordRecovery, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
