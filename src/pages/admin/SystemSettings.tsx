@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRBAC } from "@/hooks/useRBAC";
+import { edgeFunctionService } from "@/services/edgeFunctionService";
 import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,368 +11,209 @@ import { Bell, Globe, Key, Shield, Loader2, Save, Wallet, Building2, Link2, Cloc
 import { toast } from "sonner";
 
 const SystemSettings = () => {
-  const { permissions, logAction } = useRBAC();
+  const { permissions } = useRBAC();
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Form state
   const [platformName, setPlatformName] = useState("Riverbanc");
   const [supportEmail, setSupportEmail] = useState("support@riverbank.co.zm");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(true);
   const [ipWhitelisting, setIpWhitelisting] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState(30);
-  const [crbApiKey, setCrbApiKey] = useState("************");
-  const [smsApiKey, setSmsApiKey] = useState("************");
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(true);
-  const [slackAlerts, setSlackAlerts] = useState(false);
 
   const canEditSettings = permissions.canChangeSystemSettings;
 
-  const handleSave = async () => {
+  // Load settings from Edge Function on mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
     if (!canEditSettings) {
-      toast.error("You don't have permission to change system settings");
+      setLoading(false);
       return;
     }
+    
+    try {
+      const settings = await edgeFunctionService.getAdminSettings();
+      if (settings.platform_name) setPlatformName(settings.platform_name as string);
+      if (settings.support_email) setSupportEmail(settings.support_email as string);
+      if (settings.session_timeout_minutes) setSessionTimeout(settings.session_timeout_minutes as number);
+      if (settings.ip_whitelist_enabled !== undefined) setIpWhitelisting(settings.ip_whitelist_enabled as boolean);
+      if (settings.maintenance_mode !== undefined) setMaintenanceMode(settings.maintenance_mode as boolean);
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+      toast.error("Failed to load admin settings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!canEditSettings) {
+      toast.error("You don't have permission to change settings");
+      return;
+    }
+
     setSaving(true);
     try {
-      // Log the action
-      await logAction("update_system_settings", undefined, "system_settings", null, {
-        platformName,
-        supportEmail,
-        maintenanceMode,
-        twoFactorAuth,
-        ipWhitelisting,
-        sessionTimeout,
-        emailNotifications,
-        smsNotifications,
-        slackAlerts,
-      });
+      // Save settings via Edge Function (server-side, encrypted)
+      await Promise.all([
+        edgeFunctionService.setAdminSetting("platform_name", platformName),
+        edgeFunctionService.setAdminSetting("support_email", supportEmail),
+        edgeFunctionService.setAdminSetting("session_timeout_minutes", sessionTimeout),
+        edgeFunctionService.setAdminSetting("ip_whitelist_enabled", ipWhitelisting),
+        edgeFunctionService.setAdminSetting("maintenance_mode", maintenanceMode),
+      ]);
+      
       toast.success("Settings saved successfully");
-    } catch {
-      toast.error("Failed to save settings");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save settings";
+      console.error("Save error:", err);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <AdminPageShell>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </AdminPageShell>
+    );
+  }
+
   return (
-    <AdminPageShell className="max-w-5xl">
-      <AdminHero
-        badge={canEditSettings ? "Super admin" : "Read only"}
-        title="Platform-wide controls for security, notifications, and core integrations"
-        description="Adjust the operating envelope for the admin workspace without burying high-impact settings inside generic forms."
-        stats={[
-          { label: "Configuration areas", value: "4", meta: "General, security, keys, and notifications" },
-          { label: "Security defaults", value: "2FA on", meta: "Admin access hardened by default" },
-        ]}
-      />
+    <AdminPageShell>
+      <AdminHero title="System Settings" description="Configure platform-wide settings and integrations" />
 
-      <Card className={adminCardClass}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-display">
-            <Globe className="h-4 w-4" /> General
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="platformName">Platform Name</Label>
-            <Input 
-              id="platformName" 
-              value={platformName} 
-              onChange={(e) => setPlatformName(e.target.value)}
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="supportEmail">Support Email</Label>
-            <Input 
-              id="supportEmail" 
-              type="email"
-              value={supportEmail} 
-              onChange={(e) => setSupportEmail(e.target.value)}
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Maintenance Mode</Label>
-              <p className="text-xs text-muted-foreground">Disable public access temporarily</p>
-            </div>
-            <Switch 
-              checked={maintenanceMode} 
-              onCheckedChange={setMaintenanceMode}
-              disabled={!canEditSettings}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className={adminCardClass}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-display">
-            <Shield className="h-4 w-4" /> Security
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Two-Factor Authentication</Label>
-              <p className="text-xs text-muted-foreground">Require 2FA for all admin accounts</p>
-            </div>
-            <Switch 
-              checked={twoFactorAuth} 
-              onCheckedChange={setTwoFactorAuth}
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>IP Whitelisting</Label>
-              <p className="text-xs text-muted-foreground">Restrict admin access by IP address</p>
-            </div>
-            <Switch 
-              checked={ipWhitelisting} 
-              onCheckedChange={setIpWhitelisting}
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-            <Input 
-              id="sessionTimeout" 
-              type="number" 
-              value={sessionTimeout} 
-              onChange={(e) => setSessionTimeout(parseInt(e.target.value) || 30)}
-              className="w-32"
-              disabled={!canEditSettings}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className={adminCardClass}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-display">
-            <Key className="h-4 w-4" /> API Keys
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="crbApiKey">TransUnion CRB API Key</Label>
-            <Input 
-              id="crbApiKey" 
-              type="password" 
-              value={crbApiKey} 
-              onChange={(e) => setCrbApiKey(e.target.value)}
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="smsApiKey">SMS Gateway API Key</Label>
-            <Input 
-              id="smsApiKey" 
-              type="password" 
-              value={smsApiKey} 
-              onChange={(e) => setSmsApiKey(e.target.value)}
-              disabled={!canEditSettings}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className={adminCardClass}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-display">
-            <Bell className="h-4 w-4" /> Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Email Notifications</Label>
-              <p className="text-xs text-muted-foreground">Send email on application status changes</p>
-            </div>
-            <Switch 
-              checked={emailNotifications} 
-              onCheckedChange={setEmailNotifications}
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>SMS Notifications</Label>
-              <p className="text-xs text-muted-foreground">Send SMS alerts to applicants</p>
-            </div>
-            <Switch 
-              checked={smsNotifications} 
-              onCheckedChange={setSmsNotifications}
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Admin Slack Alerts</Label>
-              <p className="text-xs text-muted-foreground">Post critical alerts to Slack channel</p>
-            </div>
-            <Switch 
-              checked={slackAlerts} 
-              onCheckedChange={setSlackAlerts}
-              disabled={!canEditSettings}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payroll Integration Section - Super Admin Only */}
-      <Card className={adminCardClass}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-display">
-            <Wallet className="h-4 w-4" /> Payroll Integration
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">Configure third-party payroll provider connections for salary deduction processing</p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="payrollProvider">Payroll Provider</Label>
-            <select 
-              id="payrollProvider" 
-              className="w-full mt-1.5 h-10 rounded-md border border-input bg-background px-3 text-sm"
-              disabled={!canEditSettings}
-            >
-              <option value="">Select a provider</option>
-              <option value="zanaco">ZANACO Payroll</option>
-              <option value="fnb">FNB Business Payroll</option>
-              <option value="standard_chartered">Standard Chartered</option>
-              <option value="civic">Civic Payroll Services</option>
-              <option value="custom">Custom/Internal API</option>
-            </select>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
+      <div className="space-y-6 max-w-5xl">
+        {/* Platform Settings */}
+        <Card className={adminCardClass}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-display">
+              <Globe className="h-4 w-4" /> Platform Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="payrollApiUrl">API Endpoint URL</Label>
-              <Input 
-                id="payrollApiUrl" 
-                type="url"
-                placeholder="https://api.payroll-provider.com/v1"
+              <Label htmlFor="platformName">Platform Name</Label>
+              <Input
+                id="platformName"
+                value={platformName}
+                onChange={(e) => setPlatformName(e.target.value)}
                 disabled={!canEditSettings}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="payrollApiKey">API Key / Token</Label>
-              <Input 
-                id="payrollApiKey" 
-                type="password"
-                placeholder="Enter API key"
+              <Label htmlFor="supportEmail">Support Email</Label>
+              <Input
+                id="supportEmail"
+                type="email"
+                value={supportEmail}
+                onChange={(e) => setSupportEmail(e.target.value)}
                 disabled={!canEditSettings}
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="payrollClientId">Client ID / Merchant ID</Label>
-            <Input 
-              id="payrollClientId" 
-              placeholder="Your payroll client identifier"
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="payrollSecret">Client Secret</Label>
-            <Input 
-              id="payrollSecret" 
-              type="password"
-              placeholder="Your payroll client secret"
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Enable Live Mode</Label>
-              <p className="text-xs text-muted-foreground">Use production payroll API instead of sandbox</p>
+          </CardContent>
+        </Card>
+
+        {/* Security Settings */}
+        <Card className={adminCardClass}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-display">
+              <Shield className="h-4 w-4" /> Security Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Maintenance Mode</Label>
+                <p className="text-xs text-muted-foreground">Temporarily disable access for all non-admin users</p>
+              </div>
+              <Switch
+                checked={maintenanceMode}
+                onCheckedChange={setMaintenanceMode}
+                disabled={!canEditSettings}
+              />
             </div>
-            <Switch disabled={!canEditSettings} />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Auto-verify Employment</Label>
-              <p className="text-xs text-muted-foreground">Automatically verify employee status via payroll API</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>IP Whitelisting</Label>
+                <p className="text-xs text-muted-foreground">Restrict admin access to specific IP addresses</p>
+              </div>
+              <Switch
+                checked={ipWhitelisting}
+                onCheckedChange={setIpWhitelisting}
+                disabled={!canEditSettings}
+              />
             </div>
-            <Switch disabled={!canEditSettings} />
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="syncInterval">Sync Interval (minutes)</Label>
-              <Input 
-                id="syncInterval" 
+              <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+              <Input
+                id="sessionTimeout"
                 type="number"
-                defaultValue="60"
-                min="15"
-                max="1440"
+                value={sessionTimeout}
+                onChange={(e) => setSessionTimeout(parseInt(e.target.value) || 30)}
                 className="w-32"
                 disabled={!canEditSettings}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxDeduction">Max Deduction %</Label>
-              <Input 
-                id="maxDeduction" 
-                type="number"
-                defaultValue="30"
-                min="1"
-                max="100"
-                className="w-32"
-                disabled={!canEditSettings}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="webhookSecret">Webhook Secret</Label>
-            <Input 
-              id="webhookSecret" 
-              type="password"
-              placeholder="Secret for verifying incoming webhooks"
-              disabled={!canEditSettings}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Enable Deduction Notifications</Label>
-              <p className="text-xs text-muted-foreground">Notify employers of salary deductions</p>
-            </div>
-            <Switch disabled={!canEditSettings} />
-          </div>
-          <div className="flex items-center gap-2 pt-2 border-t">
-            <Button variant="outline" size="sm" disabled={!canEditSettings}>
-              <Link2 className="h-4 w-4 mr-2" /> Test Connection
-            </Button>
-            <Button variant="outline" size="sm" disabled={!canEditSettings}>
-              <Clock className="h-4 w-4 mr-2" /> View Sync Logs
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <div className="flex items-center justify-between">
-        {!canEditSettings && (
-          <p className="text-sm text-muted-foreground">
-            You need Super Admin or Admin permissions to edit these settings.
-          </p>
-        )}
-        <Button 
-          onClick={handleSave} 
-          disabled={saving || !canEditSettings}
-          className="ml-auto"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" /> Save Settings
-            </>
-          )}
-        </Button>
+        {/* Secure API Keys - Stored Server-Side */}
+        <Card className={adminCardClass}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-display">
+              <Key className="h-4 w-4" /> Secure API Keys (Server-Managed)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-info/10 border border-info/20 rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">
+                🔒 <strong>All sensitive API keys are stored securely on the server.</strong>
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                To update TransUnion CRB, Payroll Provider, or other sensitive credentials, contact your DevOps team to update environment variables.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="p-3 bg-muted/30 rounded border border-border/50">
+                <p className="text-sm font-medium text-foreground">TransUnion CRB API</p>
+                <p className="text-xs text-muted-foreground">Configured via CRB_API_KEY environment variable</p>
+              </div>
+              <div className="p-3 bg-muted/30 rounded border border-border/50">
+                <p className="text-sm font-medium text-foreground">Payroll Provider API</p>
+                <p className="text-xs text-muted-foreground">Configured via PAYROLL_API_KEY environment variable</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button
+            onClick={handleSave}
+            disabled={!canEditSettings || saving}
+            className="h-11"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Save Settings
+          </Button>
+          <Button
+            onClick={loadSettings}
+            variant="outline"
+            disabled={!canEditSettings}
+            className="h-11"
+          >
+            Reset
+          </Button>
+        </div>
       </div>
     </AdminPageShell>
   );

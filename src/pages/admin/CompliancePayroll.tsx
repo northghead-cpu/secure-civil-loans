@@ -1,392 +1,315 @@
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { useRBAC } from "@/hooks/useRBAC";
+import { edgeFunctionService } from "@/services/edgeFunctionService";
+import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useRBAC } from "@/hooks/useRBAC";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Link2, Plus, AlertCircle, Loader2, Trash2, TestTubes } from "lucide-react";
 import { toast } from "sonner";
-import { Link2, RefreshCw, Edit, Trash2, Plus, ToggleRight, ToggleLeft, Loader2 } from "lucide-react";
 
-type IntegrationStatus = "connected" | "error" | "pending" | "disabled";
 type IntegrationType = "API" | "CSV Upload" | "Manual";
+type IntegrationStatus = "connected" | "error" | "pending" | "disabled";
 
 interface PayrollIntegration {
   id: string;
-  employer: string;
-  type: IntegrationType;
-  status: IntegrationStatus;
-  lastSync: string | null;
-  employees: number;
-  apiEndpoint?: string;
-  apiKey?: string;
-  notes?: string;
+  provider_name: string;
+  api_endpoint: string | null;
+  status: "active" | "inactive";
+  created_at: string;
+  created_by?: string;
 }
 
-const mockIntegrations: PayrollIntegration[] = [
-  { id: "1", employer: "Ministry of Education", type: "API", status: "connected", lastSync: "2026-03-11 08:00", employees: 1240, apiEndpoint: "https://api.moe.gov.zm/payroll" },
-  { id: "2", employer: "Ministry of Health", type: "API", status: "connected", lastSync: "2026-03-11 08:00", employees: 890, apiEndpoint: "https://api.moh.gov.zm/payroll" },
-  { id: "3", employer: "Zambia Police Service", type: "CSV Upload", status: "connected", lastSync: "2026-03-10 14:00", employees: 560 },
-  { id: "4", employer: "ZESCO", type: "API", status: "error", lastSync: "2026-03-09 08:00", employees: 340, apiEndpoint: "https://api.zesco.gov.zm/payroll" },
-  { id: "5", employer: "Zambia Revenue Authority", type: "Manual", status: "pending", lastSync: null, employees: 0 },
-];
-
-const statusColors: Record<IntegrationStatus, string> = {
-  connected: "bg-success/10 text-success border-success/20",
+const statusColors: Record<string, string> = {
+  active: "bg-success/10 text-success border-success/20",
+  inactive: "bg-warning/10 text-warning border-warning/20",
   error: "bg-destructive/10 text-destructive border-destructive/20",
-  pending: "bg-warning/10 text-warning border-warning/20",
-  disabled: "bg-muted/10 text-muted-foreground border-muted-foreground/20",
-};
-
-const typeColors: Record<IntegrationType, string> = {
-  API: "bg-info/10 text-info",
-  "CSV Upload": "bg-amber-500/10 text-amber-600",
-  Manual: "bg-muted text-muted-foreground",
 };
 
 const CompliancePayroll = () => {
-  const { permissions, logAction, hasRole, highestRole } = useRBAC();
-  const [integrations, setIntegrations] = useState<PayrollIntegration[]>(mockIntegrations);
-  const isSuperAdmin = hasRole("super_admin");
+  const { permissions, hasRole } = useRBAC();
+  const [integrations, setIntegrations] = useState<PayrollIntegration[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingIntegration, setEditingIntegration] = useState<PayrollIntegration | null>(null);
   const [saving, setSaving] = useState(false);
-  
-  // Form state
+  const [testing, setTesting] = useState<string | null>(null);
+
+  const isSuperAdmin = hasRole("super_admin");
+
   const [formData, setFormData] = useState({
-    employer: "",
-    type: "API" as IntegrationType,
-    apiEndpoint: "",
-    apiKey: "",
-    notes: "",
+    provider_name: "",
+    api_endpoint: "",
   });
 
-  // Stats
-  const stats = {
-    total: integrations.length,
-    active: integrations.filter((i) => i.status === "connected").length,
-    employees: integrations.reduce((sum, i) => sum + i.employees, 0),
-    errors: integrations.filter((i) => i.status === "error").length,
-  };
+  useEffect(() => {
+    loadIntegrations();
+  }, []);
 
-  const openAddModal = () => {
-    setEditingIntegration(null);
-    setFormData({ employer: "", type: "API", apiEndpoint: "", apiKey: "", notes: "" });
-    setShowModal(true);
-  };
-
-  const openEditModal = (integration: PayrollIntegration) => {
+  const loadIntegrations = async () => {
     if (!isSuperAdmin) {
-      toast.error("Only Super Admins can edit integrations");
+      setLoading(false);
       return;
     }
-    setEditingIntegration(integration);
-    setFormData({
-      employer: integration.employer,
-      type: integration.type,
-      apiEndpoint: integration.apiEndpoint || "",
-      apiKey: integration.apiKey || "",
-      notes: integration.notes || "",
-    });
-    setShowModal(true);
-  };
 
-  const toggleIntegrationStatus = async (integration: PayrollIntegration) => {
-    if (!isSuperAdmin) {
-      toast.error("Only Super Admins can toggle integration status");
-      return;
-    }
     try {
-      const newStatus: IntegrationStatus = integration.status === "disabled" ? "pending" : "disabled";
-      await logAction(
-        "toggle_integration_status",
-        integration.id,
-        "payroll_integrations",
-        { status: integration.status },
-        { status: newStatus }
-      );
-      setIntegrations((prev) =>
-        prev.map((i) => (i.id === integration.id ? { ...i, status: newStatus } : i))
-      );
-      toast.success(`Integration ${newStatus === "disabled" ? "disabled" : "enabled"}`);
-    } catch (error) {
-      toast.error("Failed to update integration status");
+      const result = await edgeFunctionService.listPayrollIntegrations();
+      setIntegrations(result);
+    } catch (err) {
+      console.error("Failed to load integrations:", err);
+      toast.error("Failed to load payroll integrations");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteIntegration = async (integration: PayrollIntegration) => {
-    if (!isSuperAdmin) {
-      toast.error("Only Super Admins can delete integrations");
+  const handleAddIntegration = async () => {
+    if (!formData.provider_name || !formData.api_endpoint) {
+      toast.error("Please fill in all fields");
       return;
     }
-    if (!confirm(`Are you sure you want to delete the integration for ${integration.employer}?`)) {
-      return;
-    }
-    try {
-      await logAction(
-        "delete_integration",
-        integration.id,
-        "payroll_integrations",
-        integration,
-        null
-      );
-      setIntegrations((prev) => prev.filter((i) => i.id !== integration.id));
-      toast.success("Integration deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete integration");
-    }
-  };
 
-  const handleSave = async () => {
-    if (!formData.employer) {
-      toast.error("Please enter the employer name");
-      return;
-    }
-    
     setSaving(true);
     try {
-      if (editingIntegration) {
-        // Update existing
-        const updated: PayrollIntegration = {
-          ...editingIntegration,
-          ...formData,
-        };
-        await logAction(
-          "update_integration",
-          editingIntegration.id,
-          "payroll_integrations",
-          editingIntegration,
-          updated
-        );
-        setIntegrations((prev) =>
-          prev.map((i) => (i.id === editingIntegration.id ? updated : i))
-        );
-        toast.success("Integration updated successfully");
-      } else {
-        // Add new
-        const newIntegration: PayrollIntegration = {
-          id: `int_${Date.now()}`,
-          employer: formData.employer,
-          type: formData.type,
-          status: "pending",
-          lastSync: null,
-          employees: 0,
-          apiEndpoint: formData.type === "API" ? formData.apiEndpoint : undefined,
-          apiKey: formData.type === "API" ? formData.apiKey : undefined,
-          notes: formData.notes,
-        };
-        await logAction("add_integration", newIntegration.id, "payroll_integrations", null, newIntegration);
-        setIntegrations((prev) => [...prev, newIntegration]);
-        toast.success("Integration added successfully");
-      }
+      await edgeFunctionService.createPayrollIntegration(
+        formData.provider_name,
+        formData.api_endpoint,
+        "inactive"
+      );
+      toast.success("Integration created successfully");
+      setFormData({ provider_name: "", api_endpoint: "" });
       setShowModal(false);
-    } catch (error) {
-      toast.error("Failed to save integration");
+      await loadIntegrations();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create integration";
+      console.error("Create error:", err);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   };
 
-  const testConnection = async (integration: PayrollIntegration) => {
-    if (!isSuperAdmin) {
-      toast.error("Only Super Admins can test connections");
-      return;
-    }
-    toast.loading("Testing connection...", { id: "test-connection" });
+  const handleTestConnection = async (integration: PayrollIntegration) => {
+    setTesting(integration.id);
     try {
-      // Simulate API test
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      toast.success("Connection successful!", { id: "test-connection" });
-      await logAction("test_integration", integration.id, "payroll_integrations", null, { tested: true });
-    } catch (error) {
-      toast.error("Connection failed", { id: "test-connection" });
+      await edgeFunctionService.testPayrollConnection(integration.api_endpoint || "");
+      toast.success("Connection test successful");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Connection test failed";
+      console.error("Test error:", err);
+      toast.error(message);
+    } finally {
+      setTesting(null);
     }
   };
 
-  return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Payroll Integration</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage employer payroll connections for salary verification
-            {isSuperAdmin && <span className="ml-2 text-xs text-primary">(Super Admin: Full Access)</span>}
-          </p>
+  const handleDeleteIntegration = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this integration?")) return;
+
+    try {
+      await edgeFunctionService.deletePayrollIntegration(id);
+      toast.success("Integration deleted successfully");
+      await loadIntegrations();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete integration";
+      console.error("Delete error:", err);
+      toast.error(message);
+    }
+  };
+
+  const handleToggleStatus = async (integration: PayrollIntegration) => {
+    const newStatus = integration.status === "active" ? "inactive" : "active";
+    try {
+      await edgeFunctionService.updatePayrollIntegration(integration.id, { status: newStatus });
+      toast.success(`Integration ${newStatus}`);
+      await loadIntegrations();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update integration";
+      console.error("Update error:", err);
+      toast.error(message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <AdminPageShell>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
-        {isSuperAdmin && (
-          <Button onClick={openAddModal}>
-            <Plus className="w-4 h-4 mr-1" /> Add Integration
-          </Button>
-        )}
-      </div>
+      </AdminPageShell>
+    );
+  }
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
+  if (!isSuperAdmin) {
+    return (
+      <AdminPageShell>
+        <Card className={adminCardClass}>
           <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-foreground">{stats.total}</div>
-            <p className="text-sm text-muted-foreground">Total Integrations</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-success">{stats.active}</div>
-            <p className="text-sm text-muted-foreground">Active Connections</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-foreground">{stats.employees.toLocaleString()}</div>
-            <p className="text-sm text-muted-foreground">Employees Covered</p>
-          </CardContent>
-        </Card>
-        {stats.errors > 0 && (
-          <Card className="border-destructive/50">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-display font-bold text-destructive">{stats.errors}</div>
-              <p className="text-sm text-muted-foreground">Connection Errors</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employer</TableHead>
-                <TableHead className="hidden sm:table-cell">Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Last Sync</TableHead>
-                <TableHead className="hidden sm:table-cell">Employees</TableHead>
-                {isSuperAdmin && <TableHead className="text-right">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {integrations.map((i) => (
-                <TableRow key={i.id} className={i.status === "error" ? "bg-destructive/5" : ""}>
-                  <TableCell className="font-medium">{i.employer}</TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Badge className={typeColors[i.type]}>{i.type}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={statusColors[i.status]}>{i.status}</Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">{i.lastSync || "—"}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{i.employees.toLocaleString()}</TableCell>
-                  {isSuperAdmin && (
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button size="sm" variant="ghost" onClick={() => testConnection(i)} title="Test Connection">
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => openEditModal(i)} title="Edit">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => toggleIntegrationStatus(i)} title={i.status === "disabled" ? "Enable" : "Disable"}>
-                          {i.status === "disabled" ? (
-                            <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <ToggleRight className="h-4 w-4 text-success" />
-                          )}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => deleteIntegration(i)} title="Delete" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Super Admin Integration Modal */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingIntegration ? "Edit Integration" : "Add New Integration"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="employer">Employer Name *</Label>
-              <Input
-                id="employer"
-                value={formData.employer}
-                onChange={(e) => setFormData((p) => ({ ...p, employer: e.target.value }))}
-                placeholder="e.g. Ministry of Education"
-              />
+            <div className="flex items-center gap-3 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+              <p>You don't have permission to manage payroll integrations.</p>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="type">Integration Type *</Label>
-              <select
-                id="type"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                value={formData.type}
-                onChange={(e) => setFormData((p) => ({ ...p, type: e.target.value as IntegrationType }))}
-              >
-                <option value="API">API Integration</option>
-                <option value="CSV Upload">CSV Upload</option>
-                <option value="Manual">Manual</option>
-              </select>
-            </div>
+          </CardContent>
+        </Card>
+      </AdminPageShell>
+    );
+  }
 
-            {formData.type === "API" && (
-              <>
+  return (
+    <AdminPageShell>
+      <AdminHero
+        title="Payroll Integration"
+        description="Manage secure connections to payroll providers (API credentials stored server-side)"
+      />
+
+      <div className="space-y-6 max-w-5xl">
+        {/* Security Notice */}
+        <Card className="border-info/20 bg-info/5">
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <div className="text-info text-lg">🔒</div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Secure Configuration</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  All payroll provider API keys and credentials are stored securely on the server via Edge Functions.
+                  Your frontend never sees these sensitive values.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Add Integration Button */}
+        <div className="flex justify-end">
+          <Dialog open={showModal} onOpenChange={setShowModal}>
+            <DialogTrigger asChild>
+              <Button className="h-11">
+                <Plus className="w-4 h-4 mr-2" /> Add Integration
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Payroll Integration</DialogTitle>
+                <DialogDescription>
+                  Connect a new payroll provider. API credentials will be stored securely on the server.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="apiEndpoint">API Endpoint URL</Label>
+                  <Label htmlFor="provider">Provider Name</Label>
                   <Input
-                    id="apiEndpoint"
+                    id="provider"
+                    placeholder="e.g., Ministry of Education"
+                    value={formData.provider_name}
+                    onChange={(e) => setFormData({ ...formData, provider_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endpoint">API Endpoint URL</Label>
+                  <Input
+                    id="endpoint"
                     type="url"
-                    value={formData.apiEndpoint}
-                    onChange={(e) => setFormData((p) => ({ ...p, apiEndpoint: e.target.value }))}
-                    placeholder="https://api.employer.gov.zm/payroll"
+                    placeholder="https://api.provider.com/v1/payroll"
+                    value={formData.api_endpoint}
+                    onChange={(e) => setFormData({ ...formData, api_endpoint: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="apiKey">API Key / Token</Label>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    value={formData.apiKey}
-                    onChange={(e) => setFormData((p) => ({ ...p, apiKey: e.target.value }))}
-                    placeholder="Enter API key"
-                  />
-                </div>
-              </>
-            )}
+                <Button
+                  onClick={handleAddIntegration}
+                  disabled={saving}
+                  className="w-full"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Create Integration
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <textarea
-                id="notes"
-                className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={formData.notes}
-                onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
-                placeholder="Additional notes about this integration..."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {editingIntegration ? "Update" : "Add Integration"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Integrations Table */}
+        <Card className={adminCardClass}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Link2 className="w-4 h-4" /> Active Integrations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {integrations.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No payroll integrations configured yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Provider</TableHead>
+                      <TableHead>Endpoint</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {integrations.map((integration) => (
+                      <TableRow key={integration.id}>
+                        <TableCell className="font-medium">{integration.provider_name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground truncate max-w-xs">
+                          {integration.api_endpoint}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusColors[integration.status]}>
+                            {integration.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleTestConnection(integration)}
+                            disabled={testing === integration.id}
+                          >
+                            {testing === integration.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <TestTubes className="w-3 h-3" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleToggleStatus(integration)}
+                          >
+                            {integration.status === "active" ? "Disable" : "Enable"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteIntegration(integration.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AdminPageShell>
   );
 };
 
