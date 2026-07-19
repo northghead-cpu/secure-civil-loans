@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -174,7 +175,48 @@ const KYCPage = () => {
       toast.error("You must be logged in");
       return;
     }
-    
+
+    // Server-authoritative validation: Zod schema for text fields + file-size guard.
+    const KycSchema = z.object({
+      fullName: z.string().trim().min(2, "Full name is required").max(100),
+      nrcNumber: z
+        .string()
+        .trim()
+        .regex(/^\d{6}\/\d{2}\/\d{1}$/, "NRC must be in format 123456/78/1"),
+      phone: z
+        .string()
+        .trim()
+        .regex(/^\+?[0-9\s\-]{9,20}$/, "Enter a valid phone number"),
+      employer: z.string().trim().min(2, "Employer is required").max(150),
+      employeeNumber: z.string().trim().min(1, "Employee number is required").max(50),
+    });
+
+    const parsed = KycSchema.safeParse({
+      fullName: formData.fullName,
+      nrcNumber: formData.nrcNumber,
+      phone: formData.phone,
+      employer: formData.employer,
+      employeeNumber: formData.employeeNumber,
+    });
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      toast.error(first?.message || "Please review the KYC form fields.");
+      return;
+    }
+
+    const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+    const filesToCheck: { field: string; file: File | null }[] = [
+      { field: "NRC", file: formData.nrcFile },
+      { field: "Government ID", file: formData.govIdFile },
+      { field: "Payslip", file: formData.payslipFile },
+    ];
+    for (const { field, file } of filesToCheck) {
+      if (file && file.size > MAX_FILE_BYTES) {
+        toast.error(`${field} file exceeds the 10MB limit.`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     console.log("Starting KYC submission for user:", user.id);
 
@@ -198,16 +240,17 @@ const KYCPage = () => {
         }
       }
 
-      // 2. Update Profile (Using 'as any' to kill the red lines)
+      // 2. Update Profile — send only validated values.
+      const validated = parsed.data;
       const { error: profileError } = await (supabase as any)
         .from("profiles")
         .upsert({
           user_id: user.id,
-          full_name: formData.fullName,
-          nrc_number: formData.nrcNumber,
-          phone: formData.phone,
-          employer: formData.employer,
-          employee_number: formData.employeeNumber,
+          full_name: validated.fullName,
+          nrc_number: validated.nrcNumber,
+          phone: validated.phone,
+          employer: validated.employer,
+          employee_number: validated.employeeNumber,
           kyc_status: "IN_REVIEW",
           updated_at: new Date().toISOString(),
         } as any, { onConflict: 'user_id' });
