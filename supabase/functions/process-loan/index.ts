@@ -162,7 +162,8 @@ Deno.serve(async (req) => {
       }, { onConflict: "zmw_client_id" });
 
     if (insertError) {
-      return new Response(JSON.stringify({ error: insertError.message }), {
+      console.error("[process-loan] insert error:", insertError);
+      return new Response(JSON.stringify({ error: "Processing failed. Please try again." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -173,7 +174,8 @@ Deno.serve(async (req) => {
       .rpc("calculate_zmw_underwriting", { p_income: income_zmw, p_debt: debt_zmw });
 
     if (scoreError || !scoreData || scoreData.length === 0) {
-      return new Response(JSON.stringify({ error: scoreError?.message || "Scoring failed" }), {
+      console.error("[process-loan] scoring error:", scoreError);
+      return new Response(JSON.stringify({ error: "Processing failed. Please try again." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
