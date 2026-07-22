@@ -43,27 +43,42 @@ interface CRBSummary {
   checked_at: string;
 }
 
-// --- Hardening: replay + rate-limit (in-memory, per-instance) ---
-const MAX_BODY_BYTES = 8 * 1024; // 8 KB is plenty for {nrc, name}
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 10; // per user per minute
-const NONCE_TTL_MS = 5 * 60_000; // 5 min replay window
-const rateBuckets = new Map<string, number[]>();
-const seenNonces = new Map<string, number>();
+// --- Hardening: replay + rate-limit (DB-backed, cross-instance) ---
+const MAX_BODY_BYTES = 8 * 1024;
+const RATE_LIMIT_WINDOW_SEC = 60;
+const RATE_LIMIT_MAX = 10;
+const NONCE_TTL_SEC = 5 * 60;
+const FN_NAME = "crb-proxy";
 
-const rateLimited = (userId: string): boolean => {
-  const now = Date.now();
-  const arr = (rateBuckets.get(userId) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  if (arr.length >= RATE_LIMIT_MAX) { rateBuckets.set(userId, arr); return true; }
-  arr.push(now); rateBuckets.set(userId, arr); return false;
-};
+async function pruneOld(admin: ReturnType<typeof createClient>) {
+  const cutoff = new Date(Date.now() - NONCE_TTL_SEC * 1000).toISOString();
+  await admin.from("edge_request_log").delete().lt("created_at", cutoff);
+}
 
-const isReplay = (nonce: string): boolean => {
-  const now = Date.now();
-  for (const [k, t] of seenNonces) if (now - t > NONCE_TTL_MS) seenNonces.delete(k);
-  if (seenNonces.has(nonce)) return true;
-  seenNonces.set(nonce, now); return false;
-};
+async function checkAndRecord(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  nonce: string,
+): Promise<{ limited: boolean; replay: boolean; error?: string }> {
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_SEC * 1000).toISOString();
+  const { count, error: countErr } = await admin
+    .from("edge_request_log")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("function_name", FN_NAME)
+    .gte("created_at", windowStart);
+  if (countErr) return { limited: false, replay: false, error: countErr.message };
+  if ((count ?? 0) >= RATE_LIMIT_MAX) return { limited: true, replay: false };
+
+  const { error: insErr } = await admin
+    .from("edge_request_log")
+    .insert({ user_id: userId, function_name: FN_NAME, nonce });
+  if (insErr) {
+    if ((insErr as { code?: string }).code === "23505") return { limited: false, replay: true };
+    return { limited: false, replay: false, error: insErr.message };
+  }
+  return { limited: false, replay: false };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
