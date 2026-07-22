@@ -134,21 +134,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Rate limit per admin
-    if (rateLimited(user.id)) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
-      });
-    }
-
-    // Replay protection: require X-Request-Id (UUID-like nonce) — single-use within 5 min
+    // Nonce + rate limit (DB-backed, cross-instance)
     const nonce = req.headers.get("x-request-id") ?? "";
     if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
       return new Response(JSON.stringify({ error: "Missing or invalid X-Request-Id" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (isReplay(`${user.id}:${nonce}`)) {
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    // Opportunistic GC (fire-and-forget)
+    pruneOld(adminClient).catch(() => {});
+    const guard = await checkAndRecord(adminClient, user.id, nonce);
+    if (guard.error) {
+      console.error("[crb-proxy] guard error:", guard.error);
+      return new Response(JSON.stringify({ error: "Service unavailable" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (guard.limited) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+    if (guard.replay) {
       return new Response(JSON.stringify({ error: "Duplicate request" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
