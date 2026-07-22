@@ -140,6 +140,30 @@ export type Database = {
         }
         Relationships: []
       }
+      edge_request_log: {
+        Row: {
+          created_at: string
+          function_name: string
+          id: string
+          nonce: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          function_name: string
+          id?: string
+          nonce: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          function_name?: string
+          id?: string
+          nonce?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       kyc: {
         Row: {
           created_at: string | null
