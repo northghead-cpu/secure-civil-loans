@@ -125,18 +125,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (rateLimited(user.id)) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
-      });
-    }
     const nonce = req.headers.get("x-request-id") ?? "";
     if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
       return new Response(JSON.stringify({ error: "Missing or invalid X-Request-Id" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (isReplay(`${user.id}:${nonce}`)) {
+    pruneOld(supabase).catch(() => {});
+    const guard = await checkAndRecord(supabase, user.id, nonce);
+    if (guard.error) {
+      console.error("[process-loan] guard error:", guard.error);
+      return new Response(JSON.stringify({ error: "Service unavailable" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (guard.limited) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+    if (guard.replay) {
       return new Response(JSON.stringify({ error: "Duplicate request" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
