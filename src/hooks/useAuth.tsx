@@ -128,7 +128,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
     setProfile(null);
     setIsPasswordRecovery(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("rb.sessionStart");
+      localStorage.removeItem("rb.lastActivity");
+    }
   };
+
+  useIdleTimeout(!!session);
+
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, isPasswordRecovery, clearPasswordRecovery, signOut, refreshProfile }}>
