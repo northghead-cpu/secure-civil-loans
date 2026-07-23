@@ -14,14 +14,14 @@ const LAST_ACTIVITY_KEY = "rb.lastActivity";
 const SESSION_START_KEY = "rb.sessionStart";
 const SIGNOUT_BROADCAST_KEY = "rb.signoutAt";
 
-const ACTIVITY_EVENTS: Array<keyof WindowEventMap> = [
+const ACTIVITY_EVENTS = [
   "mousemove",
   "mousedown",
   "keydown",
   "scroll",
   "touchstart",
   "visibilitychange",
-];
+] as const;
 
 export function useIdleTimeout(active: boolean) {
   const timerRef = useRef<number | null>(null);
