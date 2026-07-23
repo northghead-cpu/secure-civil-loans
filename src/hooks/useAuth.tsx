@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface ProfileData {
@@ -127,7 +128,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
     setProfile(null);
     setIsPasswordRecovery(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("rb.sessionStart");
+      localStorage.removeItem("rb.lastActivity");
+    }
   };
+
+  useIdleTimeout(!!session);
+
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, isPasswordRecovery, clearPasswordRecovery, signOut, refreshProfile }}>
