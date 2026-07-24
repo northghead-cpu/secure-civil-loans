@@ -14,3 +14,62 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run vitest run
+
+  audit:
+    # Supply-chain gate: fail the build on any high/critical advisory in
+    # runtime dependencies. Dev-only vulns are reported but don't block.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Audit production dependencies
+        run: bun audit --prod --audit-level=high
+      - name: Audit dev dependencies (non-blocking)
+        continue-on-error: true
+        run: bun audit --audit-level=high
+
+  secret-scan:
+    # Cheap regex sweep for accidental key commits. Blocks obvious leaks
+    # without needing a paid scanner. Whitelist-safe: publishable/anon
+    # Supabase keys live in .env and are OK.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for service-role keys and private material
+        run: |
+          set -e
+          # Match key-like material, not the plain word "service_role"
+          # (which legitimately appears in GRANT statements in migrations)
+          # or anon/publishable JWTs (which are safe in the client bundle).
+          patterns='SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*[A-Za-z0-9._-]{20,}|BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[0-9A-Za-z]{16,}|sk_test_[0-9A-Za-z]{16,}'
+          # Additionally decode JWTs and flag any whose payload claims
+          # role=service_role. Anon/publishable keys are ignored.
+          jwt_hits=0
+          while IFS=: read -r file line token; do
+            payload=$(printf '%s' "$token" | cut -d. -f2)
+            # base64url -> base64
+            pad=$(( (4 - ${#payload} % 4) % 4 ))
+            padded="$payload$(printf '=%.0s' $(seq 1 $pad))"
+            decoded=$(printf '%s' "$padded" | tr '_-' '/+' | base64 -d 2>/dev/null || true)
+            if printf '%s' "$decoded" | grep -q '"role"[[:space:]]*:[[:space:]]*"service_role"'; then
+              echo "::error file=$file,line=$line::service_role JWT detected"
+              jwt_hits=$((jwt_hits+1))
+            fi
+          done < <(grep -R -noE 'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' \
+              --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+              --exclude='*.lock' --exclude='bun.lock' --exclude='bun.lockb' \
+              --exclude-dir=.github . || true)
+          if grep -R -nE "$patterns" \
+              --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+              --exclude='*.lock' --exclude='bun.lock' --exclude='bun.lockb' \
+              --exclude-dir=.github \
+              .; then
+            echo "::error::Potential secret detected. Rotate the key and remove it from the repo."
+            exit 1
+          fi
+          if [ "$jwt_hits" -gt 0 ]; then
+            echo "::error::Committed JWT(s) with role=service_role. Rotate immediately."
+            exit 1
+          fi
+
