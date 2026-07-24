@@ -50,7 +50,24 @@ const CreditBureau = lazy(() => import("./pages/admin/CreditBureau"));
 
 const ADMIN_ROLES = ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"] as const;
 
-const queryClient = new QueryClient();
+// Query cache tuned for an admin-heavy fintech app: avoid duplicate
+// fetches on tab focus, keep results warm for a minute, and don't spam
+// retries on 4xx from RLS-denied endpoints.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error) => {
+        const status = (error as { status?: number; code?: string })?.status;
+        if (status && status >= 400 && status < 500) return false;
+        return failureCount < 2;
+      },
+    },
+    mutations: { retry: 0 },
+  },
+});
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">

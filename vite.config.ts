@@ -29,4 +29,27 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Modern browsers only — smaller polyfills, faster parse.
+    target: "es2020",
+    cssCodeSplit: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        // Split heavy vendor libs so unauth landing users don't pay for
+        // charts/OCR bundles, and route caches stay warm across releases.
+        manualChunks: (id) => {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("tesseract.js")) return "vendor-ocr";
+          if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
+          if (id.includes("@supabase")) return "vendor-supabase";
+          if (id.includes("framer-motion")) return "vendor-motion";
+          if (id.includes("react-router")) return "vendor-router";
+          if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("react-dom") || id.includes("scheduler") || /[\\/]react[\\/]/.test(id)) return "vendor-react";
+        },
+      },
+    },
+  },
 }));
