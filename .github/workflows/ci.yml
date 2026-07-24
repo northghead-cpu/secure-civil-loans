@@ -68,4 +68,8 @@ jobs:
             echo "::error::Potential secret detected. Rotate the key and remove it from the repo."
             exit 1
           fi
+          if [ "$jwt_hits" -gt 0 ]; then
+            echo "::error::Committed JWT(s) with role=service_role. Rotate immediately."
+            exit 1
+          fi
 
