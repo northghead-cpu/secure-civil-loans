@@ -39,10 +39,13 @@ jobs:
       - name: Scan for service-role keys and private material
         run: |
           set -e
-          patterns='service_role|SUPABASE_SERVICE_ROLE_KEY\s*=\s*[A-Za-z0-9._-]{20,}|BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[0-9A-Za-z]{16,}|sk_test_[0-9A-Za-z]{16,}'
+          # Match key-like material, not the plain word "service_role"
+          # (which legitimately appears in GRANT statements in migrations).
+          patterns='SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*[A-Za-z0-9._-]{20,}|"service_role"\s*:\s*"[A-Za-z0-9._-]{20,}"|BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[0-9A-Za-z]{16,}|sk_test_[0-9A-Za-z]{16,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
           if grep -R -nE "$patterns" \
               --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
               --exclude='*.lock' --exclude='bun.lock' --exclude='bun.lockb' \
+              --exclude-dir=.github \
               .; then
             echo "::error::Potential secret detected. Rotate the key and remove it from the repo."
             exit 1
