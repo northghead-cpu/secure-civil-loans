@@ -163,7 +163,7 @@ const CreditBureau = () => {
         headers: { "x-request-id": requestId },
       });
 
-      if (error) { toast.error(error.message || "CRB check failed"); return; }
+      if (error) { toast.error("CRB check failed. Please try again."); return; }
 
       if (data?.success && data.data) {
         const summary: CRBSummary = data.data;

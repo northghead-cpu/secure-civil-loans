@@ -38,10 +38,10 @@ const ForgotPasswordPage = () => {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
-      // Always show generic success to prevent email enumeration.
+      // Always show generic success to prevent email enumeration; never
+      // log the raw error (Supabase includes internal identifiers).
       if (resetError) {
         recordFailure(scope);
-        console.error("Password reset error:", resetError);
       } else {
         recordSuccess(scope);
       }

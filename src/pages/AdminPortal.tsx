@@ -138,7 +138,7 @@ const AdminPortal = () => {
       .update(updates)
       .eq("id", selected.id);
     if (error) {
-      toast.error(error.message);
+      toast.error("Failed to update application. Please try again.");
     } else {
       toast.success("Application updated");
       setApplications((prev) =>

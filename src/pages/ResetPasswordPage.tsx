@@ -100,7 +100,8 @@ const ResetPasswordPage = () => {
         1200,
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to update password";
+      const { sanitizeError } = await import("@/lib/errors");
+      const msg = sanitizeError(err, "Failed to update password. Please try again.");
       setError(msg);
       toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
