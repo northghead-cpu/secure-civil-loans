@@ -218,7 +218,7 @@ const KYCPage = () => {
     }
 
     setSubmitting(true);
-    console.log("Starting KYC submission for user:", user.id);
+    // No PII in logs — see src/lib/logger for policy.
 
     try {
       // 1. Upload Files
@@ -233,10 +233,10 @@ const KYCPage = () => {
         const { error: uploadError } = await supabase.storage
           .from("kyc-documents")
           .upload(path, file, { upsert: true });
-        
+
         if (uploadError) {
-          console.error(`Upload error for ${field}:`, uploadError);
-          throw new Error(`Failed to upload ${field}: ${uploadError.message}`);
+          // Do not leak storage internals (bucket layout, RLS text) to the client.
+          throw new Error(`Failed to upload ${field}`);
         }
       }
 
@@ -256,12 +256,10 @@ const KYCPage = () => {
         } as any, { onConflict: 'user_id' });
 
       if (profileError) {
-        console.error("Database upsert error:", profileError);
-        throw profileError;
+        throw new Error("Failed to save KYC profile");
       }
 
       // 3. Success and Redirect
-      console.log("KYC successfully saved to database");
       await refreshProfile();
       toast.success("KYC submitted successfully!");
       
