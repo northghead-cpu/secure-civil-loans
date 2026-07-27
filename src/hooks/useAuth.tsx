@@ -16,6 +16,11 @@ interface ProfileData {
   phone_verified: boolean;
   consent_accepted: boolean;
   consent_signed_at: string | null;
+  consent_marketing: boolean;
+  consent_data_sharing_lenders: boolean;
+  consent_crb_check: boolean;
+  consent_analytics: boolean;
+  consents_updated_at: string | null;
 }
 
 interface AuthContextType {
