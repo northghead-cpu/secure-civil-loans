@@ -86,6 +86,39 @@ export type Database = {
         }
         Relationships: []
       }
+      consent_history: {
+        Row: {
+          changed_by: string | null
+          consent_type: string
+          created_at: string
+          id: string
+          new_value: boolean
+          previous_value: boolean | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          consent_type: string
+          created_at?: string
+          id?: string
+          new_value: boolean
+          previous_value?: boolean | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          consent_type?: string
+          created_at?: string
+          id?: string
+          new_value?: boolean
+          previous_value?: boolean | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_checks: {
         Row: {
           adverse_count: number | null
@@ -558,7 +591,12 @@ export type Database = {
         Row: {
           account_status: string
           consent_accepted: boolean
+          consent_analytics: boolean
+          consent_crb_check: boolean
+          consent_data_sharing_lenders: boolean
+          consent_marketing: boolean
           consent_signed_at: string | null
+          consents_updated_at: string | null
           created_at: string
           email: string | null
           employee_number: string | null
@@ -582,7 +620,12 @@ export type Database = {
         Insert: {
           account_status?: string
           consent_accepted?: boolean
+          consent_analytics?: boolean
+          consent_crb_check?: boolean
+          consent_data_sharing_lenders?: boolean
+          consent_marketing?: boolean
           consent_signed_at?: string | null
+          consents_updated_at?: string | null
           created_at?: string
           email?: string | null
           employee_number?: string | null
@@ -606,7 +649,12 @@ export type Database = {
         Update: {
           account_status?: string
           consent_accepted?: boolean
+          consent_analytics?: boolean
+          consent_crb_check?: boolean
+          consent_data_sharing_lenders?: boolean
+          consent_marketing?: boolean
           consent_signed_at?: string | null
+          consents_updated_at?: string | null
           created_at?: string
           email?: string | null
           employee_number?: string | null
@@ -626,6 +674,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           years_of_service?: number | null
+        }
+        Relationships: []
+      }
+      retention_runs: {
+        Row: {
+          consent_history_archived: number
+          edge_logs_deleted: number
+          id: string
+          loan_apps_deleted: number
+          notes: string | null
+          notifications_deleted: number
+          ran_at: string
+        }
+        Insert: {
+          consent_history_archived?: number
+          edge_logs_deleted?: number
+          id?: string
+          loan_apps_deleted?: number
+          notes?: string | null
+          notifications_deleted?: number
+          ran_at?: string
+        }
+        Update: {
+          consent_history_archived?: number
+          edge_logs_deleted?: number
+          id?: string
+          loan_apps_deleted?: number
+          notes?: string | null
+          notifications_deleted?: number
+          ran_at?: string
         }
         Relationships: []
       }
@@ -767,6 +845,24 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      run_data_retention_purge: {
+        Args: never
+        Returns: {
+          consent_history_archived: number
+          edge_logs_deleted: number
+          id: string
+          loan_apps_deleted: number
+          notes: string | null
+          notifications_deleted: number
+          ran_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "retention_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

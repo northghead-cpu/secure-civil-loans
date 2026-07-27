@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import DataErasureSection from "@/components/DataErasureSection";
 import DataExportSection from "@/components/DataExportSection";
+import GranularConsentSection from "@/components/GranularConsentSection";
 
 
 interface LoanApplication {
@@ -394,6 +395,7 @@ const ProfilePage = () => {
           </Card>
         </div>
 
+        <GranularConsentSection />
         <DataExportSection />
         <DataErasureSection />
       </div>
