@@ -271,8 +271,9 @@ const KYCPage = () => {
       }, 1500);
 
     } catch (err: any) {
-      console.error("KYC Submission Final Failure:", err);
-      toast.error(err.message || "Failed to submit application");
+      const { logger } = await import("@/lib/logger");
+      logger.error("KYC submission failed", { name: err instanceof Error ? err.name : typeof err });
+      toast.error("Failed to submit application. Please review your details and try again.");
     } finally {
       setSubmitting(false);
     }

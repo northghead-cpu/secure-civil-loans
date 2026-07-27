@@ -96,7 +96,7 @@ const UsersApplications = () => {
     setSaving(true);
     const { error } = await supabase.from("loan_applications").update(updates as never).eq("id", selected.id);
     if (error) {
-      toast.error(error.message);
+      toast.error("Failed to update application. Please try again.");
     } else {
       await logAction("update_application", selected.id, "loan_applications", null, updates);
       toast.success("Application updated");

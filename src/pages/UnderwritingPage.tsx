@@ -128,8 +128,11 @@ const UnderwritingPage = () => {
       setClientId("");
       setIncome("");
       setDebt("");
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      const { logger } = await import("@/lib/logger");
+      const { sanitizeError } = await import("@/lib/errors");
+      logger.error("underwriting scoring failed", { err: err instanceof Error ? err.name : typeof err });
+      toast({ title: "Error", description: sanitizeError(err, "Scoring failed. Please try again."), variant: "destructive" });
     } finally {
       setProcessing(false);
     }

@@ -175,9 +175,9 @@ const AuthPage = () => {
       const { error } = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
       });
-      if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+      if (error) toast({ title: "Error", description: "Sign in failed. Please try again.", variant: "destructive" });
     } catch {
-      toast({ title: "Error", description: "Failed to sign in", variant: "destructive" });
+      toast({ title: "Error", description: "Sign in failed. Please try again.", variant: "destructive" });
     }
   };
 
