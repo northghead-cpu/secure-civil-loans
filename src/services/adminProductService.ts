@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { referenceDataService } from "@/services/referenceDataService";
 
 export interface Product {
   id: string;
