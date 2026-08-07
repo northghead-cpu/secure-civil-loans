@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { referenceDataService } from "@/services/referenceDataService";
 
 export interface Product {
   id: string;
@@ -36,6 +37,8 @@ export const adminProductService = {
       .select()
       .single();
     if (error) throw error;
+    // Catalogue/comparison caches are now stale — purge (best-effort).
+    void referenceDataService.invalidate();
     return data as Product;
   },
 
@@ -52,8 +55,10 @@ export const adminProductService = {
       .select()
       .single();
     if (error) throw error;
+    void referenceDataService.invalidate();
     return data as Product;
   },
+
 
   async toggleStatus(id: string, currentStatus: string): Promise<Product> {
     const newStatus = currentStatus === "active" ? "inactive" : "active";
