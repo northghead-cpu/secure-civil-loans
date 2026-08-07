@@ -11,3 +11,65 @@
   X-DNS-Prefetch-Control: off
   X-Permitted-Cross-Domain-Policies: none
   Origin-Agent-Cluster: ?1
+
+# Build output is content-hashed by Vite — safe to cache immutably forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Static media / fonts served from the project root.
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+/*.svg
+  Cache-Control: public, max-age=604800
+/*.png
+  Cache-Control: public, max-age=604800
+/*.jpg
+  Cache-Control: public, max-age=604800
+/*.webp
+  Cache-Control: public, max-age=604800
+/*.avif
+  Cache-Control: public, max-age=604800
+
+# Crawler files: short TTL so SEO edits go live quickly.
+/robots.txt
+  Cache-Control: public, max-age=3600
+/sitemap.xml
+  Cache-Control: public, max-age=3600
+/llms.txt
+  Cache-Control: public, max-age=3600
+
+# The SPA shell must never be cached — a stale index.html pins users to
+# deleted /assets/* bundles after a deploy.
+/
+  Cache-Control: no-cache, must-revalidate
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+# Authenticated views are client-rendered from the same shell, but keep the
+# no-store contract explicit so intermediaries never retain them.
+/profile
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+/apply
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+/underwriting
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+/application-submitted
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+/admin/*
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+/reset-password
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+/forgot-password
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
+/login
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
