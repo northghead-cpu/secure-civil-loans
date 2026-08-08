@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://amjbvphgwhtfcbbmmpzz.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "riverbanc-technology",
+      "version": "0.1.0",
+      "title": "RIVERBANC TECHNOLOGY"
+    },
+    "tools": [
+      {
+        "name": "get_my_kyc_status",
+        "title": "Get my KYC status",
+        "description": "Return the signed-in user's KYC verification status, employer details and consent state on Riverbanc.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_loan_applications",
+        "title": "List my loan applications",
+        "description": "List the signed-in user's Riverbanc loan applications with status, requested amount, selected lender and decision.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "description": "Maximum applications to return (default 10, max 50)."
+            },
+            "status": {
+              "type": "string",
+              "description": "Optional status filter, e.g. PENDING, APPROVED, DECLINED."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_lender_products",
+        "title": "List lender products",
+        "description": "List active Riverbanc lender loan products with interest rates, amount ranges and terms, for comparison.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "number",
+              "description": "Optional loan amount in ZMW to filter products that support it."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "check_affordability",
+        "title": "Check loan affordability",
+        "description": "Check a loan against the Zambian one-third-of-net-salary affordability rule and return the estimated monthly repayment.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "net_salary": {
+              "type": "number",
+              "description": "Monthly net salary in ZMW."
+            },
+            "amount": {
+              "type": "number",
+              "description": "Requested loan amount in ZMW."
+            },
+            "term_months": {
+              "type": "integer",
+              "description": "Repayment term in months."
+            },
+            "annual_interest_rate": {
+              "type": "number",
+              "description": "Annual interest rate as a percentage, e.g. 24 for 24%. Defaults to 24."
+            }
+          },
+          "required": [
+            "net_salary",
+            "amount",
+            "term_months"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

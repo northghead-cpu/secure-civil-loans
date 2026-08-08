@@ -40,9 +40,17 @@ const getRedirectPath = async (userId: string): Promise<string> => {
   }
 };
 
+// Only allow same-origin relative paths as post-auth redirect targets.
+const safeNextPath = (raw: string | null): string | null => {
+  if (!raw) return null;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+};
+
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
+  const nextPath = safeNextPath(searchParams.get("next"));
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -106,6 +114,11 @@ const AuthPage = () => {
         recordSuccess(globalScope, { mode });
         toast({ title: "Welcome back!", description: "You've signed in successfully." });
 
+        if (nextPath) {
+          window.location.href = nextPath;
+          return;
+        }
+
         const userId = data?.user?.id;
         if (userId) {
           const redirectPath = await getRedirectPath(userId);
@@ -119,7 +132,8 @@ const AuthPage = () => {
           password,
           options: {
             data: { full_name: fullName },
-            emailRedirectTo: window.location.origin + "/login",
+            emailRedirectTo:
+              window.location.origin + "/login" + (nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""),
           },
         });
         if (signUpError) throw signUpError;
@@ -173,7 +187,7 @@ const AuthPage = () => {
   const onThirdPartySignIn = async (provider: "google" | "apple") => {
     try {
       const { error } = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: window.location.origin + (nextPath ?? ""),
       });
       if (error) toast({ title: "Error", description: "Sign in failed. Please try again.", variant: "destructive" });
     } catch {
