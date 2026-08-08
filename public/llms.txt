@@ -1,6 +1,6 @@
 # Riverbanc
 
-> Zambia's leading digital loan comparison platform for civil servants. Compare offers from Bank of Zambia-licensed lenders, check eligibility, and refinance at better rates.
+> Riverbanc helps salaried employees in Zambia compare loan offers from banks and microfinance institutions in one secure platform.
 
 Riverbanc helps Zambian civil servants compare loan offers from regulated lenders, enforces the statutory 1/3 net-salary affordability rule, and supports NRC-based identity verification.
 
