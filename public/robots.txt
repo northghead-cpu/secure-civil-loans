@@ -18,4 +18,4 @@ Disallow: /apply
 Disallow: /underwriting
 Disallow: /application-submitted
 
-Sitemap: https://secure-civil-loans.lovable.app/sitemap.xml
+Sitemap: https://riverbanc.lovable.app/sitemap.xml
