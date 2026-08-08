@@ -18,6 +18,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import RetentionPolicy from "./pages/RetentionPolicy";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import OAuthConsent from "./pages/OAuthConsent";
 
 // Authenticated routes — lazy loaded so unauthenticated visitors never
 // download these JS bundles. ProtectedRoute short-circuits the lazy
@@ -93,6 +94,7 @@ const App = () => {
                   <Route path="/retention-policy" element={<RetentionPolicy />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
                   <Route
                     path="/profile"
