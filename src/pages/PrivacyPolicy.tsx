@@ -7,10 +7,10 @@ const PrivacyPolicy = () => {
       <Helmet>
         <title>Privacy Policy — Riverbanc</title>
         <meta name="description" content="Riverbanc's privacy practices, compliant with Zambia's Data Protection Act No. 3 of 2021." />
-        <link rel="canonical" href="https://riverbanc.lovable.app/privacy-policy" />
+        <link rel="canonical" href="https://riverbanc.co.zm/privacy-policy" />
         <meta property="og:title" content="Privacy Policy — Riverbanc" />
         <meta property="og:description" content="How Riverbanc collects, stores, and protects civil-servant data under Zambian law." />
-        <meta property="og:url" content="https://riverbanc.lovable.app/privacy-policy" />
+        <meta property="og:url" content="https://riverbanc.co.zm/privacy-policy" />
       </Helmet>
       <Navbar />
       <main className="container mx-auto max-w-3xl px-4 py-12">
