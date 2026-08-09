@@ -103,10 +103,10 @@ const ComparePage = () => {
       <Helmet>
         <title>Compare Loan Offers — Riverbanc</title>
         <meta name="description" content="Compare real-time loan offers from Bank of Zambia-licensed lenders. Filter by term and sort by rate, monthly payment, or total cost." />
-        <link rel="canonical" href="https://riverbanc.lovable.app/compare" />
+        <link rel="canonical" href="https://riverbanc.co.zm/compare" />
         <meta property="og:title" content="Compare Loan Offers — Riverbanc" />
         <meta property="og:description" content="Real-time rates from licensed lenders across Zambia." />
-        <meta property="og:url" content="https://riverbanc.lovable.app/compare" />
+        <meta property="og:url" content="https://riverbanc.co.zm/compare" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",

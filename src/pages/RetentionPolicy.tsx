@@ -7,10 +7,10 @@ const RetentionPolicy = () => {
       <Helmet>
         <title>Data Retention Policy — Riverbanc</title>
         <meta name="description" content="Riverbanc's data retention windows aligned with Zambia's Banking and Financial Services Act and the FIC Act." />
-        <link rel="canonical" href="https://riverbanc.lovable.app/retention-policy" />
+        <link rel="canonical" href="https://riverbanc.co.zm/retention-policy" />
         <meta property="og:title" content="Data Retention Policy — Riverbanc" />
         <meta property="og:description" content="How long Riverbanc keeps applications, accounts, and credit records under Zambian law." />
-        <meta property="og:url" content="https://riverbanc.lovable.app/retention-policy" />
+        <meta property="og:url" content="https://riverbanc.co.zm/retention-policy" />
       </Helmet>
       <Navbar />
       <main className="container mx-auto max-w-3xl px-4 py-12">
