@@ -38,7 +38,7 @@ const SENSITIVE_VALUE_PATTERNS: RegExp[] = [
   /\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, // JWT
   /\bsb-[A-Za-z0-9-]+-auth-token\b/g, // Supabase storage key
   /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, // email
-  /\b(?:\+?26|0)9[5-7]\d{7}\b/g, // Zambian mobile number
+  /(?:\+?260|0)9[5-7]\d{7}/g, // Zambian mobile number
   /\bdata:[a-z/+.-]+;base64,[A-Za-z0-9+/=]+/gi, // inline document/image payloads
 ];
 
