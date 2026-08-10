@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
     },
     headers: {
       "Content-Security-Policy":
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co ws: http://localhost:* https://*.lovable.app https://*.lovableproject.com;",
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.de.sentry.io ws: http://localhost:* https://*.lovable.app https://*.lovableproject.com;",
       "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "X-Frame-Options": "DENY",
       "X-Content-Type-Options": "nosniff",
@@ -34,7 +34,9 @@ export default defineConfig(({ mode }) => ({
     // Modern browsers only — smaller polyfills, faster parse.
     target: "es2020",
     cssCodeSplit: true,
-    sourcemap: false,
+    // Hidden maps only when explicitly requested for Sentry upload; never
+    // referenced from the bundles and must be deleted before deploy.
+    sourcemap: process.env.SENTRY_UPLOAD_SOURCEMAPS === "true" ? "hidden" : false,
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {

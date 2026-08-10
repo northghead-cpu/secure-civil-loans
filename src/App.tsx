@@ -9,6 +9,13 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { RBACProvider } from "@/hooks/useRBAC";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
+// Dev/test-only Sentry harness. Dynamic import + PROD guard keeps it out of
+// production bundles entirely.
+const SentryTestPanel = import.meta.env.PROD
+  ? null
+  : lazy(() => import("./components/dev/SentryTestPanel"));
+
+
 // Public, always-loaded routes
 import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
@@ -160,11 +167,17 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
+              {SentryTestPanel && (
+                <Suspense fallback={null}>
+                  <SentryTestPanel />
+                </Suspense>
+              )}
             </RBACProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
+
   );
 };
 
