@@ -48,6 +48,7 @@ const LendersCommission = lazy(() => import("./pages/admin/LendersCommission"));
 const FinancialsRevenue = lazy(() => import("./pages/admin/FinancialsRevenue"));
 const FinancialsPayouts = lazy(() => import("./pages/admin/FinancialsPayouts"));
 const FinancialsReports = lazy(() => import("./pages/admin/FinancialsReports"));
+const CustomerDataSheet = lazy(() => import("./pages/admin/CustomerDataSheet"));
 const ComplianceRiskFlags = lazy(() => import("./pages/admin/ComplianceRiskFlags"));
 const ComplianceAuditLogs = lazy(() => import("./pages/admin/ComplianceAuditLogs"));
 const CompliancePayroll = lazy(() => import("./pages/admin/CompliancePayroll"));
@@ -155,6 +156,7 @@ const App = () => {
                     <Route path="financials/revenue" element={<FinancialsRevenue />} />
                     <Route path="financials/payouts" element={<FinancialsPayouts />} />
                     <Route path="financials/reports" element={<FinancialsReports />} />
+                    <Route path="financials/customer-data-sheet" element={<CustomerDataSheet />} />
                     <Route path="compliance/risk-flags" element={<ComplianceRiskFlags />} />
                     <Route path="compliance/audit-logs" element={<ComplianceAuditLogs />} />
                     <Route path="compliance/payroll" element={<CompliancePayroll />} />
