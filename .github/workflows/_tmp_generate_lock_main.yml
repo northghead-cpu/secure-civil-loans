@@ -14,8 +14,8 @@ jobs:
           bun-version: 1.3.14
       - name: Regenerate lockfile
         run: bun install --lockfile-only
-      - name: Emit lockfile for retrieval
-        run: |
-          echo LOCKFILE_BASE64_START
-          base64 -w0 bun.lock | fold -w 50000
-          echo LOCKFILE_BASE64_END
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: stage5-bun-lock
+          path: bun.lock
