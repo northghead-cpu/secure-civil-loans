@@ -85,6 +85,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Revenue", url: "/admin/financials/revenue", icon: DollarSign, requiredPermission: "canViewLoanApplications" },
       { title: "Payouts", url: "/admin/financials/payouts", icon: Wallet, requiredPermission: "canViewLoanApplications" },
       { title: "Reports", url: "/admin/financials/reports", icon: FileBarChart, requiredPermission: "canExportData" },
+      { title: "Customer Data Sheet", url: "/admin/financials/customer-data-sheet", icon: Sheet, requiredPermission: "canExportData" },
     ],
   },
   {
