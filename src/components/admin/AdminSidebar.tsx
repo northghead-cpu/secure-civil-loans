@@ -10,6 +10,7 @@ import {
   DollarSign,
   Wallet,
   FileBarChart,
+  Sheet,
   ShieldAlert,
   ScrollText,
   Link2,
