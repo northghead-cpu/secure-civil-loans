@@ -41,6 +41,19 @@ const statusColors: Record<string, string> = {
   reviewing: "bg-info/10 text-info border-info/20",
 };
 
+// KYC objects are created by KYCPage using this exact naming convention.
+// Keep this as an allowlist: never pass an arbitrary object name into a
+// signed-URL request. Storage RLS remains the authoritative access control.
+const KYC_FILE_NAME_PATTERN = /^(?:nrc|gov-id|payslip)-\d{13}\.(?:pdf|png|jpe?g)$/i;
+
+const isValidKycFileName = (name: string): boolean => {
+  // Object names returned by Storage must be a single filename in the
+  // applicant's already-authorized folder. Reject separators and traversal
+  // tokens before constructing the signed-URL path.
+  if (name.includes("/") || name.includes("\\") || name.includes("..")) return false;
+  return KYC_FILE_NAME_PATTERN.test(name);
+};
+
 const UsersApplications = () => {
   const { permissions, logAction } = useRBAC();
   const navigate = useNavigate();
@@ -67,23 +80,39 @@ const UsersApplications = () => {
 
   const openApplication = async (app: Application) => {
     setSelected(app);
+    // Never retain another applicant's documents while a new application is
+    // loading. This prevents stale sensitive links from remaining visible if
+    // the new Storage listing fails.
+    setDocuments([]);
     setSalaryForm({
       gross: app.gross_salary?.toString() || "",
       deductions: app.deductions?.toString() || "",
       net: app.net_salary?.toString() || "",
     });
     setAdminNotes(app.admin_notes || "");
-    const { data: files } = await supabase.storage.from("kyc-documents").list(app.user_id);
+
+    const { data: files, error: listError } = await supabase.storage
+      .from("kyc-documents")
+      .list(app.user_id);
+
+    if (listError) {
+      toast.error("Failed to load application documents");
+      return;
+    }
+
     if (files) {
       const docs = await Promise.all(
-        files.map(async (f) => {
-          const { data } = await supabase.storage
-            .from("kyc-documents")
-            .createSignedUrl(`${app.user_id}/${f.name}`, 3600);
-          return { name: f.name, url: data?.signedUrl || "" };
-        })
+        files
+          .filter((f) => isValidKycFileName(f.name))
+          .map(async (f) => {
+            const { data, error } = await supabase.storage
+              .from("kyc-documents")
+              .createSignedUrl(`${app.user_id}/${f.name}`, 3600);
+            if (error || !data?.signedUrl) return null;
+            return { name: f.name, url: data.signedUrl };
+          })
       );
-      setDocuments(docs.filter((d) => d.url));
+      setDocuments(docs.filter((d): d is { name: string; url: string } => Boolean(d)));
     }
   };
 
