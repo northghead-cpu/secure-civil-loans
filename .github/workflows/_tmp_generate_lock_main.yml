@@ -17,6 +17,5 @@ jobs:
       - name: Emit lockfile for retrieval
         run: |
           echo LOCKFILE_BASE64_START
-          base64 -w0 bun.lock
-          echo
+          base64 -w0 bun.lock | fold -w 50000
           echo LOCKFILE_BASE64_END
