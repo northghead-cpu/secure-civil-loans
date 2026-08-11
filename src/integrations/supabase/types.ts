@@ -677,6 +677,39 @@ export type Database = {
         }
         Relationships: []
       }
+      report_sync_state: {
+        Row: {
+          created_at: string
+          id: string
+          last_error: string | null
+          last_synced_at: string | null
+          last_synced_by: string | null
+          row_counts: Json
+          spreadsheet_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          last_synced_by?: string | null
+          row_counts?: Json
+          spreadsheet_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          last_synced_by?: string | null
+          row_counts?: Json
+          spreadsheet_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       retention_runs: {
         Row: {
           consent_history_archived: number
