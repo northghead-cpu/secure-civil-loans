@@ -20,3 +20,4 @@ jobs:
           base64 -w0 bun.lock
           echo
           echo LOCKFILE_BASE64_END
+          # Temporary workflow; delete after lockfile retrieval.
