@@ -120,9 +120,11 @@ const AdminPortal = () => {
     if (files) {
       const docs = await Promise.all(
         files.map(async (f) => {
+          const filePath = `${app.user_id}/${f.name}`;
+          if (filePath.includes('..')) throw new Error('Invalid file path');
           const { data } = await supabase.storage
             .from("kyc-documents")
-            .createSignedUrl(`${app.user_id}/${f.name}`, 3600);
+            .createSignedUrl(filePath, 3600);
           return { name: f.name, url: data?.signedUrl || "" };
         })
       );

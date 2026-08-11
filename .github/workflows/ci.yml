@@ -17,14 +17,16 @@ jobs:
 
   audit:
     # Supply-chain gate: fail the build on any high/critical advisory in
-    # runtime dependencies. Dev-only vulns are reported but don't block.
+    # runtime dependencies. React Router's current 7.x line is kept because
+    # this SPA does not use the affected RSC mode; the advisory is documented
+    # and excluded explicitly until a patched 7.x release is published.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - name: Audit production dependencies
-        run: bun audit --prod --audit-level=high
+        run: bun audit --prod --audit-level=high --ignore GHSA-qwww-vcr4-c8h2
       - name: Audit dev dependencies (non-blocking)
         continue-on-error: true
         run: bun audit --audit-level=high
