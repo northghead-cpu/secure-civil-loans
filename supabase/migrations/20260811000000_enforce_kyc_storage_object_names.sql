@@ -6,7 +6,7 @@ RETURNS BOOLEAN
 LANGUAGE sql
 IMMUTABLE
 AS $$
-  SELECT object_name ~ '^(nrc|gov-id|payslip)-[0-9]{13}\.(pdf|png|jpe?g)$'
+  SELECT object_name ~* '^(nrc|gov-id|payslip)-[0-9]{13}\.(pdf|png|jpe?g)$'
 $$;
 
 -- Tighten INSERT authorization so an authenticated user can only create a
