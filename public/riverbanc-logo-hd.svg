@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 2048 2048">
+<rect width="2048" height="2048" fill="#fff"/>
+<g transform="translate(400 190) scale(1.45)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M92 112C176 160 240 164 300 130C355 99 406 111 431 153C455 194 438 238 390 251C338 265 299 247 271 276C243 306 256 359 318 374C378 389 425 370 456 330" stroke="#E4A11B" stroke-width="44"/>
+<path d="M294 124C349 144 373 178 365 211C356 244 319 263 277 253C238 243 208 262 199 294C190 329 226 365 282 373C348 383 399 355 430 315" stroke="#F4C34F" stroke-width="32"/>
+</g>
+<text x="1024" y="1450" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="250" font-weight="700" letter-spacing="24" fill="#102E57">RIVERBANC</text>
+</svg>
