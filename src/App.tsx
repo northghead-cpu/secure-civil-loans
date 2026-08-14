@@ -30,6 +30,27 @@ const ApplicationConfirmation = lazy(() => import("./pages/ApplicationConfirmati
 const ApplicationStatusPage = lazy(() => import("./pages/ApplicationStatusPage"));
 const UnderwritingPage = lazy(() => import("./pages/UnderwritingPage"));
 
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const UsersKYC = lazy(() => import("./pages/admin/UsersKYC"));
+const UsersApplications = lazy(() => import("./pages/admin/UsersApplications"));
+const UsersHistory = lazy(() => import("./pages/admin/UsersHistory"));
+const LendersProducts = lazy(() => import("./pages/admin/LendersProducts"));
+const LendersPerformance = lazy(() => import("./pages/admin/LendersPerformance"));
+const LendersCommission = lazy(() => import("./pages/admin/LendersCommission"));
+const FinancialsRevenue = lazy(() => import("./pages/admin/FinancialsRevenue"));
+const FinancialsPayouts = lazy(() => import("./pages/admin/FinancialsPayouts"));
+const FinancialsReports = lazy(() => import("./pages/admin/FinancialsReports"));
+const CustomerDataSheet = lazy(() => import("./pages/admin/CustomerDataSheet"));
+const ComplianceRiskFlags = lazy(() => import("./pages/admin/ComplianceRiskFlags"));
+const ComplianceAuditLogs = lazy(() => import("./pages/admin/ComplianceAuditLogs"));
+const CompliancePayroll = lazy(() => import("./pages/admin/CompliancePayroll"));
+const Automations = lazy(() => import("./pages/admin/Automations"));
+const SystemSettings = lazy(() => import("./pages/admin/SystemSettings"));
+const RolePermissions = lazy(() => import("./pages/admin/RolePermissions"));
+const CreditBureau = lazy(() => import("./pages/admin/CreditBureau"));
+
 const ADMIN_ROLES = ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"] as const;
 
 const queryClient = new QueryClient({
@@ -80,7 +101,27 @@ const App = () => (
                 <Route path="/application-status" element={<ProtectedRoute><ApplicationStatusPage /></ProtectedRoute>} />
                 <Route path="/underwriting" element={<ProtectedRoute allowedRoles={["admin", "super_admin"]}><UnderwritingPage /></ProtectedRoute>} />
 
-                <Route path="/admin" element={<ProtectedRoute allowedRoles={[...ADMIN_ROLES]}><div /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute allowedRoles={[...ADMIN_ROLES]}><AdminLayout /></ProtectedRoute>}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="users/management" element={<UserManagement />} />
+                  <Route path="users/kyc" element={<UsersKYC />} />
+                  <Route path="users/applications" element={<UsersApplications />} />
+                  <Route path="users/history" element={<UsersHistory />} />
+                  <Route path="lenders/products" element={<LendersProducts />} />
+                  <Route path="lenders/performance" element={<LendersPerformance />} />
+                  <Route path="lenders/commission" element={<LendersCommission />} />
+                  <Route path="financials/revenue" element={<FinancialsRevenue />} />
+                  <Route path="financials/payouts" element={<FinancialsPayouts />} />
+                  <Route path="financials/reports" element={<FinancialsReports />} />
+                  <Route path="financials/customer-data-sheet" element={<CustomerDataSheet />} />
+                  <Route path="compliance/risk-flags" element={<ComplianceRiskFlags />} />
+                  <Route path="compliance/audit-logs" element={<ComplianceAuditLogs />} />
+                  <Route path="compliance/payroll" element={<CompliancePayroll />} />
+                  <Route path="automations" element={<Automations />} />
+                  <Route path="role-permissions" element={<RolePermissions />} />
+                  <Route path="system-settings" element={<SystemSettings />} />
+                  <Route path="credit-bureau" element={<CreditBureau />} />
+                </Route>
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
