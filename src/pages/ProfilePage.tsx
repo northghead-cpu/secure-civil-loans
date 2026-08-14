@@ -3,16 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { User, FileCheck, CreditCard, TrendingUp, Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle, Mail, Phone, Building, Hash, Loader2, FileSignature } from "lucide-react";
+import {
+  User,
+  FileCheck,
+  CreditCard,
+  TrendingUp,
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Mail,
+  Phone,
+  Building,
+  Hash,
+  Loader2,
+  FileSignature,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import DataErasureSection from "@/components/DataErasureSection";
 import DataExportSection from "@/components/DataExportSection";
 import GranularConsentSection from "@/components/GranularConsentSection";
-
+import BorrowerJourney from "@/components/BorrowerJourney";
 
 interface LoanApplication {
   id: string;
@@ -26,20 +40,16 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
-  
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      navigate("/login", { replace: true });
-    }
+    if (!user) navigate("/login", { replace: true });
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user) refreshProfile();
-  }, [user]);
+  }, [user, refreshProfile]);
 
-  // Fetch applications + realtime subscription
   useEffect(() => {
     if (!user) return;
 
@@ -53,29 +63,24 @@ const ProfilePage = () => {
       setApplications(data || []);
       setPageLoading(false);
     };
+
     fetchApplications();
 
-    // Realtime subscription for loan applications
     const channel = supabase
       .channel("user-applications")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "loan_applications", filter: `user_id=eq.${user.id}` },
-        () => {
-          fetchApplications();
-        }
+        fetchApplications
       )
       .subscribe();
 
-    // Realtime subscription for profile changes
     const profileChannel = supabase
       .channel("user-profile")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
-        () => {
-          refreshProfile();
-        }
+        refreshProfile
       )
       .subscribe();
 
@@ -83,7 +88,10 @@ const ProfilePage = () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(profileChannel);
     };
-  }, [user]);
+  }, [user, refreshProfile]);
+
+  const kycStatus = profile?.kyc_status || "PENDING";
+  const canCompare = kycStatus === "VERIFIED" || kycStatus === "COMPLETED";
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -95,19 +103,20 @@ const ProfilePage = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    return status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-  };
-
-  const kycStatus = profile?.kyc_status || "PENDING";
+  const getStatusLabel = (status: string) =>
+    status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   const getKycIcon = () => {
     switch (kycStatus) {
-      case "VERIFIED": return <CheckCircle2 className="h-5 w-5 text-success" />;
-      case "COMPLETED": return <CheckCircle2 className="h-5 w-5 text-success" />;
-      case "IN_REVIEW": return <Clock className="h-5 w-5 text-warning" />;
-      case "REJECTED": return <XCircle className="h-5 w-5 text-destructive" />;
-      default: return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
+      case "VERIFIED":
+      case "COMPLETED":
+        return <CheckCircle2 className="h-5 w-5 text-success" />;
+      case "IN_REVIEW":
+        return <Clock className="h-5 w-5 text-warning" />;
+      case "REJECTED":
+        return <XCircle className="h-5 w-5 text-destructive" />;
+      default:
+        return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
@@ -116,7 +125,7 @@ const ProfilePage = () => {
       case "VERIFIED": return "Verified";
       case "COMPLETED": return "Completed";
       case "IN_REVIEW": return "Under Review";
-      case "REJECTED": return "Rejected";
+      case "REJECTED": return "Action Required";
       default: return "Not Started";
     }
   };
@@ -130,9 +139,6 @@ const ProfilePage = () => {
     { key: "employee_number" as const, label: "Employee Number", icon: Hash },
   ];
 
-  const completedFields = profileFields.filter(f => profile && profile[f.key]);
-  const profileCompletion = (completedFields.length / profileFields.length) * 100;
-
   if (authLoading || pageLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -143,95 +149,89 @@ const ProfilePage = () => {
 
   if (!user) return null;
 
-  const canApply = kycStatus === "VERIFIED" || kycStatus === "COMPLETED";
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Navbar />
-      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6 pt-24">
-        
-        {/* Header */}
-        <div className="text-center sm:text-left">
+      <main className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6 pt-24">
+        <header>
+          <p className="text-sm font-medium text-primary mb-2">Borrower dashboard</p>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-foreground">
-            Welcome back, <span className="text-primary">{profile?.full_name || "User"}</span>!
+            Welcome back, <span className="text-primary">{profile?.full_name || "there"}</span>
           </h1>
-          <p className="text-muted-foreground mt-2">Manage your profile and track your loan applications</p>
-        </div>
+          <p className="text-muted-foreground mt-2 max-w-2xl">
+            See where you are in your Riverbanc journey and what you need to do next.
+          </p>
+        </header>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Profile</CardTitle>
-              <User className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">{Math.round(profileCompletion)}%</div>
-              <Progress value={profileCompletion} className="mt-2 h-2" />
-              <p className="text-xs text-muted-foreground mt-2">{profileFields.length - completedFields.length} fields remaining</p>
-            </CardContent>
-          </Card>
+        <BorrowerJourney
+          kycStatus={kycStatus}
+          consentAccepted={Boolean(profile?.consent_accepted)}
+          applicationCount={applications.length}
+          onKyc={() => navigate("/apply")}
+          onCompare={() => navigate("/compare")}
+        />
 
-          <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">KYC Status</CardTitle>
-              <ShieldCheck className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                {getKycIcon()}
-                <span className="text-lg sm:text-xl font-display font-bold text-foreground">{getKycLabel()}</span>
-              </div>
-              {(kycStatus === "PENDING" || kycStatus === "REJECTED") && (
-                <Button size="sm" variant="link" className="px-0 mt-2 h-auto text-xs text-primary" onClick={() => navigate("/apply")}>
-                  {kycStatus === "PENDING" ? "Start KYC →" : "Resubmit →"}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+        <section aria-labelledby="account-overview">
+          <div className="mb-3">
+            <h2 id="account-overview" className="text-lg font-display font-semibold text-foreground">Account overview</h2>
+            <p className="text-sm text-muted-foreground">Your verification and application activity at a glance.</p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Verification</CardTitle>
+                <ShieldCheck className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  {getKycIcon()}
+                  <span className="text-lg font-display font-bold text-foreground">{getKycLabel()}</span>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Active applications</CardTitle>
+                <FileCheck className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-display font-bold text-foreground">
+                  {applications.filter((app) => !["approved", "rejected"].includes(app.status.toLowerCase())).length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Currently in progress</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Applications</CardTitle>
+                <CreditCard className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-display font-bold text-foreground">{applications.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">All time</p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
 
-          <Card className="bg-gradient-to-br from-info/5 to-info/10 border-info/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Active</CardTitle>
-              <FileCheck className="h-4 w-4 text-info" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">
-                {applications.filter(app => app.status !== "approved" && app.status !== "rejected").length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">In progress</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total</CardTitle>
-              <CreditCard className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl sm:text-3xl font-display font-bold text-foreground">{applications.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">All time</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Payroll Deduction E-Sign Consent */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg font-display flex items-center gap-2">
               <FileSignature className="h-5 w-5 text-primary" />
-              Payroll Deduction Consent
+              Payroll deduction consent
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Any required consent will be presented clearly before the relevant application step.
+            </p>
           </CardHeader>
           <CardContent>
             {profile?.consent_accepted ? (
               <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
                 <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">E-Sign consent completed</p>
+                  <p className="text-sm font-medium text-foreground">Consent completed</p>
                   <p className="text-xs text-muted-foreground">
-                    Signed on{" "}
-                    {profile.consent_signed_at
+                    Signed on {profile.consent_signed_at
                       ? new Date(profile.consent_signed_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" })
                       : "—"}
                   </p>
@@ -244,24 +244,16 @@ const ProfilePage = () => {
                   <div>
                     <p className="text-sm font-medium text-foreground">Consent not yet signed</p>
                     <p className="text-xs text-muted-foreground">
-                      {kycStatus === "PENDING"
-                        ? "Complete KYC verification to sign the payroll deduction consent."
-                        : kycStatus === "IN_REVIEW"
-                        ? "Your KYC is under review. You'll be able to sign once approved."
-                        : kycStatus === "REJECTED"
-                        ? "Resubmit your KYC documents before you can sign."
-                        : "Sign the payroll deduction consent to proceed with loan applications."}
+                      {kycStatus === "PENDING" && "Complete verification before the relevant consent step."}
+                      {kycStatus === "IN_REVIEW" && "Your verification is under review. We'll show the next required step when it is ready."}
+                      {kycStatus === "REJECTED" && "Resubmit your verification information before proceeding."}
+                      {canCompare && "Your verification is complete. Any required consent will be presented before you proceed."}
                     </p>
                   </div>
                 </div>
-                {(kycStatus === "VERIFIED" || kycStatus === "COMPLETED") && (
-                  <Button size="sm" onClick={() => navigate("/apply")}>
-                    Sign Now
-                  </Button>
-                )}
                 {(kycStatus === "PENDING" || kycStatus === "REJECTED") && (
                   <Button size="sm" variant="outline" onClick={() => navigate("/apply")}>
-                    {kycStatus === "PENDING" ? "Start KYC" : "Resubmit KYC"}
+                    {kycStatus === "PENDING" ? "Start verification" : "Resubmit"}
                   </Button>
                 )}
               </div>
@@ -269,13 +261,13 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
-        {/* Profile Details */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg font-display flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
-              Profile Details
+              Profile details
             </CardTitle>
+            <p className="text-sm text-muted-foreground">Information used to verify your identity and employment.</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -301,106 +293,69 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-display flex items-center gap-2">
-                <FileCheck className="h-5 w-5 text-primary" />
-                Recent Applications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {applications.length > 0 ? (
-                <div className="space-y-3">
-                  {applications.map((app) => (
-                    <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">Loan Application</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(app.created_at).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </p>
-                      </div>
-                      <Badge className={`${getStatusColor(app.status)} text-xs`}>{getStatusLabel(app.status)}</Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No applications yet</p>
-                  <p className="text-xs mt-1">Start by completing your KYC verification</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-display flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {canApply ? (
-                <>
-                  <Button
-                    onClick={() => navigate("/compare")}
-                    className="w-full justify-start h-12 text-left"
-                    variant="outline"
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <CreditCard className="h-5 w-5 text-primary shrink-0" />
-                      <div className="text-left">
-                        <p className="font-medium">Apply for a Loan</p>
-                        <p className="text-xs text-muted-foreground font-normal">Compare lenders and submit an application</p>
-                      </div>
-                    </div>
-                  </Button>
-
-                  <Button onClick={() => navigate("/compare")} className="w-full justify-start h-12 text-left" variant="outline">
-                    <div className="flex items-center gap-3 w-full">
-                      <TrendingUp className="h-5 w-5 text-primary shrink-0" />
-                      <div className="text-left">
-                        <p className="font-medium">Compare Loan Options</p>
-                        <p className="text-xs text-muted-foreground font-normal">View rates from different lenders</p>
-                      </div>
-                    </div>
-                  </Button>
-                </>
-              ) : (
-                <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    {getKycIcon()}
-                    <div>
-                      <p className="font-medium text-sm text-foreground">KYC Status: {getKycLabel()}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {kycStatus === "PENDING" && "You haven't started identity verification yet. Complete KYC to unlock loan applications."}
-                        {kycStatus === "IN_REVIEW" && "Your documents are being reviewed. You'll be able to apply for a loan once verification is complete."}
-                        {kycStatus === "REJECTED" && "Your verification was unsuccessful. Please resubmit your documents to proceed."}
-                        {kycStatus === "COMPLETED" && "Your KYC is complete and awaiting final approval."}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-display flex items-center gap-2">
+              <FileCheck className="h-5 w-5 text-primary" />
+              Recent applications
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">Track what is happening after you choose a financial institution.</p>
+          </CardHeader>
+          <CardContent>
+            {applications.length > 0 ? (
+              <div className="space-y-3">
+                {applications.map((app) => (
+                  <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">Application</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Submitted {new Date(app.created_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" })}
+                        {app.updated_at && ` • Updated ${new Date(app.updated_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" })}`}
                       </p>
                     </div>
+                    <Badge className={`${getStatusColor(app.status)} text-xs`}>{getStatusLabel(app.status)}</Badge>
                   </div>
-                  {(kycStatus === "PENDING" || kycStatus === "REJECTED") && (
-                    <Button size="sm" onClick={() => navigate("/apply")} className="w-full">
-                      <ShieldCheck className="h-4 w-4 mr-2" />
-                      {kycStatus === "PENDING" ? "Start KYC Verification" : "Resubmit Documents"}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm font-medium text-foreground">No lender applications yet</p>
+                <p className="text-xs mt-1">Once you choose a financial institution, your application activity will appear here.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-display flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Next actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-3">
+            {canCompare ? (
+              <Button onClick={() => navigate("/compare")} className="sm:flex-1">
+                <CreditCard className="mr-2 h-4 w-4" />
+                View eligible offers
+              </Button>
+            ) : (
+              <Button onClick={() => navigate("/apply")} className="sm:flex-1">
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                {kycStatus === "REJECTED" ? "Resubmit verification" : "Continue verification"}
+              </Button>
+            )}
+            <Button onClick={() => navigate("/#how-it-works")} variant="outline" className="sm:flex-1">
+              Learn how Riverbanc works
+            </Button>
+          </CardContent>
+        </Card>
 
         <GranularConsentSection />
         <DataExportSection />
         <DataErasureSection />
-      </div>
-
-      
+      </main>
     </div>
   );
 };
