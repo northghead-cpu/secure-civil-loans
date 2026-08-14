@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowRight, Info, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Info, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRBAC } from "@/hooks/useRBAC";
 
@@ -32,8 +32,8 @@ interface LoanOffer {
   processingTime?: string;
 }
 
-// Live lender/product data will populate this list. No synthetic financial offers
-// are shown to borrowers when verified live data is unavailable.
+// Production data must come from verified lender/product records.
+// Never populate this with synthetic or presentation-only financial offers.
 const liveOffers: LoanOffer[] = [];
 
 const ComparePage = () => {
@@ -200,20 +200,24 @@ const ComparePage = () => {
               <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <Info className="h-6 w-6 text-primary" />
               </div>
-              <Badge variant="outline" className="mb-4">Live offers only</Badge>
+              <Badge variant="outline" className="mb-4">Verified offers only</Badge>
               <h2 className="text-2xl font-display font-semibold text-foreground">
                 Loan offers are being added
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-muted-foreground leading-relaxed">
-                We're onboarding participating financial institutions. Once verified offers are
-                available for you, they'll appear here.
+                We're onboarding participating financial institutions and their verified loan products.
+                Once eligible offers are available for you, they'll appear here.
               </p>
+              <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                Your profile is verified
+              </div>
               <p className="mx-auto mt-4 max-w-xl text-xs text-muted-foreground">
-                Riverbanc does not create or alter lender pricing. Loan products and lending
+                Riverbanc is a technology platform, not a bank or lender. Loan products and lending
                 decisions are provided by participating financial institutions.
               </p>
               <Button variant="outline" className="mt-6" onClick={() => navigate("/profile")}>
-                Return to my journey <ArrowRight className="ml-2 h-4 w-4" />
+                Back to my dashboard <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </motion.div>
           ) : (
