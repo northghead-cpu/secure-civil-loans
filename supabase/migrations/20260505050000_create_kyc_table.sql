@@ -18,6 +18,9 @@ CREATE TABLE public.kyc (
   )
 );
 
+CREATE INDEX idx_kyc_user_id ON public.kyc (user_id);
+CREATE UNIQUE INDEX kyc_user_id_unique ON public.kyc (user_id) WHERE user_id IS NOT NULL;
+
 ALTER TABLE public.kyc ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can insert own kyc"
@@ -39,6 +42,17 @@ CREATE POLICY "Admins can view all kyc"
     has_role(auth.uid(), 'admin'::app_role)
     OR has_role(auth.uid(), 'super_admin'::app_role)
   );
+
+-- These policies exist in the current production schema and are preserved so a
+-- clean preview branch reaches the same authorization surface.
+CREATE POLICY "kyc_select"
+  ON public.kyc FOR SELECT TO public
+  USING ((SELECT auth.uid() AS uid) = user_id);
+
+CREATE POLICY "kyc_update_controlled"
+  ON public.kyc FOR UPDATE TO public
+  USING ((SELECT auth.uid() AS uid) = user_id)
+  WITH CHECK ((SELECT auth.uid() AS uid) = user_id);
 
 -- Preserve the existing status transition behavior used by production.
 CREATE OR REPLACE FUNCTION public.set_kyc_submitted()
