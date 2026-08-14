@@ -9,6 +9,7 @@ interface BorrowerJourneyProps {
   applicationCount: number;
   onKyc: () => void;
   onCompare: () => void;
+  onTrack?: () => void;
 }
 
 type StepState = "complete" | "current" | "upcoming" | "attention";
@@ -19,6 +20,7 @@ const BorrowerJourney = ({
   applicationCount,
   onKyc,
   onCompare,
+  onTrack,
 }: BorrowerJourneyProps) => {
   const normalizedKyc = kycStatus.toUpperCase();
   const kycComplete = normalizedKyc === "VERIFIED" || normalizedKyc === "COMPLETED";
@@ -26,11 +28,7 @@ const BorrowerJourney = ({
   const kycRejected = normalizedKyc === "REJECTED";
 
   const steps: { label: string; description: string; state: StepState }[] = [
-    {
-      label: "Account created",
-      description: "Your Riverbanc account is ready.",
-      state: "complete",
-    },
+    { label: "Account created", description: "Your Riverbanc account is ready.", state: "complete" },
     {
       label: "Identity & employment verification",
       description: kycRejected
@@ -58,8 +56,10 @@ const BorrowerJourney = ({
     },
     {
       label: "Lender review & decision",
-      description: "The selected financial institution reviews your application and makes the lending decision.",
-      state: "upcoming",
+      description: applicationCount > 0
+        ? "Track the selected financial institution's review and decision."
+        : "The selected financial institution reviews your application and makes the lending decision.",
+      state: applicationCount > 0 ? "current" : "upcoming",
     },
   ];
 
@@ -81,15 +81,9 @@ const BorrowerJourney = ({
               <ShieldCheck className="h-5 w-5 text-primary" />
               Your Riverbanc journey
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Follow your progress from verification to lender decision.
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Follow your progress from verification to lender decision.</p>
           </div>
-          {firstActionStep && (
-            <Badge variant={firstActionStep.state === "attention" ? "destructive" : "secondary"}>
-              {firstActionStep.state === "attention" ? "Action required" : "Next step"}
-            </Badge>
-          )}
+          {firstActionStep && <Badge variant={firstActionStep.state === "attention" ? "destructive" : "secondary"}>{firstActionStep.state === "attention" ? "Action required" : "Next step"}</Badge>}
         </div>
       </CardHeader>
       <CardContent>
@@ -97,40 +91,24 @@ const BorrowerJourney = ({
           {steps.map((step, index) => (
             <div key={step.label} className="flex gap-3">
               <div className="flex flex-col items-center">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background border border-border">
-                  {getIcon(step.state)}
-                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background border border-border">{getIcon(step.state)}</div>
                 {index < steps.length - 1 && <div className="w-px flex-1 min-h-8 bg-border" />}
               </div>
               <div className="pb-6 pt-1 flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground">{step.label}</p>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{step.description}</p>
-                {step.state === "attention" && (
-                  <Button size="sm" className="mt-3" onClick={onKyc}>Resubmit verification</Button>
-                )}
-                {step.label === "Identity & employment verification" && step.state === "current" && !kycInReview && !kycComplete && (
-                  <Button size="sm" className="mt-3" onClick={onKyc}>Start verification</Button>
-                )}
-                {step.label === "Compare eligible offers" && step.state === "current" && (
-                  <Button size="sm" variant="outline" className="mt-3" onClick={onCompare}>
-                    <FileCheck2 className="mr-2 h-4 w-4" />
-                    View comparison
-                  </Button>
-                )}
+                {step.state === "attention" && <Button size="sm" className="mt-3" onClick={onKyc}>Resubmit verification</Button>}
+                {step.label === "Identity & employment verification" && step.state === "current" && !kycInReview && !kycComplete && <Button size="sm" className="mt-3" onClick={onKyc}>Start verification</Button>}
+                {step.label === "Compare eligible offers" && step.state === "current" && <Button size="sm" variant="outline" className="mt-3" onClick={onCompare}><FileCheck2 className="mr-2 h-4 w-4" />View comparison</Button>}
+                {step.label === "Lender review & decision" && applicationCount > 0 && onTrack && <Button size="sm" variant="outline" className="mt-3" onClick={onTrack}><FileCheck2 className="mr-2 h-4 w-4" />Track application</Button>}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-2 rounded-lg border border-border/60 bg-background/60 p-3 text-xs text-muted-foreground">
-          <strong className="text-foreground">Important:</strong> Riverbanc facilitates the comparison and application process. Participating financial institutions provide the loan products and make lending decisions.
-        </div>
+        <div className="mt-2 rounded-lg border border-border/60 bg-background/60 p-3 text-xs text-muted-foreground"><strong className="text-foreground">Important:</strong> Riverbanc facilitates the comparison and application process. Participating financial institutions provide the loan products and make lending decisions.</div>
 
-        {!consentAccepted && kycComplete && (
-          <div className="mt-3 rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-foreground">
-            Your verification is complete. Any required payroll deduction consent will be presented before you proceed with the relevant application step.
-          </div>
-        )}
+        {!consentAccepted && kycComplete && <div className="mt-3 rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-foreground">Your verification is complete. Any required payroll deduction consent will be presented before you proceed with the relevant application step.</div>}
       </CardContent>
     </Card>
   );
