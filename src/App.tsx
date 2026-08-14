@@ -9,14 +9,10 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { RBACProvider } from "@/hooks/useRBAC";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
-// Dev/test-only Sentry harness. Dynamic import + PROD guard keeps it out of
-// production bundles entirely.
 const SentryTestPanel = import.meta.env.PROD
   ? null
   : lazy(() => import("./components/dev/SentryTestPanel"));
 
-
-// Public, always-loaded routes
 import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import AuthPage from "./pages/AuthPage";
@@ -27,15 +23,12 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import OAuthConsent from "./pages/OAuthConsent";
 
-// Authenticated routes — lazy loaded so unauthenticated visitors never
-// download these JS bundles. ProtectedRoute short-circuits the lazy
-// import for users without a valid session.
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const KYCPage = lazy(() => import("./pages/KYCPage"));
 const ApplicationConfirmation = lazy(() => import("./pages/ApplicationConfirmation"));
+const ApplicationStatusPage = lazy(() => import("./pages/ApplicationStatusPage"));
 const UnderwritingPage = lazy(() => import("./pages/UnderwritingPage"));
 
-// Admin routes — lazy loaded and gated behind admin roles.
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
@@ -59,9 +52,6 @@ const CreditBureau = lazy(() => import("./pages/admin/CreditBureau"));
 
 const ADMIN_ROLES = ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"] as const;
 
-// Query cache tuned for an admin-heavy fintech app: avoid duplicate
-// fetches on tab focus, keep results warm for a minute, and don't spam
-// retries on 4xx from RLS-denied endpoints.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -84,103 +74,62 @@ const RouteFallback = () => (
   </div>
 );
 
-const App = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <RBACProvider>
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/compare" element={<ComparePage />} />
-                  <Route path="/login" element={<AuthPage />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/retention-policy" element={<RetentionPolicy />} />
-                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <RBACProvider>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/login" element={<AuthPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/retention-policy" element={<RetentionPolicy />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
-                  <Route
-                    path="/profile"
-                    element={
-                      <ProtectedRoute>
-                        <ProfilePage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/apply"
-                    element={
-                      <ProtectedRoute>
-                        <KYCPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/application-submitted"
-                    element={
-                      <ProtectedRoute>
-                        <ApplicationConfirmation />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/underwriting"
-                    element={
-                      <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
-                        <UnderwritingPage />
-                      </ProtectedRoute>
-                    }
-                  />
+                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                <Route path="/apply" element={<ProtectedRoute><KYCPage /></ProtectedRoute>} />
+                <Route path="/application-submitted" element={<ProtectedRoute><ApplicationConfirmation /></ProtectedRoute>} />
+                <Route path="/application-status" element={<ProtectedRoute><ApplicationStatusPage /></ProtectedRoute>} />
+                <Route path="/underwriting" element={<ProtectedRoute allowedRoles={["admin", "super_admin"]}><UnderwritingPage /></ProtectedRoute>} />
 
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute allowedRoles={[...ADMIN_ROLES]}>
-                        <AdminLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<Dashboard />} />
-                    <Route path="users/management" element={<UserManagement />} />
-                    <Route path="users/kyc" element={<UsersKYC />} />
-                    <Route path="users/applications" element={<UsersApplications />} />
-                    <Route path="users/history" element={<UsersHistory />} />
-                    <Route path="lenders/products" element={<LendersProducts />} />
-                    <Route path="lenders/performance" element={<LendersPerformance />} />
-                    <Route path="lenders/commission" element={<LendersCommission />} />
-                    <Route path="financials/revenue" element={<FinancialsRevenue />} />
-                    <Route path="financials/payouts" element={<FinancialsPayouts />} />
-                    <Route path="financials/reports" element={<FinancialsReports />} />
-                    <Route path="financials/customer-data-sheet" element={<CustomerDataSheet />} />
-                    <Route path="compliance/risk-flags" element={<ComplianceRiskFlags />} />
-                    <Route path="compliance/audit-logs" element={<ComplianceAuditLogs />} />
-                    <Route path="compliance/payroll" element={<CompliancePayroll />} />
-                    <Route path="automations" element={<Automations />} />
-                    <Route path="role-permissions" element={<RolePermissions />} />
-                    <Route path="system-settings" element={<SystemSettings />} />
-                    <Route path="credit-bureau" element={<CreditBureau />} />
-                  </Route>
+                <Route path="/admin" element={<ProtectedRoute allowedRoles={[...ADMIN_ROLES]}><AdminLayout /></ProtectedRoute>}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="users/management" element={<UserManagement />} />
+                  <Route path="users/kyc" element={<UsersKYC />} />
+                  <Route path="users/applications" element={<UsersApplications />} />
+                  <Route path="users/history" element={<UsersHistory />} />
+                  <Route path="lenders/products" element={<LendersProducts />} />
+                  <Route path="lenders/performance" element={<LendersPerformance />} />
+                  <Route path="lenders/commission" element={<LendersCommission />} />
+                  <Route path="financials/revenue" element={<FinancialsRevenue />} />
+                  <Route path="financials/payouts" element={<FinancialsPayouts />} />
+                  <Route path="financials/reports" element={<FinancialsReports />} />
+                  <Route path="financials/customer-data-sheet" element={<CustomerDataSheet />} />
+                  <Route path="compliance/risk-flags" element={<ComplianceRiskFlags />} />
+                  <Route path="compliance/audit-logs" element={<ComplianceAuditLogs />} />
+                  <Route path="compliance/payroll" element={<CompliancePayroll />} />
+                  <Route path="automations" element={<Automations />} />
+                  <Route path="role-permissions" element={<RolePermissions />} />
+                  <Route path="system-settings" element={<SystemSettings />} />
+                  <Route path="credit-bureau" element={<CreditBureau />} />
+                </Route>
 
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-              {SentryTestPanel && (
-                <Suspense fallback={null}>
-                  <SentryTestPanel />
-                </Suspense>
-              )}
-            </RBACProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            {SentryTestPanel && <Suspense fallback={null}><SentryTestPanel /></Suspense>}
+          </RBACProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
     </QueryClientProvider>
-
-  );
-};
+);
 
 export default App;
