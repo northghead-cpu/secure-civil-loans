@@ -23,3 +23,5 @@ begin
   return coalesce(new, old);
 end;
 $$;
+
+-- CI trigger verification: security audit migration is intentionally unchanged.
