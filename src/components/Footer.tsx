@@ -39,8 +39,8 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-semibold text-primary-foreground text-sm mb-4">Contact</h4>
             <div className="space-y-2 text-primary-foreground/50 text-sm">
-              <p>support@riverbank.co.zm</p>
-              <p>+260 211 000 000</p>
+              <p>support@riverbanc.co.zm</p>
+              <p>+260 961 874 540</p>
               <p>Lusaka, Zambia</p>
             </div>
           </div>
