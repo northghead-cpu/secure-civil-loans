@@ -39,8 +39,8 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-semibold text-primary-foreground text-sm mb-4">Contact</h4>
             <div className="space-y-2 text-primary-foreground/50 text-sm">
-              <p>support@riverbanc.co.zm</p>
-              <p>+260 961 874 540</p>
+              <a href="mailto:support@riverbanc.co.zm" className="block hover:text-accent transition-colors">support@riverbanc.co.zm</a>
+              <a href="tel:+260961874540" className="block hover:text-accent transition-colors">+260 961 874 540</a>
               <p>Lusaka, Zambia</p>
             </div>
           </div>
