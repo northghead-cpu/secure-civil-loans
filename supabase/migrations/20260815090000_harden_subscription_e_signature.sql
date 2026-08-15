@@ -66,7 +66,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.authorize_riverbanc_subscription(text) from anon, authenticated;
+revoke execute on function public.authorize_riverbanc_subscription(text) from public, anon, authenticated;
 
 create or replace function public.protect_subscription_authorization_record()
 returns trigger
@@ -97,8 +97,8 @@ create trigger protect_subscription_authorization_record
 before update on public.subscription_authorizations
 for each row execute function public.protect_subscription_authorization_record();
 
-revoke execute on function public.protect_subscription_authorization_record() from anon, authenticated;
+revoke execute on function public.protect_subscription_authorization_record() from public, anon, authenticated;
 
-update public.subscription_authorizations sa
+update public.subscription_authorizations
 set agreement_hash = encode(extensions.digest('I authorize Riverbanc Technology Limited to deduct K60 per month from my payroll for my Riverbanc subscription. This subscription is separate from any loan principal, interest, fees or charges imposed by a financial institution.', 'sha256'), 'hex')
 where agreement_hash is null;
