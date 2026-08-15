@@ -79,22 +79,12 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("application_handoffs" as never).insert({
-        user_id: user.id,
-        lender_product_id: offer.id,
-        lender_name: offer.lender,
-        requested_amount: requestedAmount,
-        term_months: offer.term,
-        interest_rate: offer.rate,
-        estimated_monthly_repayment: offer.monthlyPayment,
-        total_repayment: offer.totalCost,
-        information_categories: INFORMATION_CATEGORIES,
-        authorization_text: authorizationText,
-        authorization_version: AUTHORIZATION_VERSION,
-        authorized_at: new Date().toISOString(),
-        authorization_signature: signatureName.trim(),
-        status: "authorized",
-      } as never);
+      const { error } = await supabase.rpc("authorize_application_handoff", {
+        _lender_product_id: offer.id,
+        _requested_amount: requestedAmount,
+        _term_months: offer.term,
+        _signature_name: signatureName.trim(),
+      });
 
       if (error) throw error;
 
@@ -170,7 +160,7 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            This authorization is recorded separately from your Riverbanc K60/month subscription consent.
+            This authorization is validated and recorded by Riverbanc's secure server, separately from your K60/month subscription consent.
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
