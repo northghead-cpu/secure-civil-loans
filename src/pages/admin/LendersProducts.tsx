@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRBAC } from "@/hooks/useRBAC";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,7 +20,7 @@ const LendersProducts = () => {
   const [products, setProducts] = useState<Product[]>([]); const [loading, setLoading] = useState(true); const [showModal, setShowModal] = useState(false); const [editingProduct, setEditingProduct] = useState<Product | null>(null); const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ lender: "", productType: "loan_bank" as ProductType, rate: "", minAmount: "10000", maxTerm: "", maxAmount: "", processingDays: "" });
   const isSuperAdmin = hasRole("super_admin"); const canManageProducts = permissions.canEditLoanApplications || isSuperAdmin;
-  const loadProducts = async () => { setLoading(true); const { data, error } = await supabase.from("bank_products").select("id, bank_name, product_type, interest_rate, max_term_months, max_amount, min_amount, processing_days, active").order("bank_name"); if (error) toast.error("Failed to load loan products"); else setProducts((data ?? []) as Product[]); setLoading(false); };
+  const loadProducts = async () => { setLoading(true); const { data, error } = await supabase.from("bank_products").select("id, bank_name, product_type, interest_rate, max_term_months, max_amount, min_amount, processing_days, active").order("bank_name"); if (error) toast.error("Failed to load loan products"); else { const validProducts = (data ?? []).filter((p) => ["loan_bank", "loan_microfinance", "salary_advance_microfinance"].includes(p.product_type)).map((p) => ({ ...p, product_type: p.product_type as ProductType })); setProducts(validProducts); } setLoading(false); };
   useEffect(() => { loadProducts(); }, []);
   const openAddModal = () => { setEditingProduct(null); setFormData({ lender: "", productType: "loan_bank", rate: "", minAmount: "10000", maxTerm: "", maxAmount: "", processingDays: "" }); setShowModal(true); };
   const openEditModal = (product: Product) => { if (!isSuperAdmin) return toast.error("Only Super Admins can edit products"); setEditingProduct(product); setFormData({ lender: product.bank_name, productType: product.product_type, rate: String(product.interest_rate), minAmount: String(product.min_amount), maxTerm: String(product.max_term_months), maxAmount: String(product.max_amount), processingDays: String(product.processing_days) }); setShowModal(true); };
@@ -32,7 +31,7 @@ const LendersProducts = () => {
     if (!canManageProducts) return toast.error("You do not have permission to manage loan products");
     setSaving(true);
     const payload = { bank_name: formData.lender.trim(), product_type: formData.productType, interest_rate: rate, min_amount: minAmount, max_amount: maxAmount, max_term_months: maxTerm, processing_days: processingDays, active: true };
-    const result = editingProduct ? await supabase.from("bank_products").update(payload as never).eq("id", editingProduct.id).select().single() : await supabase.from("bank_products").insert(payload as never).select().single();
+    const result = editingProduct ? await supabase.from("bank_products").update(payload).eq("id", editingProduct.id).select().single() : await supabase.from("bank_products").insert(payload).select().single();
     if (result.error) toast.error("Failed to save loan product"); else { await logAction(editingProduct ? "update_product" : "add_product", result.data.id, "bank_products", editingProduct, result.data); toast.success(editingProduct ? "Product updated" : "Product added"); setShowModal(false); await loadProducts(); }
     setSaving(false);
   };
