@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
@@ -13,147 +13,62 @@ import { Slider } from "@/components/ui/slider";
 import { ArrowRight, CheckCircle2, Info, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRBAC } from "@/hooks/useRBAC";
+import { supabase } from "@/integrations/supabase/client";
 
-interface LoanOffer extends HandoffOffer {
-  featured?: boolean;
-  rating?: number;
-  processingTime?: string;
-}
+interface LoanOffer extends HandoffOffer { processingTime?: string; }
+interface BankProduct { id: string; bank_name: string | null; interest_rate: number | null; min_amount: number | null; max_amount: number | null; max_term_months: number | null; processing_days: number | null; }
 
-// Production data must come from verified lender/product records.
-// Never populate this with synthetic or presentation-only financial offers.
-const liveOffers: LoanOffer[] = [];
+const calculateMonthlyPayment = (principal: number, annualRate: number, months: number) => {
+  if (months <= 0) return 0;
+  const monthlyRate = annualRate / 100 / 12;
+  if (monthlyRate === 0) return principal / months;
+  return principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+};
 
 const ComparePage = () => {
   const [amount, setAmount] = useState([100000]);
   const [sortBy, setSortBy] = useState("rate");
   const [termFilter, setTermFilter] = useState("all");
   const [selectedOffer, setSelectedOffer] = useState<LoanOffer | null>(null);
+  const [products, setProducts] = useState<BankProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user, profile, loading, profileLoading, refreshProfile } = useAuth();
   const { hasRole } = useRBAC();
 
-  useEffect(() => {
-    if (user) refreshProfile();
-  }, [user, refreshProfile]);
-
+  useEffect(() => { if (user) refreshProfile(); }, [user, refreshProfile]);
   useEffect(() => {
     if (loading || profileLoading) return;
-    if (!user) {
-      navigate("/login", { replace: true });
-      return;
-    }
+    if (!user) { navigate("/login", { replace: true }); return; }
     const isAdmin = hasRole("super_admin") || hasRole("admin") || hasRole("super_user");
-    if (isAdmin) return;
-    const kycStatus = profile?.kyc_status;
-    if (kycStatus !== "VERIFIED" && kycStatus !== "COMPLETED") {
-      navigate("/apply", { replace: true });
-    }
+    if (!isAdmin && profile?.kyc_status !== "VERIFIED" && profile?.kyc_status !== "COMPLETED") navigate("/apply", { replace: true });
   }, [user, profile, loading, profileLoading, hasRole, navigate]);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const loadProducts = async () => {
+      setProductsLoading(true); setProductsError(null);
+      const { data, error } = await supabase.from("bank_products").select("id, bank_name, interest_rate, min_amount, max_amount, max_term_months, processing_days").eq("active", true).order("interest_rate", { ascending: true });
+      if (cancelled) return;
+      if (error) { setProductsError("We couldn't load current lender offers. Please try again."); setProducts([]); } else setProducts((data ?? []) as BankProduct[]);
+      setProductsLoading(false);
+    };
+    loadProducts();
+    return () => { cancelled = true; };
+  }, [user]);
 
-  if (loading || profileLoading || !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const offers = useMemo<LoanOffer[]>(() => products.filter((p) => {
+    const min = p.min_amount ?? 0; const max = p.max_amount ?? Number.MAX_SAFE_INTEGER; const term = p.max_term_months ?? 0;
+    return amount[0] >= min && amount[0] <= max && (termFilter === "all" || term === Number(termFilter));
+  }).map((p) => {
+    const term = p.max_term_months ?? 0; const rate = p.interest_rate ?? 0; const monthlyPayment = calculateMonthlyPayment(amount[0], rate, term);
+    return { id: p.id, lender: p.bank_name || "Participating financial institution", rate, maxAmount: p.max_amount ?? 0, term, monthlyPayment, totalCost: monthlyPayment * term, processingTime: p.processing_days != null ? `${p.processing_days} business day${p.processing_days === 1 ? "" : "s"}` : undefined };
+  }), [products, amount, termFilter]);
+  const filtered = [...offers].sort((a, b) => sortBy === "rate" ? a.rate - b.rate : sortBy === "monthly" ? a.monthlyPayment - b.monthlyPayment : a.totalCost - b.totalCost);
 
-  const filtered = liveOffers
-    .filter((offer) => termFilter === "all" || offer.term === parseInt(termFilter, 10))
-    .sort((a, b) => {
-      if (sortBy === "rate") return a.rate - b.rate;
-      if (sortBy === "monthly") return a.monthlyPayment - b.monthlyPayment;
-      if (sortBy === "total") return a.totalCost - b.totalCost;
-      return 0;
-    });
+  if (loading || profileLoading || !user || productsLoading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>Compare Loan Options — Riverbanc</title>
-        <meta name="description" content="Compare verified loan options from participating financial institutions through Riverbanc." />
-        <link rel="canonical" href="https://riverbanc.co.zm/compare" />
-        <meta property="og:title" content="Compare Loan Options — Riverbanc" />
-        <meta property="og:description" content="Compare verified loan options from participating financial institutions through Riverbanc." />
-        <meta property="og:url" content="https://riverbanc.co.zm/compare" />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Loan Comparison",
-          "provider": { "@type": "Organization", "name": "Riverbanc" },
-          "areaServed": "ZM",
-          "serviceType": "Loan comparison platform"
-        })}</script>
-      </Helmet>
-
-      <Navbar />
-      <main className="pt-24 pb-16">
-        <LampContainer className="h-48 bg-background"><span /></LampContainer>
-        <motion.div className="container mx-auto px-4 lg:px-8 mt-6" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="max-w-3xl">
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">Compare Loan Options</h1>
-            <p className="text-muted-foreground text-lg">Compare verified offers available to you from participating financial institutions.</p>
-          </div>
-        </motion.div>
-
-        <div className="container mx-auto px-4 lg:px-8 mt-6">
-          <motion.div className="bg-card rounded-xl p-6 border border-border/50 card-elevated mb-8" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <div className="grid md:grid-cols-3 gap-6 items-end">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Loan Amount: K{amount[0].toLocaleString()}</label>
-                <Slider value={amount} onValueChange={setAmount} min={10000} max={500000} step={5000} className="mt-3" />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>K10,000</span><span>K500,000</span></div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Term</label>
-                <Select value={termFilter} onValueChange={setTermFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
-                  <SelectItem value="all">All Terms</SelectItem><SelectItem value="36">36 Months</SelectItem><SelectItem value="48">48 Months</SelectItem><SelectItem value="60">60 Months</SelectItem><SelectItem value="72">72 Months</SelectItem>
-                </SelectContent></Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Sort By</label>
-                <Select value={sortBy} onValueChange={setSortBy}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
-                  <SelectItem value="rate">Interest Rate</SelectItem><SelectItem value="monthly">Monthly Payment</SelectItem><SelectItem value="total">Total Cost</SelectItem>
-                </SelectContent></Select>
-              </div>
-            </div>
-          </motion.div>
-
-          {filtered.length === 0 ? (
-            <motion.div className="rounded-2xl border border-border/60 bg-card p-8 sm:p-12 text-center card-elevated" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"><Info className="h-6 w-6 text-primary" /></div>
-              <Badge variant="outline" className="mb-4">Verified offers only</Badge>
-              <h2 className="text-2xl font-display font-semibold text-foreground">Loan offers are being added</h2>
-              <p className="mx-auto mt-3 max-w-xl text-muted-foreground leading-relaxed">We're onboarding participating financial institutions and their verified loan products. Once eligible offers are available for you, they'll appear here.</p>
-              <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4 text-primary" />Your profile is verified</div>
-              <p className="mx-auto mt-4 max-w-xl text-xs text-muted-foreground">Riverbanc is a technology platform, not a bank or lender. Loan products and lending decisions are provided by participating financial institutions.</p>
-              <Button variant="outline" className="mt-6" onClick={() => navigate("/profile")}>Back to my dashboard <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            </motion.div>
-          ) : (
-            <div className="space-y-4">
-              {filtered.map((offer, i) => (
-                <motion.div key={offer.id} className="bg-card rounded-xl p-6 border border-border/50 card-elevated" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}>
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-                    <div className="flex-1"><h2 className="font-display font-semibold text-foreground text-base mb-2">{offer.lender}</h2><div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">{offer.processingTime && <span>Processing: {offer.processingTime}</span>}<span>Maximum: K{offer.maxAmount.toLocaleString()}</span></div></div>
-                    <div className="grid grid-cols-3 gap-6 lg:gap-10 text-center">
-                      <div><p className="text-2xl font-display font-bold text-foreground">{offer.rate}%</p><p className="text-xs text-muted-foreground">Annual Rate</p></div>
-                      <div><p className="text-2xl font-display font-bold text-foreground">K{offer.monthlyPayment.toLocaleString()}</p><p className="text-xs text-muted-foreground">Monthly</p></div>
-                      <div><p className="text-2xl font-display font-bold text-foreground">{offer.term} mo</p><p className="text-xs text-muted-foreground">Term</p></div>
-                    </div>
-                    <Button onClick={() => setSelectedOffer(offer)}>View offer <ArrowRight className="w-4 h-4" /></Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-          <p className="mt-8 text-center text-xs text-muted-foreground">Riverbanc is a technology platform, not a bank or lender. Participating financial institutions provide the loan products and make lending decisions.</p>
-        </div>
-      </main>
-      <Footer />
-      <LenderHandoffModal open={Boolean(selectedOffer)} offer={selectedOffer} requestedAmount={amount[0]} onClose={() => setSelectedOffer(null)} />
-    </div>
-  );
+  return <div className="min-h-screen bg-background"><Helmet><title>Compare Loan Options — Riverbanc</title><meta name="description" content="Compare verified loan options from participating financial institutions through Riverbanc." /><link rel="canonical" href="https://riverbanc.co.zm/compare" /><meta property="og:title" content="Compare Loan Options — Riverbanc" /><meta property="og:description" content="Compare verified loan options from participating financial institutions through Riverbanc." /><meta property="og:url" content="https://riverbanc.co.zm/compare" /></Helmet><Navbar /><main className="pt-24 pb-16"><LampContainer className="h-48 bg-background"><span /></LampContainer><motion.div className="container mx-auto px-4 lg:px-8 mt-6" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}><div className="max-w-3xl"><h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">Compare Loan Options</h1><p className="text-muted-foreground text-lg">Compare verified offers available to you from participating financial institutions.</p></div></motion.div><div className="container mx-auto px-4 lg:px-8 mt-6"><motion.div className="bg-card rounded-xl p-6 border border-border/50 card-elevated mb-8" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}><div className="grid md:grid-cols-3 gap-6 items-end"><div><label className="text-sm font-medium text-foreground mb-2 block">Loan Amount: K{amount[0].toLocaleString()}</label><Slider value={amount} onValueChange={setAmount} min={10000} max={500000} step={5000} className="mt-3" /><div className="flex justify-between text-xs text-muted-foreground mt-1"><span>K10,000</span><span>K500,000</span></div></div><div><label className="text-sm font-medium text-foreground mb-2 block">Term</label><Select value={termFilter} onValueChange={setTermFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Terms</SelectItem><SelectItem value="36">36 Months</SelectItem><SelectItem value="48">48 Months</SelectItem><SelectItem value="60">60 Months</SelectItem><SelectItem value="72">72 Months</SelectItem></SelectContent></Select></div><div><label className="text-sm font-medium text-foreground mb-2 block">Sort By</label><Select value={sortBy} onValueChange={setSortBy}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rate">Interest Rate</SelectItem><SelectItem value="monthly">Monthly Payment</SelectItem><SelectItem value="total">Total Cost</SelectItem></SelectContent></Select></div></div></motion.div>{productsError ? <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center"><Info className="h-6 w-6 mx-auto mb-3 text-destructive" /><h2 className="text-xl font-display font-semibold">Offers temporarily unavailable</h2><p className="mt-2 text-sm text-muted-foreground">{productsError}</p><Button variant="outline" className="mt-5" onClick={() => window.location.reload()}>Try again</Button></div> : filtered.length === 0 ? <motion.div className="rounded-2xl border border-border/60 bg-card p-8 sm:p-12 text-center card-elevated" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}><div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"><Info className="h-6 w-6 text-primary" /></div><Badge variant="outline" className="mb-4">Verified offers only</Badge><h2 className="text-2xl font-display font-semibold text-foreground">No matching loan offers yet</h2><p className="mx-auto mt-3 max-w-xl text-muted-foreground leading-relaxed">No participating financial institution currently has a verified product matching this amount and term. Check another amount or term, or return later as lenders are added.</p><div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4 text-primary" />Your profile is verified</div><p className="mx-auto mt-4 max-w-xl text-xs text-muted-foreground">Riverbanc is a technology platform, not a bank or lender. Loan products and lending decisions are provided by participating financial institutions.</p><Button variant="outline" className="mt-6" onClick={() => navigate("/profile")}>Back to my dashboard <ArrowRight className="ml-2 h-4 w-4" /></Button></motion.div> : <div className="space-y-4">{filtered.map((offer, i) => <motion.div key={offer.id} className="bg-card rounded-xl p-6 border border-border/50 card-elevated" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}><div className="flex flex-col lg:flex-row lg:items-center gap-6"><div className="flex-1"><h2 className="font-display font-semibold text-foreground text-base mb-2">{offer.lender}</h2><div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">{offer.processingTime && <span>Processing: {offer.processingTime}</span>}<span>Maximum: K{offer.maxAmount.toLocaleString()}</span></div></div><div className="grid grid-cols-3 gap-6 lg:gap-10 text-center"><div><p className="text-2xl font-display font-bold text-foreground">{offer.rate}%</p><p className="text-xs text-muted-foreground">Annual Rate</p></div><div><p className="text-2xl font-display font-bold text-foreground">K{Math.round(offer.monthlyPayment).toLocaleString()}</p><p className="text-xs text-muted-foreground">Monthly</p></div><div><p className="text-2xl font-display font-bold text-foreground">{offer.term} mo</p><p className="text-xs text-muted-foreground">Term</p></div></div><Button onClick={() => setSelectedOffer(offer)}>View offer <ArrowRight className="w-4 h-4" /></Button></div></motion.div>)}</div>}<p className="mt-8 text-center text-xs text-muted-foreground">Riverbanc is a technology platform, not a bank or lender. Participating financial institutions provide the loan products and make lending decisions.</p></div></main><Footer /><LenderHandoffModal open={Boolean(selectedOffer)} offer={selectedOffer} requestedAmount={amount[0]} onClose={() => setSelectedOffer(null)} /></div>;
 };
-
 export default ComparePage;
