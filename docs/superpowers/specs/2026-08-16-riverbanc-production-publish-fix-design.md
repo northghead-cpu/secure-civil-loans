@@ -7,7 +7,7 @@ Restore reliable production publishing for Riverbanc Technology Limited, make `h
 - GitHub `main` and Lovable are synchronized to commit `e6b900150b893419fcf0a4d784d1f5628c6a6a65`.
 - Vercel detects that commit on `main` but the production deployment fails during `npm run build`.
 - The confirmed compiler failure is malformed JSX in `src/pages/ComparePage.tsx`, specifically an unclosed/mismatched `Select`/`TabsContent` structure.
-- Vercel-generated deployment aliases contain `riverbank1` because that value is part of the Vercel account/team naming context; it is not the Riverbanc public brand.
+- Vercel-generated deployment aliases contain `riverbanc1` because that value is part of the Vercel account/team naming context; it is not the Riverbanc public brand.
 - `https://riverbanc.co.zm` is the sole intended public production domain.
 - Lovable's zero-credit state prevents Lovable's AI agent from performing AI editing work, but it is not the cause of the Vercel build failure.
 
@@ -29,5 +29,5 @@ Treat the zero-credit state as an operational limitation, not an application bui
 2. Vercel production deployment reaches `READY` for the corrected `main` commit.
 3. `riverbanc.co.zm` resolves to the intended production deployment.
 4. The live deployment serves the corrected application build.
-5. Riverbanc branding is not replaced by `Riverbank` in public canonical/domain configuration.
+5. Riverbanc branding is not replaced by `Riverbanc` in public canonical/domain configuration.
 6. No destructive Vercel account/project rename is performed without evidence that it is required and safe.
