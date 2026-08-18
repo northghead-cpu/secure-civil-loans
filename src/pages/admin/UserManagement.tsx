@@ -62,6 +62,9 @@ const roleBadgeColors: Record<string, string> = {
 
 const assignableRoles: AppRole[] = ["super_user", "compliance_team", "data_entry_team", "admin"];
 
+const mask = (value: string | null, visible = 4) => (value ? `••••${value.slice(-visible)}` : "");
+const maskEmail = (value: string | null) => (value ? `••••${value.slice(-8)}` : "");
+
 const UserManagement = () => {
   const { permissions, logAction } = useRBAC();
   const [users, setUsers] = useState<Profile[]>([]);
@@ -197,17 +200,19 @@ const UserManagement = () => {
     ];
     const rows = filtered.map((user) => [
       user.full_name ?? "",
-      user.nrc_number ?? "",
-      user.phone ?? "",
-      user.email ?? "",
+      mask(user.nrc_number),
+      mask(user.phone),
+      maskEmail(user.email),
       user.employer ?? "",
-      user.employee_number ?? "",
+      mask(user.employee_number),
       user.salary?.toString() ?? "",
       user.account_status,
       getUserRoles(user.user_id).map((role) => role.role).join("; "),
       new Date(user.created_at).toLocaleString(),
     ]);
-    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
