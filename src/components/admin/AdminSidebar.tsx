@@ -17,16 +17,12 @@ import {
   Zap,
   Settings,
   Shield,
-  BoxIcon,
-  AlertOctagon,
-  Plug,
-  LucideIcon,
-  LogOut,
   CreditCard,
+  LogOut,
+  LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRBAC } from "@/hooks/useRBAC";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -44,19 +40,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-interface MenuItem {
+export interface MenuItem {
   title: string;
   url: string;
   icon: LucideIcon;
   requiredPermission?: string;
 }
 
-interface MenuGroup {
+export interface MenuGroup {
   label: string;
   items: MenuItem[];
 }
 
-const menuGroups: MenuGroup[] = [
+export const ADMIN_MENU_GROUPS: MenuGroup[] = [
   {
     label: "Overview",
     items: [
@@ -64,7 +60,7 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: "Users",
+    label: "Operations",
     items: [
       { title: "User Management", url: "/admin/users/management", icon: Users, requiredPermission: "canManageUsers" },
       { title: "KYC", url: "/admin/users/kyc", icon: FileCheck, requiredPermission: "canViewProfiles" },
@@ -73,11 +69,11 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: "Lenders",
+    label: "Lender Network",
     items: [
       { title: "Products", url: "/admin/lenders/products", icon: Package, requiredPermission: "canViewLoanApplications" },
       { title: "Performance", url: "/admin/lenders/performance", icon: BarChart3, requiredPermission: "canViewLoanApplications" },
-      { title: "Commission Settings", url: "/admin/lenders/commission", icon: Percent, requiredPermission: "canChangeSystemSettings" },
+      { title: "Commission", url: "/admin/lenders/commission", icon: Percent, requiredPermission: "canChangeSystemSettings" },
     ],
   },
   {
@@ -90,21 +86,20 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    label: "Compliance",
+    label: "Compliance & Risk",
     items: [
       { title: "Risk Flags", url: "/admin/compliance/risk-flags", icon: ShieldAlert, requiredPermission: "canViewLoanApplications" },
       { title: "Audit Logs", url: "/admin/compliance/audit-logs", icon: ScrollText, requiredPermission: "canViewAuditLogs" },
       { title: "Payroll Integration", url: "/admin/compliance/payroll", icon: Link2, requiredPermission: "canViewLoanApplications" },
-      { title: "Credit Bureau Check", url: "/admin/credit-bureau", icon: CreditCard, requiredPermission: "canViewLoanApplications" },
+      { title: "Credit Bureau", url: "/admin/credit-bureau", icon: CreditCard, requiredPermission: "canViewLoanApplications" },
     ],
   },
   {
-    label: "Tools",
+    label: "Administration",
     items: [
       { title: "Automations", url: "/admin/automations", icon: Zap, requiredPermission: "canApproveChanges" },
       { title: "Role Permissions", url: "/admin/role-permissions", icon: Shield, requiredPermission: "canManageUsers" },
       { title: "System Settings", url: "/admin/system-settings", icon: Settings, requiredPermission: "canChangeSystemSettings" },
-      { title: "Credit Bureau", url: "/admin/credit-bureau", icon: CreditCard, requiredPermission: "canChangeSystemSettings" },
     ],
   },
 ];
@@ -112,8 +107,7 @@ const menuGroups: MenuGroup[] = [
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
-  const currentPath = location.pathname;
+  const { pathname: currentPath } = useLocation();
   const { permissions } = useRBAC();
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -141,7 +135,7 @@ export function AdminSidebar() {
           )}
         </div>
 
-        {menuGroups.map((group) => {
+        {ADMIN_MENU_GROUPS.map((group) => {
           const visibleItems = group.items.filter((item) => {
             if (!item.requiredPermission) return true;
             return (permissions as unknown as Record<string, boolean>)[item.requiredPermission] === true;
@@ -175,7 +169,6 @@ export function AdminSidebar() {
         })}
       </SidebarContent>
 
-      {/* Logout Button in Sidebar Footer */}
       <SidebarFooter>
         <div className={`p-2 ${collapsed ? "px-2" : "px-4"}`}>
           <Button
