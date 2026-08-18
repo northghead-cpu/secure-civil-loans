@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useRBAC } from "@/hooks/useRBAC";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Eye, CheckCircle2, XCircle, Loader2, FileText } from "lucide-react";
+import { Eye, CheckCircle2, XCircle, Loader2, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 interface KYCProfile {
@@ -26,12 +26,20 @@ const statusBadge: Record<string, string> = {
   REJECTED: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
+const maskNrc = (value: string | null) => {
+  if (!value) return "—";
+  const normalized = value.trim();
+  if (normalized.length <= 4) return "••••";
+  return `${"•".repeat(Math.max(0, normalized.length - 4))}${normalized.slice(-4)}`;
+};
+
 const UsersKYC = () => {
   const { permissions, logAction } = useRBAC();
   const [profiles, setProfiles] = useState<KYCProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<KYCProfile | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [revealedNrc, setRevealedNrc] = useState(false);
 
   useEffect(() => {
     const fetchKYC = async () => {
@@ -53,6 +61,20 @@ const UsersKYC = () => {
     rejected: profiles.filter(p => p.kyc_status === "REJECTED").length,
   };
 
+  const openProfile = (profile: KYCProfile) => {
+    setSelectedProfile(profile);
+    setRevealedNrc(false);
+  };
+
+  const revealNrc = async () => {
+    if (!selectedProfile?.nrc_number || !permissions.canEditProfiles) {
+      toast.error("You don't have permission to reveal NRC data");
+      return;
+    }
+    setRevealedNrc(true);
+    await logAction("reveal_nrc", selectedProfile.user_id, "profiles");
+  };
+
   const updateKYCStatus = async (userId: string, status: "COMPLETED" | "REJECTED") => {
     if (!permissions.canEditProfiles) {
       toast.error("You don't have permission to update KYC status");
@@ -72,14 +94,11 @@ const UsersKYC = () => {
     }
     setUpdating(false);
     setSelectedProfile(null);
+    setRevealedNrc(false);
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
@@ -94,165 +113,46 @@ const UsersKYC = () => {
           { label: "Rejected", value: statusCounts.rejected.toString(), meta: "Files sent back or declined" },
         ]}
       />
-
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-warning">{statusCounts.pending}</div>
-            <p className="text-sm text-muted-foreground">Pending</p>
-          </CardContent>
-        </Card>
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-info">{statusCounts.inReview}</div>
-            <p className="text-sm text-muted-foreground">In Review</p>
-          </CardContent>
-        </Card>
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-success">{statusCounts.completed}</div>
-            <p className="text-sm text-muted-foreground">Verified</p>
-          </CardContent>
-        </Card>
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-destructive">{statusCounts.rejected}</div>
-            <p className="text-sm text-muted-foreground">Rejected</p>
-          </CardContent>
-        </Card>
+        <Card className={adminCardClass}><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-warning">{statusCounts.pending}</div><p className="text-sm text-muted-foreground">Pending</p></CardContent></Card>
+        <Card className={adminCardClass}><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-info">{statusCounts.inReview}</div><p className="text-sm text-muted-foreground">In Review</p></CardContent></Card>
+        <Card className={adminCardClass}><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-success">{statusCounts.completed}</div><p className="text-sm text-muted-foreground">Verified</p></CardContent></Card>
+        <Card className={adminCardClass}><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-destructive">{statusCounts.rejected}</div><p className="text-sm text-muted-foreground">Rejected</p></CardContent></Card>
       </div>
-
       <Card className={`${adminCardClass} overflow-hidden`}>
-        <CardHeader>
-          <CardTitle className="text-base font-display">KYC Submissions</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-base font-display">KYC Submissions</CardTitle></CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden sm:table-cell">NRC Number</TableHead>
-                <TableHead className="hidden md:table-cell">User ID</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Submitted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead className="hidden sm:table-cell">NRC Number</TableHead><TableHead className="hidden md:table-cell">User ID</TableHead><TableHead>Status</TableHead><TableHead className="hidden lg:table-cell">Submitted</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
-              {profiles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No KYC submissions found
-                  </TableCell>
+              {profiles.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No KYC submissions found</TableCell></TableRow> : profiles.map((profile) => (
+                <TableRow key={profile.id}>
+                  <TableCell className="font-medium">{profile.full_name ?? "—"}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-muted-foreground">{maskNrc(profile.nrc_number)}</TableCell>
+                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground font-mono">{profile.user_id.slice(0, 8)}...</TableCell>
+                  <TableCell><Badge className={statusBadge[profile.kyc_status] ?? ""}>{profile.kyc_status}</Badge></TableCell>
+                  <TableCell className="hidden lg:table-cell text-muted-foreground">{new Date(profile.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right"><div className="flex gap-1 justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => openProfile(profile)} title="View details"><Eye className="h-4 w-4" /></Button>
+                    {permissions.canEditProfiles && <><Button size="sm" variant="ghost" className="text-success" onClick={() => updateKYCStatus(profile.user_id, "COMPLETED")} title="Verify" disabled={updating}><CheckCircle2 className="h-4 w-4" /></Button><Button size="sm" variant="ghost" className="text-destructive" onClick={() => updateKYCStatus(profile.user_id, "REJECTED")} title="Reject" disabled={updating}><XCircle className="h-4 w-4" /></Button></>}
+                  </div></TableCell>
                 </TableRow>
-              ) : (
-                profiles.map((profile) => (
-                  <TableRow key={profile.id}>
-                    <TableCell className="font-medium">{profile.full_name ?? "—"}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">{profile.nrc_number ?? "—"}</TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground font-mono">
-                      {profile.user_id.slice(0, 8)}...
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusBadge[profile.kyc_status] ?? ""}>{profile.kyc_status}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground">
-                      {new Date(profile.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => setSelectedProfile(profile)}
-                          title="View details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {permissions.canEditProfiles && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="text-success"
-                              onClick={() => updateKYCStatus(profile.user_id, "COMPLETED")}
-                              title="Verify"
-                              disabled={updating}
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="text-destructive"
-                              onClick={() => updateKYCStatus(profile.user_id, "REJECTED")}
-                              title="Reject"
-                              disabled={updating}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-
-      <Dialog open={!!selectedProfile} onOpenChange={() => setSelectedProfile(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display">KYC Details</DialogTitle>
-          </DialogHeader>
-          {selectedProfile && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{selectedProfile.full_name ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">NRC Number</p>
-                  <p className="font-medium">{selectedProfile.nrc_number ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <Badge className={statusBadge[selectedProfile.kyc_status] ?? ""}>
-                    {selectedProfile.kyc_status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Submitted</p>
-                  <p className="font-medium">{new Date(selectedProfile.created_at).toLocaleString()}</p>
-                </div>
-              </div>
-              <div className="flex gap-2 border-t pt-4">
-                {permissions.canEditProfiles && (
-                  <>
-                    <Button 
-                      className="flex-1 bg-success hover:bg-success/90"
-                      onClick={() => updateKYCStatus(selectedProfile.user_id, "COMPLETED")}
-                      disabled={updating}
-                    >
-                      <CheckCircle2 className="h-4 w-4 mr-2" /> Verify KYC
-                    </Button>
-                    <Button 
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={() => updateKYCStatus(selectedProfile.user_id, "REJECTED")}
-                      disabled={updating}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" /> Reject KYC
-                    </Button>
-                  </>
-                )}
-              </div>
+      <Dialog open={!!selectedProfile} onOpenChange={() => { setSelectedProfile(null); setRevealedNrc(false); }}>
+        <DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle className="font-display">KYC Details</DialogTitle></DialogHeader>
+          {selectedProfile && <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-muted-foreground">Full Name</p><p className="font-medium">{selectedProfile.full_name ?? "—"}</p></div>
+              <div><p className="text-muted-foreground">NRC Number</p><div className="flex items-center gap-2"><p className="font-medium">{revealedNrc ? selectedProfile.nrc_number ?? "—" : maskNrc(selectedProfile.nrc_number)}</p>{selectedProfile.nrc_number && permissions.canEditProfiles && <Button size="sm" variant="ghost" onClick={revealedNrc ? () => setRevealedNrc(false) : revealNrc} title={revealedNrc ? "Hide NRC" : "Reveal NRC"}>{revealedNrc ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>}</div></div>
+              <div><p className="text-muted-foreground">Status</p><Badge className={statusBadge[selectedProfile.kyc_status] ?? ""}>{selectedProfile.kyc_status}</Badge></div>
+              <div><p className="text-muted-foreground">Submitted</p><p className="font-medium">{new Date(selectedProfile.created_at).toLocaleString()}</p></div>
             </div>
-          )}
+            <div className="flex gap-2 border-t pt-4">{permissions.canEditProfiles && <><Button className="flex-1 bg-success hover:bg-success/90" onClick={() => updateKYCStatus(selectedProfile.user_id, "COMPLETED")} disabled={updating}><CheckCircle2 className="h-4 w-4 mr-2" /> Verify KYC</Button><Button variant="destructive" className="flex-1" onClick={() => updateKYCStatus(selectedProfile.user_id, "REJECTED")} disabled={updating}><XCircle className="h-4 w-4 mr-2" /> Reject KYC</Button></>}</div>
+          </div>}
         </DialogContent>
       </Dialog>
     </AdminPageShell>
