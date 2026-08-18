@@ -1,45 +1,34 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useRBAC, AppRole } from "@/hooks/useRBAC";
+import { useRBAC, AppRole, RBACPermissions } from "@/hooks/useRBAC";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  /** If provided, only these roles may access the route. */
   allowedRoles?: AppRole[];
+  /** Optional capability required after role authentication. */
+  requiredPermission?: keyof RBACPermissions;
 }
 
-/**
- * Client-side route guard. Combined with React.lazy on the wrapped route
- * components, unauthenticated visitors never download privileged code bundles
- * because the lazy import is never triggered when access is denied.
- */
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, allowedRoles, requiredPermission }: ProtectedRouteProps) => {
   const location = useLocation();
   const { user, loading: authLoading, isPasswordRecovery } = useAuth();
-  const { highestRole, loading: rbacLoading } = useRBAC();
+  const { highestRole, permissions, loading: rbacLoading } = useRBAC();
 
-  // A recovery session must never unlock authenticated areas. Always bounce
-  // the user to the dedicated reset page until they complete (or abandon)
-  // the password change.
-  if (isPasswordRecovery) {
-    return <Navigate to="/reset-password" replace />;
+  if (isPasswordRecovery) return <Navigate to="/reset-password" replace />;
+
+  if (authLoading || (allowedRoles && rbacLoading) || (requiredPermission && rbacLoading)) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  if (authLoading || (allowedRoles && rbacLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
 
   if (allowedRoles && (!highestRole || !allowedRoles.includes(highestRole))) {
     return <Navigate to="/" replace />;
+  }
+
+  if (requiredPermission && !permissions[requiredPermission]) {
+    return <Navigate to="/admin" replace state={{ from: location.pathname, denied: requiredPermission }} />;
   }
 
   return <>{children}</>;
