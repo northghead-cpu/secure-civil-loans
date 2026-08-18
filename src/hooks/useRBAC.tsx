@@ -20,9 +20,21 @@ export interface RBACPermissions {
   canDeleteRecords: boolean;
   canApproveChanges: boolean;
   canUploadDocuments: boolean;
+
+  // Admin capability model. These are intentionally separate from legacy
+  // permissions so existing consumers can be migrated without changing
+  // authorization semantics in one step.
+  canManageLenderProducts: boolean;
+  canManageCommissions: boolean;
+  canViewFinancials: boolean;
+  canManagePayouts: boolean;
+  canManageAutomations: boolean;
+  canManageRoles: boolean;
+  canExportCustomerData: boolean;
+  canPerformCreditChecks: boolean;
 }
 
-const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
+export const ROLE_PERMISSIONS: Record<AppRole, RBACPermissions> = {
   super_admin: {
     canViewProfiles: true,
     canEditProfiles: true,
@@ -39,6 +51,14 @@ const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
     canDeleteRecords: true,
     canApproveChanges: true,
     canUploadDocuments: true,
+    canManageLenderProducts: true,
+    canManageCommissions: true,
+    canViewFinancials: true,
+    canManagePayouts: true,
+    canManageAutomations: true,
+    canManageRoles: true,
+    canExportCustomerData: true,
+    canPerformCreditChecks: true,
   },
   admin: {
     canViewProfiles: true,
@@ -56,6 +76,14 @@ const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
     canDeleteRecords: false,
     canApproveChanges: true,
     canUploadDocuments: true,
+    canManageLenderProducts: true,
+    canManageCommissions: true,
+    canViewFinancials: true,
+    canManagePayouts: true,
+    canManageAutomations: true,
+    canManageRoles: true,
+    canExportCustomerData: true,
+    canPerformCreditChecks: true,
   },
   super_user: {
     canViewProfiles: true,
@@ -73,6 +101,14 @@ const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
     canDeleteRecords: false,
     canApproveChanges: false,
     canUploadDocuments: true,
+    canManageLenderProducts: false,
+    canManageCommissions: false,
+    canViewFinancials: true,
+    canManagePayouts: false,
+    canManageAutomations: false,
+    canManageRoles: false,
+    canExportCustomerData: true,
+    canPerformCreditChecks: false,
   },
   compliance_team: {
     canViewProfiles: true,
@@ -90,6 +126,14 @@ const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
     canDeleteRecords: false,
     canApproveChanges: false,
     canUploadDocuments: false,
+    canManageLenderProducts: false,
+    canManageCommissions: false,
+    canViewFinancials: false,
+    canManagePayouts: false,
+    canManageAutomations: false,
+    canManageRoles: false,
+    canExportCustomerData: false,
+    canPerformCreditChecks: false,
   },
   data_entry_team: {
     canViewProfiles: true,
@@ -107,6 +151,14 @@ const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
     canDeleteRecords: false,
     canApproveChanges: false,
     canUploadDocuments: true,
+    canManageLenderProducts: false,
+    canManageCommissions: false,
+    canViewFinancials: false,
+    canManagePayouts: false,
+    canManageAutomations: false,
+    canManageRoles: false,
+    canExportCustomerData: false,
+    canPerformCreditChecks: false,
   },
   user: {
     canViewProfiles: true,
@@ -124,6 +176,14 @@ const ROLE_PERMISSIONS: Record<string, RBACPermissions> = {
     canDeleteRecords: false,
     canApproveChanges: false,
     canUploadDocuments: true,
+    canManageLenderProducts: false,
+    canManageCommissions: false,
+    canViewFinancials: false,
+    canManagePayouts: false,
+    canManageAutomations: false,
+    canManageRoles: false,
+    canExportCustomerData: false,
+    canPerformCreditChecks: false,
   },
 };
 
@@ -161,6 +221,14 @@ const defaultPermissions: RBACPermissions = {
   canDeleteRecords: false,
   canApproveChanges: false,
   canUploadDocuments: false,
+  canManageLenderProducts: false,
+  canManageCommissions: false,
+  canViewFinancials: false,
+  canManagePayouts: false,
+  canManageAutomations: false,
+  canManageRoles: false,
+  canExportCustomerData: false,
+  canPerformCreditChecks: false,
 };
 
 const RBACContext = createContext<RBACContextType>({
@@ -203,7 +271,7 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
-      
+
       const userRoles = (data?.map((r) => r.role) ?? []) as AppRole[];
       setRoles(userRoles);
       setLoading(false);
