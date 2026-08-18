@@ -3,7 +3,7 @@ import { getDashboardMetrics } from "./dashboardMetrics";
 
 const rows: Record<string, { data: unknown[]; count?: number }> = {
   profiles: { data: [], count: 12 },
-  loan_applications: { data: [{ status: "pending" }, { status: "approved" }, { status: "rejected" }] },
+  loan_applications: { data: [{ status: "pending" }, { status: "approved" }, { status: "rejected" }], count: 1 },
   subscription_authorizations: { data: [{ amount: 60 }, { amount: 60 }] },
   risk_flags: { data: [], count: 2 },
   audit_logs: { data: [{ action_performed: "KYC verified", action: null, role: "compliance_team", created_at: "2026-01-01T10:00:00Z", record_id: "1" }] },
@@ -33,10 +33,10 @@ describe("Admin Command Center metrics", () => {
     const metrics = await getDashboardMetrics({ supabase: fakeSupabase as never });
 
     expect(metrics.activeBorrowers).toBe(12);
-    expect(metrics.pendingApplications).toBe(0);
+    expect(metrics.pendingApplications).toBe(1);
     expect(metrics.monthlySubscriptionValue).toBe(120);
     expect(metrics.riskAlerts).toBe(2);
-    expect(metrics.priorityQueue).toHaveLength(2);
+    expect(metrics.priorityQueue).toHaveLength(3);
     expect(metrics.recentActivity).toHaveLength(1);
     expect(metrics.pipeline.find((stage) => stage.stage === "Approved")?.count).toBe(1);
     expect(metrics.lenderHealth[0]).toMatchObject({ name: "Test Bank", fill: 50 });
