@@ -55,6 +55,5 @@ create policy "incidents_admin_update"
 revoke insert, delete on public.incidents from authenticated, anon;
 grant select, update on public.incidents to authenticated;
 
-audit_log_id
 -- Incident records intentionally contain no user NRC, salary, raw provider
 -- payload, application details, or other audit-log payloads.
