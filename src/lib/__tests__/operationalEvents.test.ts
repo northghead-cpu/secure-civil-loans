@@ -1,19 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  captureException: vi.fn(),
-  withScope: vi.fn((callback: (scope: {
-    setTag: (key: string, value: string) => void;
-    setContext: (key: string, value: unknown) => void;
-  }) => void) => callback({ setTag: vi.fn(), setContext: vi.fn() })),
-}));
+const mocks = vi.hoisted(() => {
+  const setTag = vi.fn();
+  const setContext = vi.fn();
+  const captureException = vi.fn();
+  const withScope = vi.fn((callback: (scope: {
+    setTag: typeof setTag;
+    setContext: typeof setContext;
+  }) => void) => callback({ setTag, setContext }));
+  return { captureException, withScope, setTag, setContext };
+});
 
 vi.mock("@sentry/react", () => mocks);
 
 import { captureOperationalEvent } from "../operationalEvents";
 
 describe("operational events", () => {
-  it("captures a structured event without transmitting sensitive metadata", () => {
+  it("captures a structured event and scrubs sensitive metadata", () => {
     captureOperationalEvent({
       operation: "subscription.payment",
       severity: "high",
@@ -30,5 +33,12 @@ describe("operational events", () => {
     const error = mocks.captureException.mock.calls[0][0] as Error;
     expect(error.name).toBe("OperationalEvent:subscription.payment");
     expect(error.message).toBe("Payment provider failed");
+
+    const contextCall = mocks.setContext.mock.calls.find(([key]) => key === "operational_event");
+    expect(contextCall).toBeDefined();
+    const context = contextCall?.[1] as { metadata: Record<string, unknown> };
+    expect(context.metadata.nrc).toBe("[redacted]");
+    expect(context.metadata.salary).toBe("[redacted]");
+    expect(context.metadata.safe_code).toBe("PAYMENT_PROVIDER_UNAVAILABLE");
   });
 });
