@@ -1,5 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { z } from "https://esm.sh/zod@3.23.8";
+import {
+  fetchCRBReport,
+  CRBProviderError,
+  CRBProviderNotConfiguredError,
+} from "./provider.ts";
 
 // Strict allowlist schema — rejects unknown keys, enforces NRC format & length bounds
 const CRBRequestSchema = z.object({
@@ -17,17 +22,17 @@ const CRBRequestSchema = z.object({
     .regex(/^[A-Za-z][A-Za-z\s'.\-]*$/, "full_name contains invalid characters"),
 }).strict();
 
-const badRequest = (corsHeaders: Record<string, string>, message: string, details?: unknown) =>
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-request-id",
+};
+
+const badRequest = (message: string, details?: unknown) =>
   new Response(JSON.stringify({ error: "Bad Request", message, ...(details ? { details } : {}) }), {
     status: 400,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 interface CRBSummary {
   credit_score: number;
@@ -43,7 +48,6 @@ interface CRBSummary {
   checked_at: string;
 }
 
-// --- Hardening: replay + rate-limit (DB-backed, cross-instance) ---
 const MAX_BODY_BYTES = 8 * 1024;
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 10;
@@ -80,172 +84,185 @@ async function checkAndRecord(
   return { limited: false, replay: false };
 }
 
+function scoreRating(score: number): string {
+  if (score >= 700) return "EXCELLENT";
+  if (score >= 600) return "GOOD";
+  if (score >= 500) return "FAIR";
+  if (score >= 400) return "POOR";
+  return "VERY_POOR";
+}
+
+function riskAndRecommendation(score: number, adverseCount: number): { riskLevel: string; recommendation: string } {
+  if (adverseCount === 0 && score >= 600) return { riskLevel: "LOW", recommendation: "APPROVE" };
+  if (adverseCount === 0 && score >= 450) return { riskLevel: "MEDIUM", recommendation: "APPROVE_WITH_CONDITIONS" };
+  if (score >= 300) return { riskLevel: "HIGH", recommendation: "REVIEW" };
+  return { riskLevel: "VERY_HIGH", recommendation: "DECLINE" };
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST" },
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST" },
     });
   }
+
   const contentLength = parseInt(req.headers.get("content-length") ?? "0", 10);
   if (contentLength > MAX_BODY_BYTES) {
     return new Response(JSON.stringify({ error: "Payload too large" }), {
-      status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 413,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   try {
-    // Validate auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Verify admin/super_admin role
     const { data: roleRow } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['admin', 'super_admin'])
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "super_admin"])
       .maybeSingle();
     if (!roleRow) {
-      return new Response(
-        JSON.stringify({ error: "Forbidden" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Nonce + rate limit (DB-backed, cross-instance)
     const nonce = req.headers.get("x-request-id") ?? "";
     if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
       return new Response(JSON.stringify({ error: "Missing or invalid X-Request-Id" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    // Opportunistic GC (fire-and-forget)
     pruneOld(adminClient).catch(() => {});
     const guard = await checkAndRecord(adminClient, user.id, nonce);
     if (guard.error) {
       console.error("[crb-proxy] guard error:", guard.error);
       return new Response(JSON.stringify({ error: "Service unavailable" }), {
-        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     if (guard.limited) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
       });
     }
     if (guard.replay) {
       return new Response(JSON.stringify({ error: "Duplicate request" }), {
-        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Parse and validate input
     const rawBody = await req.text();
     if (rawBody.length > MAX_BODY_BYTES) {
       return new Response(JSON.stringify({ error: "Payload too large" }), {
-        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     let json: unknown;
-    try { json = JSON.parse(rawBody); } catch {
-      return badRequest(corsHeaders, "Request body must be valid JSON");
+    try {
+      json = JSON.parse(rawBody);
+    } catch {
+      return badRequest("Request body must be valid JSON");
     }
     if (typeof json !== "object" || json === null || Array.isArray(json)) {
-      return badRequest(corsHeaders, "Request body must be a JSON object");
+      return badRequest("Request body must be a JSON object");
     }
+
     const parsed = CRBRequestSchema.safeParse(json);
     if (!parsed.success) {
       const flat = parsed.error.flatten();
-      return badRequest(corsHeaders, "Schema validation failed", {
+      return badRequest("Schema validation failed", {
         fieldErrors: flat.fieldErrors,
         formErrors: flat.formErrors,
       });
     }
-    const { nrc_number, full_name } = parsed.data;
 
+    const { nrc_number, full_name } = parsed.data;
     const normalizedNRC = nrc_number.replace(/[\s-]/g, "").toUpperCase();
-    const nrcPattern = /^\d{6}\/\d{2}\/\d{1}$/;
-    if (!nrcPattern.test(normalizedNRC)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid NRC format. Expected: 123456/12/1" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!/^\d{6}\/\d{2}\/\d{1}$/.test(normalizedNRC)) {
+      return badRequest("Invalid NRC format. Expected: 123456/12/1");
     }
 
-    // ---------------------------------------------------------------
-    // TODO: Replace this block with actual TransUnion Zambia API call
-    // const TRANSUNION_API_KEY = Deno.env.get("TRANSUNION_API_KEY");
-    // const tuResponse = await fetch("https://api.transunion.co.zm/...", { ... });
-    // const tuData = await tuResponse.json();
-    // ---------------------------------------------------------------
+    let report;
+    try {
+      report = await fetchCRBReport({ nrc_number: normalizedNRC, full_name });
+    } catch (error) {
+      if (error instanceof CRBProviderNotConfiguredError) {
+        return new Response(JSON.stringify({ error: "CRB service is not configured" }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "300" },
+        });
+      }
+      if (error instanceof CRBProviderError) {
+        console.error("[crb-proxy] provider error:", error.message);
+        return new Response(JSON.stringify({ error: "CRB service unavailable" }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+        });
+      }
+      throw error;
+    }
 
-    // Simulated TransUnion response (remove when integrating real API)
-    const score = Math.floor(Math.random() * 600) + 200;
-    const openAccounts = Math.floor(Math.random() * 8) + 1;
-    const hasAdverse = Math.random() > 0.7;
-    const adverseCount = hasAdverse ? Math.floor(Math.random() * 3) + 1 : 0;
-    const totalOutstanding = hasAdverse ? Math.floor(Math.random() * 50000) + 5000 : 0;
-    const dti = Math.random() * 0.6 + 0.1;
-    const probabilityOfDefault = Math.min(99, Math.max(1, Math.round((1 - score / 999) * 100 + dti * 20)));
+    const rating = scoreRating(report.credit_score);
+    const { riskLevel, recommendation } = riskAndRecommendation(
+      report.credit_score,
+      report.adverse_count,
+    );
+    const status = report.status ?? (report.adverse_count > 0 ? "ADVERSE" : "CLEAR");
+    const probabilityOfDefault = Math.min(99, Math.max(0, Math.round(report.probability_of_default ?? 0)));
 
-    let scoreRating: string;
-    if (score >= 700) scoreRating = "EXCELLENT";
-    else if (score >= 600) scoreRating = "GOOD";
-    else if (score >= 500) scoreRating = "FAIR";
-    else if (score >= 400) scoreRating = "POOR";
-    else scoreRating = "VERY_POOR";
-
-    let riskLevel: string;
-    let recommendation: string;
-    if (!hasAdverse && score >= 600) { riskLevel = "LOW"; recommendation = "APPROVE"; }
-    else if (!hasAdverse && score >= 450) { riskLevel = "MEDIUM"; recommendation = "APPROVE_WITH_CONDITIONS"; }
-    else if (score >= 300) { riskLevel = "HIGH"; recommendation = "REVIEW"; }
-    else { riskLevel = "VERY_HIGH"; recommendation = "DECLINE"; }
-
-    // Build summary-only response (no raw JSON to frontend)
     const summary: CRBSummary = {
-      credit_score: score,
-      score_rating: scoreRating,
-      open_accounts: openAccounts,
+      credit_score: report.credit_score,
+      score_rating: rating,
+      open_accounts: report.open_accounts,
       probability_of_default: probabilityOfDefault,
       risk_level: riskLevel,
       recommendation,
-      status: hasAdverse ? "ADVERSE" : "CLEAR",
-      summary: hasAdverse
-        ? `Adverse records found: ${adverseCount} item(s). Total outstanding: K ${totalOutstanding.toLocaleString()}`
+      status,
+      summary: report.adverse_count > 0
+        ? `Adverse records found: ${report.adverse_count} item(s). Total outstanding: K ${report.total_outstanding_zmw.toLocaleString()}`
         : "No adverse records found. Credit history is clear.",
-      adverse_count: adverseCount,
-      total_outstanding_zmw: totalOutstanding,
+      adverse_count: report.adverse_count,
+      total_outstanding_zmw: report.total_outstanding_zmw,
       checked_at: new Date().toISOString(),
     };
 
-    // Audit log: record who ran the inquiry (best-effort, never blocks response)
     try {
       await supabase.rpc("log_audit", {
         _user_id: user.id,
@@ -256,7 +273,9 @@ Deno.serve(async (req) => {
         _old_value: null,
         _new_value: { status: summary.status, score_rating: summary.score_rating, request_id: nonce },
       });
-    } catch (e) { console.error("[crb-proxy] audit log failed:", e); }
+    } catch (e) {
+      console.error("[crb-proxy] audit log failed:", e);
+    }
 
     return new Response(JSON.stringify({ success: true, data: summary }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -264,9 +283,9 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("[crb-proxy] Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
