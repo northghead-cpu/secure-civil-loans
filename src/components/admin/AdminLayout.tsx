@@ -52,7 +52,7 @@ const AdminContent = () => {
       {/* 3. The Cosmic Background - stays fixed behind everything */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <CosmicParallaxBg 
-          head="RIVERBANK" 
+          head="RIVERBANC" 
           text="Secure, Intelligence, Control" 
           loop={true} 
         />
