@@ -17,16 +17,12 @@ import {
   Zap,
   Settings,
   Shield,
-  BoxIcon,
-  AlertOctagon,
-  Plug,
+  CreditCard,
   LucideIcon,
   LogOut,
-  CreditCard,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRBAC } from "@/hooks/useRBAC";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -57,12 +53,7 @@ interface MenuGroup {
 }
 
 const menuGroups: MenuGroup[] = [
-  {
-    label: "Overview",
-    items: [
-      { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-    ],
-  },
+  { label: "Overview", items: [{ title: "Dashboard", url: "/admin", icon: LayoutDashboard }] },
   {
     label: "Users",
     items: [
@@ -90,6 +81,12 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
+    label: "Operations",
+    items: [
+      { title: "Incident Center", url: "/admin/incidents", icon: AlertOctagon, requiredPermission: "canManageUsers" },
+    ],
+  },
+  {
     label: "Compliance",
     items: [
       { title: "Risk Flags", url: "/admin/compliance/risk-flags", icon: ShieldAlert, requiredPermission: "canViewLoanApplications" },
@@ -112,12 +109,10 @@ const menuGroups: MenuGroup[] = [
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
-  const currentPath = location.pathname;
+  const currentPath = useLocation().pathname;
   const { permissions } = useRBAC();
   const { signOut } = useAuth();
   const navigate = useNavigate();
-
   const isActive = (path: string) => currentPath === path;
 
   const handleLogout = async () => {
@@ -125,7 +120,7 @@ export function AdminSidebar() {
       await signOut();
       toast.success("Logged out successfully");
       navigate("/");
-    } catch (error) {
+    } catch {
       toast.error("Failed to logout");
     }
   };
@@ -134,20 +129,11 @@ export function AdminSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <div className={`px-4 py-5 ${collapsed ? "px-2" : ""}`}>
-          {!collapsed && (
-            <h2 className="font-display text-lg font-bold text-sidebar-foreground">
-              Admin Portal
-            </h2>
-          )}
+          {!collapsed && <h2 className="font-display text-lg font-bold text-sidebar-foreground">Admin Portal</h2>}
         </div>
-
         {menuGroups.map((group) => {
-          const visibleItems = group.items.filter((item) => {
-            if (!item.requiredPermission) return true;
-            return (permissions as unknown as Record<string, boolean>)[item.requiredPermission] === true;
-          });
+          const visibleItems = group.items.filter((item) => !item.requiredPermission || (permissions as unknown as Record<string, boolean>)[item.requiredPermission] === true);
           if (visibleItems.length === 0) return null;
-
           return (
             <SidebarGroup key={group.label}>
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -156,12 +142,7 @@ export function AdminSidebar() {
                   {visibleItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                        <NavLink
-                          to={item.url}
-                          end
-                          className="hover:bg-sidebar-accent/50"
-                          activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                        >
+                        <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <item.icon className="mr-2 h-4 w-4" />
                           {!collapsed && <span>{item.title}</span>}
                         </NavLink>
@@ -174,18 +155,9 @@ export function AdminSidebar() {
           );
         })}
       </SidebarContent>
-
-      {/* Logout Button in Sidebar Footer */}
       <SidebarFooter>
         <div className={`p-2 ${collapsed ? "px-2" : "px-4"}`}>
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 ${
-              collapsed ? "px-2" : ""
-            }`}
-            title="Logout"
-          >
+          <Button variant="ghost" onClick={handleLogout} className={`w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 ${collapsed ? "px-2" : ""}`} title="Logout">
             <LogOut className="h-4 w-4 mr-2" />
             {!collapsed && <span>Logout</span>}
           </Button>
