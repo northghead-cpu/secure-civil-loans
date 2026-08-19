@@ -6,8 +6,7 @@ create table if not exists public.incidents (
   id uuid primary key default gen_random_uuid(),
   operation text not null,
   severity text not null check (severity in ('critical', 'high', 'medium', 'low')),
-  status text not null default 'detected'
-    check (status in ('detected', 'acknowledged', 'investigating', 'resolved')),
+  status text not null default 'detected' check (status in ('detected', 'acknowledged', 'investigating', 'resolved')),
   summary text not null,
   correlation_id text,
   source text not null default 'application',
@@ -27,30 +26,20 @@ create table if not exists public.incidents (
   constraint incidents_correlation_length check (correlation_id is null or char_length(correlation_id) <= 128)
 );
 
-create index if not exists incidents_status_severity_idx
-  on public.incidents (status, severity, occurred_at desc);
-
-create index if not exists incidents_operation_idx
-  on public.incidents (operation, occurred_at desc);
-
-create index if not exists incidents_correlation_id_idx
-  on public.incidents (correlation_id)
-  where correlation_id is not null;
+create index if not exists incidents_status_severity_idx on public.incidents (status, severity, occurred_at desc);
+create index if not exists incidents_operation_idx on public.incidents (operation, occurred_at desc);
+create index if not exists incidents_correlation_id_idx on public.incidents (correlation_id) where correlation_id is not null;
 
 alter table public.incidents enable row level security;
 
 create policy "incidents_admin_select"
-  on public.incidents
-  for select
-  to authenticated
-  using (public.has_any_role('admin', 'super_admin'));
+  on public.incidents for select to authenticated
+  using (private.has_any_role('admin', 'super_admin'));
 
 create policy "incidents_admin_update"
-  on public.incidents
-  for update
-  to authenticated
-  using (public.has_any_role('admin', 'super_admin'))
-  with check (public.has_any_role('admin', 'super_admin'));
+  on public.incidents for update to authenticated
+  using (private.has_any_role('admin', 'super_admin'))
+  with check (private.has_any_role('admin', 'super_admin'));
 
 revoke insert, delete on public.incidents from authenticated, anon;
 grant select, update on public.incidents to authenticated;
