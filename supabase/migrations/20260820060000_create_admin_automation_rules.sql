@@ -13,6 +13,11 @@ create table if not exists public.automation_rules (
 
 alter table public.automation_rules enable row level security;
 
+drop policy if exists automation_rules_select_admin on public.automation_rules;
+drop policy if exists automation_rules_insert_super_admin on public.automation_rules;
+drop policy if exists automation_rules_update_super_admin on public.automation_rules;
+drop policy if exists automation_rules_delete_super_admin on public.automation_rules;
+
 create policy automation_rules_select_admin on public.automation_rules
 for select to authenticated
 using (private.has_role('admin') or private.has_role('super_admin') or private.has_role('super_user') or private.has_role('compliance_team') or private.has_role('data_entry_team'));
