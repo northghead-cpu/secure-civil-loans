@@ -1,71 +1,132 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useMemo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-const mockPerformance = [
-  { lender: "Stanbic Bank", disbursed: 156, totalValue: "K2.4M", avgProcessing: "2.1 days", defaultRate: "3.2%", trend: "up" },
-  { lender: "Zanaco", disbursed: 89, totalValue: "K1.1M", avgProcessing: "1.5 days", defaultRate: "2.8%", trend: "up" },
-  { lender: "FNB Zambia", disbursed: 67, totalValue: "K580K", avgProcessing: "3.0 days", defaultRate: "4.1%", trend: "down" },
-  { lender: "Atlas Mara", disbursed: 45, totalValue: "K1.8M", avgProcessing: "2.8 days", defaultRate: "2.5%", trend: "up" },
-  { lender: "Indo Zambia", disbursed: 34, totalValue: "K450K", avgProcessing: "1.9 days", defaultRate: "3.0%", trend: "up" },
-];
+type Payout = {
+  lender: string | null;
+  amount_zmw: number | null;
+  period: string | null;
+  status: string | null;
+  paid_date: string | null;
+  created_at: string;
+};
+
+type LenderMetric = {
+  lender: string;
+  disbursed: number;
+  totalValue: number;
+  trend: "up" | "down" | "flat";
+};
 
 const LendersPerformance = () => {
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: queryError } = await supabase
+        .from("payouts")
+        .select("lender, amount_zmw, period, status, paid_date, created_at")
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+      if (queryError) {
+        setError(queryError.message);
+      } else {
+        setPayouts((data ?? []) as Payout[]);
+      }
+      setLoading(false);
+    };
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const metrics = useMemo<LenderMetric[]>(() => {
+    const grouped = new Map<string, { current: number; previous: number; count: number }>();
+    const now = new Date();
+    const currentMonth = now.getUTCMonth();
+    const currentYear = now.getUTCFullYear();
+    const previousDate = new Date(Date.UTC(currentYear, currentMonth - 1, 1));
+    const previousMonth = previousDate.getUTCMonth();
+    const previousYear = previousDate.getUTCFullYear();
+
+    for (const payout of payouts) {
+      if (payout.status && !["paid", "completed", "processed", "success", "successful"].includes(payout.status.toLowerCase())) continue;
+      const lender = payout.lender?.trim() || "Unassigned lender";
+      const amount = Number(payout.amount_zmw ?? 0);
+      const dateValue = payout.paid_date ?? payout.created_at;
+      const date = new Date(dateValue);
+      const bucket = grouped.get(lender) ?? { current: 0, previous: 0, count: 0 };
+      bucket.count += 1;
+      if (date.getUTCFullYear() === currentYear && date.getUTCMonth() === currentMonth) bucket.current += amount;
+      if (date.getUTCFullYear() === previousYear && date.getUTCMonth() === previousMonth) bucket.previous += amount;
+      grouped.set(lender, bucket);
+    }
+
+    return [...grouped.entries()]
+      .map(([lender, value]) => ({
+        lender,
+        disbursed: value.count,
+        totalValue: payouts
+          .filter((p) => (p.lender?.trim() || "Unassigned lender") === lender && (!p.status || ["paid", "completed", "processed", "success", "successful"].includes(p.status.toLowerCase())))
+          .reduce((sum, p) => sum + Number(p.amount_zmw ?? 0), 0),
+        trend: value.current > value.previous ? "up" : value.current < value.previous ? "down" : "flat",
+      }))
+      .sort((a, b) => b.totalValue - a.totalValue);
+  }, [payouts]);
+
+  const totalDisbursed = metrics.reduce((sum, metric) => sum + metric.disbursed, 0);
+  const totalValue = metrics.reduce((sum, metric) => sum + metric.totalValue, 0);
+
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
         <h1 className="text-2xl font-display font-bold text-foreground">Lender Performance</h1>
-        <p className="text-sm text-muted-foreground">Track lender metrics and KPIs</p>
+        <p className="text-sm text-muted-foreground">Track lender metrics and KPIs from recorded payout activity</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Total Disbursed", value: "391 loans" },
-          { label: "Total Value", value: "K6.33M" },
-          { label: "Avg Processing", value: "2.3 days" },
-          { label: "Avg Default Rate", value: "3.1%" },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="pt-6">
-              <div className="text-xl sm:text-2xl font-display font-bold text-foreground">{s.value}</div>
-              <p className="text-xs sm:text-sm text-muted-foreground">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card><CardContent className="pt-6"><div className="text-xl sm:text-2xl font-display font-bold text-foreground">{totalDisbursed.toLocaleString()}</div><p className="text-xs sm:text-sm text-muted-foreground">Recorded Disbursements</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-xl sm:text-2xl font-display font-bold text-foreground">K{totalValue.toLocaleString()}</div><p className="text-xs sm:text-sm text-muted-foreground">Recorded Value</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-xl sm:text-2xl font-display font-bold text-foreground">—</div><p className="text-xs sm:text-sm text-muted-foreground">Avg Processing</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-xl sm:text-2xl font-display font-bold text-foreground">—</div><p className="text-xs sm:text-sm text-muted-foreground">Default Rate</p></CardContent></Card>
       </div>
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Lender</TableHead>
-                <TableHead>Disbursed</TableHead>
-                <TableHead className="hidden sm:table-cell">Total Value</TableHead>
-                <TableHead className="hidden md:table-cell">Avg Processing</TableHead>
-                <TableHead>Default Rate</TableHead>
-                <TableHead>Trend</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockPerformance.map((p) => (
-                <TableRow key={p.lender}>
-                  <TableCell className="font-medium">{p.lender}</TableCell>
-                  <TableCell>{p.disbursed}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{p.totalValue}</TableCell>
-                  <TableCell className="hidden md:table-cell">{p.avgProcessing}</TableCell>
-                  <TableCell>{p.defaultRate}</TableCell>
-                  <TableCell>
-                    {p.trend === "up" ? (
-                      <TrendingUp className="h-4 w-4 text-success" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-destructive" />
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 p-10 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading lender performance…</div>
+          ) : error ? (
+            <div className="p-10 text-sm text-destructive">Unable to load lender performance: {error}</div>
+          ) : metrics.length === 0 ? (
+            <div className="p-10 text-sm text-muted-foreground">No recorded payout activity is available yet.</div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow><TableHead>Lender</TableHead><TableHead>Disbursed</TableHead><TableHead>Total Value</TableHead><TableHead>Avg Processing</TableHead><TableHead>Default Rate</TableHead><TableHead>Trend</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {metrics.map((metric) => (
+                  <TableRow key={metric.lender}>
+                    <TableCell className="font-medium">{metric.lender}</TableCell>
+                    <TableCell>{metric.disbursed}</TableCell>
+                    <TableCell>K{metric.totalValue.toLocaleString()}</TableCell>
+                    <TableCell>—</TableCell>
+                    <TableCell>—</TableCell>
+                    <TableCell>{metric.trend === "up" ? <TrendingUp className="h-4 w-4 text-success" /> : metric.trend === "down" ? <TrendingDown className="h-4 w-4 text-destructive" /> : <span className="text-muted-foreground">—</span>}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
