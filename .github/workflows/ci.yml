@@ -17,6 +17,12 @@ jobs:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
       - run: bun run vitest run
+      - name: Typecheck
+        run: bun x tsc --noEmit
+      - name: Lint
+        run: bun run lint
+      - name: Production build
+        run: bun run build
 
   audit:
     # Supply-chain gate: fail the build on any high/critical advisory in
@@ -44,16 +50,10 @@ jobs:
       - name: Scan for service-role keys and private material
         run: |
           set -e
-          # Match key-like material, not the plain word "service_role"
-          # (which legitimately appears in GRANT statements in migrations)
-          # or anon/publishable JWTs (which are safe in the client bundle).
           patterns='SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*[A-Za-z0-9._-]{20,}|BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[0-9A-Za-z]{16,}|sk_test_[0-9A-Za-z]{16,}'
-          # Additionally decode JWTs and flag any whose payload claims
-          # role=service_role. Anon/publishable keys are ignored.
           jwt_hits=0
           while IFS=: read -r file line token; do
             payload=$(printf '%s' "$token" | cut -d. -f2)
-            # base64url -> base64
             pad=$(( (4 - ${#payload} % 4) % 4 ))
             padded="$payload$(printf '=%.0s' $(seq 1 $pad))"
             decoded=$(printf '%s' "$padded" | tr '_-' '/+' | base64 -d 2>/dev/null || true)
