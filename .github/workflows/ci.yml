@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -18,7 +19,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run vitest run
       - name: Typecheck
-        run: bun x tsc --noEmit
+        run: bun x tsc -b --noEmit
       - name: Lint
         run: bun run lint
       - name: Production build
