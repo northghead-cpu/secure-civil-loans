@@ -1,1 +1,4 @@
 project_id = "zdpeaxkormwjrgllwalq"
+
+[functions.process-monthly-payroll-receipts]
+verify_jwt = false
