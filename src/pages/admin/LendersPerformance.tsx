@@ -74,7 +74,7 @@ const LendersPerformance = () => {
     }
 
     return [...grouped.entries()]
-      .map(([lender, value]) => ({
+      .map(([lender, value]): LenderMetric => ({
         lender,
         disbursed: value.count,
         totalValue: payouts
@@ -121,7 +121,7 @@ const LendersPerformance = () => {
                     <TableCell>K{metric.totalValue.toLocaleString()}</TableCell>
                     <TableCell>—</TableCell>
                     <TableCell>—</TableCell>
-                    <TableCell>{metric.trend === "up" ? <TrendingUp className="h-4 w-4 text-success" /> : metric.trend === "down" ? <TrendingDown className="h-4 w-4 text-destructive" /> : <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>{metric.trend === "up" ? <TrendingUp className="h-4 w-4" /> : metric.trend === "down" ? <TrendingDown className="h-4 w-4" /> : <span>—</span>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
