@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-const captureException = vi.fn();
-const setTag = vi.fn();
-const setContext = vi.fn();
-const withScope = vi.fn((callback: (scope: {
-  setTag: (key: string, value: string) => void;
-  setContext: (key: string, value: unknown) => void;
-}) => void) => callback({ setTag, setContext }));
+const { captureException, setTag, setContext, withScope } = vi.hoisted(() => {
+  const captureException = vi.fn();
+  const setTag = vi.fn();
+  const setContext = vi.fn();
+  const withScope = vi.fn((callback: (scope: {
+    setTag: (key: string, value: string) => void;
+    setContext: (key: string, value: unknown) => void;
+  }) => void) => callback({ setTag, setContext }));
+  return { captureException, setTag, setContext, withScope };
+});
 
 vi.mock("@sentry/react", () => ({ captureException, withScope }));
 
