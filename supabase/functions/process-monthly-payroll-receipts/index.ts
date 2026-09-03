@@ -5,6 +5,7 @@ const BILLING_DAY = 23;
 const BILLING_AMOUNT = 60;
 const BILLING_TIME_ZONE = 'Africa/Lusaka';
 const RECEIPT_BUCKET = 'payment-receipts';
+const MAX_EMAIL_ATTEMPTS = 5;
 
 interface Receipt {
   id: string;
@@ -19,16 +20,21 @@ interface Receipt {
   payment_method: string;
   payroll_reference: string;
   issued_at: string;
+  document_path: string | null;
+}
+
+interface Delivery {
+  attempt_count: number;
+  status: string;
 }
 
 function currentLusakaDate(): string {
-  const formatter = new Intl.DateTimeFormat('en-CA', {
+  return new Intl.DateTimeFormat('en-CA', {
     timeZone: BILLING_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  });
-  return formatter.format(new Date());
+  }).format(new Date());
 }
 
 function assertBillingDate(date: string): void {
@@ -40,6 +46,10 @@ function assertBillingDate(date: string): void {
 
 function escapePdfText(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 async function createReceiptPdf(receipt: Receipt): Promise<Uint8Array> {
@@ -88,9 +98,8 @@ async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array): Promise
   const from = Deno.env.get('RESEND_FROM_EMAIL');
   if (!apiKey || !from) return { ok: false, code: 'email_provider_not_configured' };
 
-  const base64 = Uint8Array.from(pdfBytes).reduce((data, byte) => data + String.fromCharCode(byte), '');
-  const encoded = btoa(base64);
-
+  const binary = Array.from(pdfBytes, (byte) => String.fromCharCode(byte)).join('');
+  const encoded = btoa(binary);
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -98,7 +107,7 @@ async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array): Promise
       from,
       to: [receipt.customer_email],
       subject: `Riverbanc payment receipt ${receipt.receipt_number}`,
-      html: `<p>Hello ${escapePdfText(receipt.customer_name)},</p><p>Your Riverbanc subscription payment of ZMW ${Number(receipt.amount).toFixed(2)} has been recorded through payroll deduction.</p><p>Receipt number: <strong>${receipt.receipt_number}</strong></p><p>The receipt is attached to this email and is also available in your Riverbanc dashboard.</p><p>Riverbanc Technology Limited</p>`,
+      html: `<p>Hello ${escapeHtml(receipt.customer_name)},</p><p>Your Riverbanc subscription payment of ZMW ${Number(receipt.amount).toFixed(2)} has been recorded through payroll deduction.</p><p>Receipt number: <strong>${escapeHtml(receipt.receipt_number)}</strong></p><p>The receipt is attached to this email and is also available in your Riverbanc dashboard.</p><p>Riverbanc Technology Limited</p>`,
       attachments: [{ filename: `${receipt.receipt_number}.pdf`, content: encoded }],
     }),
   });
@@ -117,38 +126,63 @@ export default {
       const { data: result, error: billingError } = await ctx.supabaseAdmin.rpc('process_riverbanc_monthly_billing', { _billing_date: billingDate });
       if (billingError) throw billingError;
 
+      const { data: transactions, error: transactionError } = await ctx.supabaseAdmin
+        .from('billing_transactions')
+        .select('id')
+        .eq('billing_run_id', result.billing_run_id);
+      if (transactionError) throw transactionError;
+
+      const transactionIds = (transactions ?? []).map((row) => row.id);
+      if (!transactionIds.length) return Response.json({ ok: true, billing_date: billingDate, amount_zmw: BILLING_AMOUNT, timezone: BILLING_TIME_ZONE, billing: result, receipts_processed: 0, emails_sent: 0, emails_failed: 0 });
+
       const { data: receipts, error: receiptError } = await ctx.supabaseAdmin
         .from('payment_receipts')
         .select('id,user_id,receipt_number,customer_name,customer_email,amount,currency,billing_period_start,billing_period_end,payment_method,payroll_reference,issued_at,document_path')
-        .eq('billing_transaction_id.billing_run_id', result.billing_run_id);
-
-      // PostgREST relationship filtering can be unavailable depending on generated schema.
-      // Fall back to the billing period if the relationship filter returns no rows.
+        .in('billing_transaction_id', transactionIds);
       if (receiptError) throw receiptError;
+
+      const receiptIds = (receipts ?? []).map((receipt) => receipt.id);
+      const { data: deliveries, error: deliveryLookupError } = await ctx.supabaseAdmin
+        .from('receipt_deliveries')
+        .select('receipt_id,attempt_count,status')
+        .in('receipt_id', receiptIds)
+        .eq('channel', 'email');
+      if (deliveryLookupError) throw deliveryLookupError;
+      const deliveryMap = new Map<string, Delivery>((deliveries ?? []).map((row) => [row.receipt_id, row]));
 
       let processed = 0;
       let emailed = 0;
       let emailFailed = 0;
 
       for (const receipt of (receipts ?? []) as Receipt[]) {
-        const pdfBytes = await createReceiptPdf(receipt);
-        const path = `${receipt.user_id}/${receipt.receipt_number}.pdf`;
-        const { error: uploadError } = await ctx.supabaseAdmin.storage.from(RECEIPT_BUCKET).upload(path, pdfBytes, { contentType: 'application/pdf', upsert: false });
+        const delivery = deliveryMap.get(receipt.id);
+        if (delivery?.status === 'sent' || (delivery?.attempt_count ?? 0) >= MAX_EMAIL_ATTEMPTS) continue;
 
-        if (uploadError && !/already exists/i.test(uploadError.message)) throw uploadError;
+        let pdfBytes: Uint8Array;
+        if (receipt.document_path) {
+          const { data: existingPdf, error: downloadError } = await ctx.supabaseAdmin.storage.from(RECEIPT_BUCKET).download(receipt.document_path);
+          if (downloadError || !existingPdf) throw downloadError ?? new Error('Receipt document unavailable');
+          pdfBytes = new Uint8Array(await existingPdf.arrayBuffer());
+        } else {
+          pdfBytes = await createReceiptPdf(receipt);
+          const path = `${receipt.user_id}/${receipt.receipt_number}.pdf`;
+          const { error: uploadError } = await ctx.supabaseAdmin.storage.from(RECEIPT_BUCKET).upload(path, pdfBytes, { contentType: 'application/pdf', upsert: false });
+          if (uploadError && !/already exists/i.test(uploadError.message)) throw uploadError;
+          const { error: documentError } = await ctx.supabaseAdmin.from('payment_receipts').update({ document_path: path }).eq('id', receipt.id).is('document_path', null);
+          if (documentError) throw documentError;
+        }
 
-        const { error: documentError } = await ctx.supabaseAdmin.from('payment_receipts').update({ document_path: path }).eq('id', receipt.id).is('document_path', null);
-        if (documentError) throw documentError;
-
-        const delivery = await sendReceiptEmail(receipt, pdfBytes);
+        const deliveryResult = await sendReceiptEmail(receipt, pdfBytes);
+        const nextAttempt = (delivery?.attempt_count ?? 0) + 1;
+        const now = new Date().toISOString();
         const deliveryUpdate = {
-          status: delivery.ok ? 'sent' : 'failed',
-          attempt_count: 1,
-          last_attempt_at: new Date().toISOString(),
-          delivered_at: delivery.ok ? new Date().toISOString() : null,
-          error_code: delivery.ok ? null : delivery.code,
-          error_message: delivery.ok ? null : delivery.code,
-          updated_at: new Date().toISOString(),
+          status: deliveryResult.ok ? 'sent' : 'failed',
+          attempt_count: nextAttempt,
+          last_attempt_at: now,
+          delivered_at: deliveryResult.ok ? now : null,
+          error_code: deliveryResult.ok ? null : deliveryResult.code,
+          error_message: deliveryResult.ok ? null : deliveryResult.code,
+          updated_at: now,
         };
         const { error: deliveryError } = await ctx.supabaseAdmin
           .from('receipt_deliveries')
@@ -158,7 +192,7 @@ export default {
         if (deliveryError) throw deliveryError;
 
         processed += 1;
-        if (delivery.ok) emailed += 1; else emailFailed += 1;
+        if (deliveryResult.ok) emailed += 1; else emailFailed += 1;
       }
 
       return Response.json({ ok: true, billing_date: billingDate, amount_zmw: BILLING_AMOUNT, timezone: BILLING_TIME_ZONE, billing: result, receipts_processed: processed, emails_sent: emailed, emails_failed: emailFailed });
