@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   BILLING_AMOUNT_ZMW,
   BILLING_DAY,
+  formatReceiptNumber,
+  getBillingPeriod,
   isEligibleForPaidReceipt,
 } from './monthlyBilling';
 
@@ -36,5 +38,20 @@ describe('monthly payroll billing rules', () => {
     expect(
       isEligibleForPaidReceipt({ status: 'revoked', payroll_status: 'confirmed' }),
     ).toBe(false);
+  });
+
+  it('starts the monthly billing period on the 23rd and ends on the 22nd', () => {
+    expect(getBillingPeriod('2026-09-23')).toEqual({
+      start: '2026-09-23',
+      end: '2026-10-22',
+    });
+  });
+
+  it('rejects billing dates that are not the 23rd', () => {
+    expect(() => getBillingPeriod('2026-09-22')).toThrow(/23rd/);
+  });
+
+  it('creates collision-resistant human-readable receipt numbers', () => {
+    expect(formatReceiptNumber('2026-09-23', 42)).toBe('RB-202609-00000042');
   });
 });
