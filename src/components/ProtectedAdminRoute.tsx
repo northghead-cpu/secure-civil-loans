@@ -2,6 +2,10 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useRBAC } from "@/hooks/useRBAC";
 
 export type AdminCapability =
+  | "canViewProfiles"
+  | "canManageUsers"
+  | "canViewLoanApplications"
+  | "canViewAuditLogs"
   | "canManageLenderProducts"
   | "canManageCommissions"
   | "canViewFinancials"
