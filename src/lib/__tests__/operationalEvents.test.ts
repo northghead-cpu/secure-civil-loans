@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 const captureException = vi.fn();
+const setTag = vi.fn();
+const setContext = vi.fn();
 const withScope = vi.fn((callback: (scope: {
   setTag: (key: string, value: string) => void;
   setContext: (key: string, value: unknown) => void;
-}) => void) => callback({ setTag: vi.fn(), setContext: vi.fn() }));
+}) => void) => callback({ setTag, setContext }));
 
 vi.mock("@sentry/react", () => ({ captureException, withScope }));
 
@@ -24,6 +26,13 @@ describe("operational events", () => {
     });
 
     expect(withScope).toHaveBeenCalledTimes(1);
+    expect(setTag).toHaveBeenCalledWith("operation", "subscription.payment");
+    expect(setTag).toHaveBeenCalledWith("severity", "high");
+    expect(setContext).toHaveBeenCalledWith("operational_event", {
+      nrc: "[redacted]",
+      salary: "[redacted]",
+      safe_code: "PAYMENT_PROVIDER_UNAVAILABLE",
+    });
     expect(captureException).toHaveBeenCalledTimes(1);
     const error = captureException.mock.calls[0][0] as Error;
     expect(error.name).toBe("OperationalEvent:subscription.payment");
