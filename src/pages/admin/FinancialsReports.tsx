@@ -5,9 +5,11 @@ import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/Ad
 import { Download, FileBarChart, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import BillingReconciliationPanel from "@/components/admin/BillingReconciliationPanel";
 
 const reports = [
   { name: "Monthly Revenue Summary", description: "Recorded payout activity; revenue streams are excluded unless supported by a financial ledger.", type: "Financial", source: "payouts" },
+  { name: "Subscription Receipt Ledger", description: "Issued Riverbanc K60 payroll subscription receipts and delivery status.", type: "Financial", source: "payment_receipts" },
   { name: "Loan Disbursement Report", description: "Recorded loan applications and selected lender details.", type: "Operations", source: "loan_applications" },
   { name: "Default Rate Analysis", description: "Recorded risk and decision data. No default rate is fabricated where the source does not contain one.", type: "Risk", source: "loan_applications" },
   { name: "Commission Reconciliation", description: "Persisted commission configuration by lender.", type: "Financial", source: "lender_commission_settings" },
@@ -34,6 +36,10 @@ const FinancialsReports = () => {
       let rows: Record<string, unknown>[] = [];
       if (report.source === "payouts") {
         const { data, error } = await supabase.from("payouts").select("id,lender,amount_zmw,period,status,paid_date,created_at").order("created_at", { ascending: false });
+        if (error) throw error;
+        rows = (data ?? []) as Record<string, unknown>[];
+      } else if (report.source === "payment_receipts") {
+        const { data, error } = await supabase.from("payment_receipts").select("id,receipt_number,user_id,customer_name,amount,currency,billing_period_start,billing_period_end,payment_method,payroll_reference,issued_at,document_path").order("issued_at", { ascending: false });
         if (error) throw error;
         rows = (data ?? []) as Record<string, unknown>[];
       } else if (report.source === "loan_applications") {
@@ -75,7 +81,8 @@ const FinancialsReports = () => {
 
   return (
     <AdminPageShell>
-      <AdminHero badge="Reporting library" title="Operational and financial reports ready for export" description="Export recorded application, payout, KYC, commission, risk and account data without fabricated periods or figures." stats={[{ label: "Report templates", value: reports.length.toString(), meta: "Available exports" }, { label: "Financial packs", value: reports.filter((r) => r.type === "Financial").length.toString(), meta: "Ledger-backed or configuration-backed" }, { label: "Current period", value: periodLabel, meta: "UTC" }]} />
+      <AdminHero badge="Reporting library" title="Operational and financial reports ready for export" description="Export recorded application, payout, KYC, commission, risk, account and subscription receipt data without fabricated periods or figures." stats={[{ label: "Report templates", value: reports.length.toString(), meta: "Available exports" }, { label: "Financial packs", value: reports.filter((r) => r.type === "Financial").length.toString(), meta: "Ledger-backed or configuration-backed" }, { label: "Current period", value: periodLabel, meta: "UTC" }]} />
+      <BillingReconciliationPanel />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {reports.map((report) => (
           <Card key={report.name} className={adminCardClass}>
