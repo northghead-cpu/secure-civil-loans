@@ -20,20 +20,22 @@ type AuditLogs = BaseDatabase['public']['Tables']['audit_logs'] & {
   Update: BaseDatabase['public']['Tables']['audit_logs']['Update'] & { action?: string | null };
 };
 
+type AutomationRuleRow = {
+  id: string;
+  name: string;
+  description: string;
+  trigger: string;
+  action: string;
+  enabled: boolean;
+  run_count: number;
+  config: Json;
+  created_at: string;
+  updated_at: string;
+};
+
 type AutomationRules = {
-  Row: {
-    id: string;
-    name: string;
-    description: string;
-    trigger: string;
-    action: string;
-    enabled: boolean;
-    run_count: number;
-    config: Json;
-    created_at: string;
-    updated_at: string;
-  };
-  Insert: Omit<AutomationRules['Row'], 'id' | 'created_at' | 'updated_at' | 'run_count' | 'config' | 'description' | 'enabled'> & {
+  Row: AutomationRuleRow;
+  Insert: Omit<AutomationRuleRow, 'id' | 'created_at' | 'updated_at' | 'run_count' | 'config' | 'description' | 'enabled'> & {
     id?: string;
     description?: string;
     enabled?: boolean;
@@ -42,24 +44,26 @@ type AutomationRules = {
     created_at?: string;
     updated_at?: string;
   };
-  Update: Partial<AutomationRules['Row']>;
+  Update: Partial<AutomationRuleRow>;
   Relationships: [];
 };
 
+type LenderCommissionRow = {
+  id: string;
+  lender_name: string;
+  rate: number;
+  flat_fee_zmw: number;
+  model: string;
+  active: boolean;
+  effective_from: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type LenderCommissionSettings = {
-  Row: {
-    id: string;
-    lender_name: string;
-    rate: number;
-    flat_fee_zmw: number;
-    model: string;
-    active: boolean;
-    effective_from: string | null;
-    updated_by: string | null;
-    created_at: string;
-    updated_at: string;
-  };
-  Insert: Omit<LenderCommissionSettings['Row'], 'id' | 'created_at' | 'updated_at' | 'rate' | 'flat_fee_zmw' | 'model' | 'active'> & {
+  Row: LenderCommissionRow;
+  Insert: Omit<LenderCommissionRow, 'id' | 'created_at' | 'updated_at' | 'rate' | 'flat_fee_zmw' | 'model' | 'active'> & {
     id?: string;
     rate?: number;
     flat_fee_zmw?: number;
@@ -68,25 +72,44 @@ type LenderCommissionSettings = {
     created_at?: string;
     updated_at?: string;
   };
-  Update: Partial<LenderCommissionSettings['Row']>;
+  Update: Partial<LenderCommissionRow>;
   Relationships: [];
 };
 
+type SystemSettingsRow = {
+  key: string;
+  value: Json;
+  updated_by: string | null;
+  updated_at: string;
+};
+
 type SystemSettings = {
-  Row: {
-    key: string;
-    value: Json;
-    updated_by: string | null;
-    updated_at: string;
-  };
-  Insert: {
-    key: string;
-    value?: Json;
-    updated_by?: string | null;
-    updated_at?: string;
-  };
-  Update: Partial<SystemSettings['Row']>;
+  Row: SystemSettingsRow;
+  Insert: { key: string; value?: Json; updated_by?: string | null; updated_at?: string };
+  Update: Partial<SystemSettingsRow>;
   Relationships: [];
+};
+
+type ApplicationHandoffRow = {
+  authorization_signature: string | null;
+  authorization_text: string;
+  authorization_version: string;
+  authorized_at: string | null;
+  created_at: string;
+  estimated_monthly_repayment: number | null;
+  id: string;
+  information_categories: string[];
+  interest_rate: number | null;
+  lender_name: string;
+  lender_product_id: string | null;
+  loan_application_id: string | null;
+  product_name: string | null;
+  requested_amount: number | null;
+  status: string;
+  term_months: number | null;
+  total_repayment: number | null;
+  updated_at: string;
+  user_id: string;
 };
 
 type AuthorizeApplicationHandoff = {
@@ -96,7 +119,7 @@ type AuthorizeApplicationHandoff = {
     _signature_name: string;
     _term_months: number;
   };
-  Returns: BaseDatabase['public']['Tables']['application_handoffs']['Row'];
+  Returns: ApplicationHandoffRow;
   SetofOptions: {
     from: '*';
     to: 'application_handoffs';
