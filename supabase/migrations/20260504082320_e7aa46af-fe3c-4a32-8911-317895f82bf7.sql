@@ -12,8 +12,12 @@ GRANT EXECUTE ON FUNCTION public.log_audit(uuid, text, text, text, text, jsonb, 
 GRANT EXECUTE ON FUNCTION public.check_connection() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.calculate_zmw_underwriting(numeric, numeric) TO authenticated;
 
--- 3. Fix overly permissive notifications INSERT policy
+-- 3. Fix overly permissive notifications INSERT policy.
+-- The policy may already exist in a production-derived preview schema, so
+-- remove both legacy and canonical names before recreating the authoritative
+-- policy. This keeps migration replay deterministic.
 DROP POLICY IF EXISTS "System can insert notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Authenticated can insert own notifications" ON public.notifications;
 CREATE POLICY "Authenticated can insert own notifications"
   ON public.notifications
   FOR INSERT
