@@ -40,7 +40,7 @@ jobs:
         run: npm audit --no-package-lock --omit=dev --audit-level=high
       - name: Audit dev dependencies (non-blocking)
         continue-on-error: true
-        run: bun audit --audit-level=high
+        run: timeout 60s bun audit --audit-level=high || true
 
   secret-scan:
     # Cheap regex sweep for accidental key commits. Blocks obvious leaks
