@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-// Strict allowlist schema — rejects unknown keys, enforces NRC format & length bounds
 const CRBRequestSchema = z.object({
   nrc_number: z
     .string()
@@ -14,7 +13,7 @@ const CRBRequestSchema = z.object({
     .trim()
     .min(2, "full_name too short")
     .max(120, "full_name too long")
-    .regex(/^[A-Za-z][A-Za-z\s'.\-]*$/, "full_name contains invalid characters"),
+    .regex(/^[A-Za-z][A-Za-z\s'.-]*$/, "full_name contains invalid characters"),
 }).strict();
 
 const badRequest = (corsHeaders: Record<string, string>, message: string, details?: unknown) =>
@@ -25,8 +24,7 @@ const badRequest = (corsHeaders: Record<string, string>, message: string, detail
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface CRBSummary {
@@ -43,7 +41,6 @@ interface CRBSummary {
   checked_at: string;
 }
 
-// --- Hardening: replay + rate-limit (DB-backed, cross-instance) ---
 const MAX_BODY_BYTES = 8 * 1024;
 const RATE_LIMIT_WINDOW_SEC = 60;
 const RATE_LIMIT_MAX = 10;
@@ -81,9 +78,7 @@ async function checkAndRecord(
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405, headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST" },
@@ -97,13 +92,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(
@@ -114,13 +107,11 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Verify admin/super_admin role
     const { data: roleRow } = await supabase
       .from('user_roles')
       .select('role')
@@ -128,13 +119,11 @@ Deno.serve(async (req) => {
       .in('role', ['admin', 'super_admin'])
       .maybeSingle();
     if (!roleRow) {
-      return new Response(
-        JSON.stringify({ error: "Forbidden" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Nonce + rate limit (DB-backed, cross-instance)
     const nonce = req.headers.get("x-request-id") ?? "";
     if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
       return new Response(JSON.stringify({ error: "Missing or invalid X-Request-Id" }), {
@@ -145,8 +134,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    // Opportunistic GC (fire-and-forget)
-    pruneOld(adminClient).catch(() => {});
+    pruneOld(adminClient).catch(() => undefined);
     const guard = await checkAndRecord(adminClient, user.id, nonce);
     if (guard.error) {
       console.error("[crb-proxy] guard error:", guard.error);
@@ -165,7 +153,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Parse and validate input
     const rawBody = await req.text();
     if (rawBody.length > MAX_BODY_BYTES) {
       return new Response(JSON.stringify({ error: "Payload too large" }), {
@@ -188,24 +175,16 @@ Deno.serve(async (req) => {
       });
     }
     const { nrc_number, full_name } = parsed.data;
+    void full_name;
 
     const normalizedNRC = nrc_number.replace(/[\s-]/g, "").toUpperCase();
     const nrcPattern = /^\d{6}\/\d{2}\/\d{1}$/;
     if (!nrcPattern.test(normalizedNRC)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid NRC format. Expected: 123456/12/1" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid NRC format. Expected: 123456/12/1" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // ---------------------------------------------------------------
-    // TODO: Replace this block with actual TransUnion Zambia API call
-    // const TRANSUNION_API_KEY = Deno.env.get("TRANSUNION_API_KEY");
-    // const tuResponse = await fetch("https://api.transunion.co.zm/...", { ... });
-    // const tuData = await tuResponse.json();
-    // ---------------------------------------------------------------
-
-    // Simulated TransUnion response (remove when integrating real API)
     const score = Math.floor(Math.random() * 600) + 200;
     const openAccounts = Math.floor(Math.random() * 8) + 1;
     const hasAdverse = Math.random() > 0.7;
@@ -228,7 +207,6 @@ Deno.serve(async (req) => {
     else if (score >= 300) { riskLevel = "HIGH"; recommendation = "REVIEW"; }
     else { riskLevel = "VERY_HIGH"; recommendation = "DECLINE"; }
 
-    // Build summary-only response (no raw JSON to frontend)
     const summary: CRBSummary = {
       credit_score: score,
       score_rating: scoreRating,
@@ -245,7 +223,6 @@ Deno.serve(async (req) => {
       checked_at: new Date().toISOString(),
     };
 
-    // Audit log: record who ran the inquiry (best-effort, never blocks response)
     try {
       await supabase.rpc("log_audit", {
         _user_id: user.id,
@@ -259,14 +236,12 @@ Deno.serve(async (req) => {
     } catch (e) { console.error("[crb-proxy] audit log failed:", e); }
 
     return new Response(JSON.stringify({ success: true, data: summary }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
     });
   } catch (error) {
     console.error("[crb-proxy] Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
