@@ -6,3 +6,4 @@
 
 <!-- Systems-health verification: deterministic CI remediation in progress. -->
 <!-- Temporary remediation trigger; this comment will be removed after verification. -->
+<!-- Final OCR regex normalization pass. -->
