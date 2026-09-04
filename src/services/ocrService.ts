@@ -80,6 +80,7 @@ const extractPatterns = {
   },
 
   dates: (text: string): string[] => {
+    // Slash and hyphen are intentionally unescaped inside character classes.
     const patterns = [
       /\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b/g,
       /\b(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/g,
