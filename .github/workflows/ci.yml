@@ -49,8 +49,16 @@ jobs:
             exit "$status"
           fi
       - name: Audit dev dependencies (non-blocking)
-        continue-on-error: true
-        run: timeout 60s bun audit --audit-level=high || true
+        run: |
+          set +e
+          timeout 60s bun audit --audit-level=high
+          status=$?
+          set -e
+          if [ "$status" -eq 124 ]; then
+            echo "::warning::Development dependency audit timed out; CI cannot confirm advisory availability."
+          elif [ "$status" -ne 0 ]; then
+            echo "::warning::Development dependency audit reported high/critical findings or another audit error; production CI remains governed by the blocking runtime-dependency audit."
+          fi
 
   secret-scan:
     # Cheap regex sweep for accidental key commits. Blocks obvious leaks
