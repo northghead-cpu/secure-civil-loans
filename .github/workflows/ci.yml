@@ -37,7 +37,7 @@ jobs:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
       - name: Audit production dependencies
-        run: npm audit --no-package-lock --omit=dev --audit-level=high
+        run: timeout 120s npm audit --no-package-lock --omit=dev --audit-level=high
       - name: Audit dev dependencies (non-blocking)
         continue-on-error: true
         run: timeout 60s bun audit --audit-level=high || true
