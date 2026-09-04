@@ -233,7 +233,7 @@ const checkSuspiciousFormatting = (
   }
 
   // Check for suspicious spacing or unusual characters
-  if (/[^^\w\s/.-]/g.test(value)) {
+  if (/[^\w\s/.-]/g.test(value)) {
     return {
       type: "SUSPICIOUS_FORMATTING",
       message: `Unusual characters detected in ${field}`,
