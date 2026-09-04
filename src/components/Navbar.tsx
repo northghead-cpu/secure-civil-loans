@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Shield, LogOut, User, ReceiptText } from "lucide-react";
+import { Menu, X, Shield, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
