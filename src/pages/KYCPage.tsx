@@ -140,7 +140,7 @@ const KYCPage = () => {
     const KycSchema = z.object({
       fullName: z.string().trim().min(2, "Full name is required").max(100),
       nrcNumber: z.string().trim().regex(/^\d{6}\/\d{2}\/\d{1}$/, "NRC must be in format 123456/78/1"),
-      phone: z.string().trim().regex(/^\+?[0-9\s\-]{9,20}$/, "Enter a valid phone number"),
+      phone: z.string().trim().regex(/^\+?[0-9\s-]{9,20}$/, "Enter a valid phone number"),
       employer: z.string().trim().min(2, "Employer is required").max(150),
       employeeNumber: z.string().trim().min(1, "Employee number is required").max(50),
       signatureName: z.string().trim().min(2, "Your full legal name is required for the authorization").max(100),
@@ -176,7 +176,7 @@ const KYCPage = () => {
       }
 
       const validated = parsed.data;
-      const { error: profileError } = await (supabase as any).from("profiles").upsert({
+      const { error: profileError } = await supabase.from("profiles").upsert({
         user_id: user.id,
         full_name: validated.fullName,
         nrc_number: validated.nrcNumber,
@@ -185,9 +185,9 @@ const KYCPage = () => {
         employee_number: validated.employeeNumber,
         kyc_status: "IN_REVIEW",
         consent_accepted: formData.consentAccepted,
-        consent_accepted_at: new Date().toISOString(),
+        consent_signed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      } as any, { onConflict: "user_id" });
+      }, { onConflict: "user_id" });
       if (profileError) throw new Error("Failed to save KYC profile");
 
       await refreshProfile();
