@@ -27,7 +27,8 @@ jobs:
 
   audit:
     # Supply-chain gate: fail the build on any high/critical advisory in
-    # runtime dependencies. Dev-only vulns are reported but don't block.
+    # runtime dependencies. Use npm's advisory service directly because Bun's
+    # audit endpoint has been intermittently unavailable in GitHub runners.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -36,26 +37,7 @@ jobs:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
       - name: Audit production dependencies
-        run: |
-          set -euo pipefail
-          audit_log="$(mktemp)"
-          set +e
-          timeout 90s bun audit --prod --audit-level=high 2>&1 | tee "$audit_log"
-          audit_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$audit_status" -eq 0 ]; then
-            rm -f "$audit_log"
-            exit 0
-          fi
-          if [ "$audit_status" -eq 124 ] || grep -qE 'ConnectionClosed|audit request failed|ECONN|ETIMEDOUT|ENETUNREACH|EAI_AGAIN' "$audit_log"; then
-            echo "Bun audit endpoint was unavailable or timed out; falling back to npm audit against the resolved package tree."
-            rm -f "$audit_log"
-            npm audit --no-package-lock --omit=dev --audit-level=high
-            exit $?
-          fi
-          echo "Bun audit returned a security finding or an unclassified failure; not bypassing the security gate."
-          rm -f "$audit_log"
-          exit 1
+        run: npm audit --no-package-lock --omit=dev --audit-level=high
       - name: Audit dev dependencies (non-blocking)
         continue-on-error: true
         run: bun audit --audit-level=high
