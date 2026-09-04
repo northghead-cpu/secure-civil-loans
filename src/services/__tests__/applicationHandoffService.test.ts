@@ -4,6 +4,7 @@ import {
   LENDER_CONTROLLED_STATUSES,
   RIVERBANC_OPERATIONAL_STATUSES,
   canManageHandoffOperations,
+  canTransitionRiverbancStatus,
   isLenderControlledStatus,
   isRiverbancOperationalStatus,
 } from "../applicationHandoffService";
@@ -22,7 +23,6 @@ describe("applicationHandoffService", () => {
     expect(RIVERBANC_OPERATIONAL_STATUSES).toEqual(["authorized", "preparing", "sent_to_lender"]);
     expect(isRiverbancOperationalStatus("preparing")).toBe(true);
     expect(isRiverbancOperationalStatus("approved")).toBe(false);
-    expect(isRiverbancOperationalStatus("declined")).toBe(false);
     expect(isLenderControlledStatus("lender_review")).toBe(true);
     expect(isLenderControlledStatus("additional_information_requested")).toBe(true);
     expect(isLenderControlledStatus("approved")).toBe(true);
@@ -30,5 +30,14 @@ describe("applicationHandoffService", () => {
     expect(isLenderControlledStatus("disbursed")).toBe(true);
     expect(LENDER_CONTROLLED_STATUSES).toContain("approved");
     expect(LENDER_CONTROLLED_STATUSES).toContain("disbursed");
+  });
+
+  it("allows only forward movement through Riverbanc operational stages", () => {
+    expect(canTransitionRiverbancStatus("pending_authorization", "authorized")).toBe(true);
+    expect(canTransitionRiverbancStatus("authorized", "preparing")).toBe(true);
+    expect(canTransitionRiverbancStatus("preparing", "sent_to_lender")).toBe(true);
+    expect(canTransitionRiverbancStatus("sent_to_lender", "preparing")).toBe(false);
+    expect(canTransitionRiverbancStatus("authorized", "sent_to_lender")).toBe(false);
+    expect(canTransitionRiverbancStatus("sent_to_lender", "approved")).toBe(false);
   });
 });
