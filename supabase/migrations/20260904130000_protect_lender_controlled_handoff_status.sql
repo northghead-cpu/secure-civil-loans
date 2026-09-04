@@ -4,6 +4,7 @@
 CREATE OR REPLACE FUNCTION public.prevent_manual_lender_handoff_status_change()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = public, pg_temp
 AS $$
 BEGIN
   IF auth.role() = 'authenticated'
