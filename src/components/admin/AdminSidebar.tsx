@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, FileCheck, ClipboardList, History, Package, BarChart3, Percent,
   DollarSign, Wallet, FileBarChart, Sheet, ShieldAlert, ScrollText, Link2, Zap, Settings,
-  Shield, LogOut, CreditCard, LucideIcon,
+  Shield, LogOut, CreditCard, ArrowRightLeft, LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ const menuGroups: MenuGroup[] = [
     { title: "User Management", url: "/admin/users/management", icon: Users, requiredPermission: "canManageUsers" },
     { title: "KYC", url: "/admin/users/kyc", icon: FileCheck, requiredPermission: "canViewProfiles" },
     { title: "Applications", url: "/admin/users/applications", icon: ClipboardList, requiredPermission: "canViewLoanApplications" },
+    { title: "Handoff Operations", url: "/admin/users/handoff-operations", icon: ArrowRightLeft, requiredPermission: "canViewLoanApplications" },
     { title: "History", url: "/admin/users/history", icon: History, requiredPermission: "canViewProfiles" },
   ] },
   { label: "Lenders", items: [
