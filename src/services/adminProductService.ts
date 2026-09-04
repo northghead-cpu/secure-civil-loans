@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { referenceDataService } from "@/services/referenceDataService";
 
 export interface Product {
   id: string;
@@ -20,6 +19,11 @@ export interface ProductInput {
   status?: "active" | "inactive";
 }
 
+/**
+ * Administrative service for Riverbanc's generic internal Product Management
+ * catalogue. This is intentionally separate from `bank_products`, which is
+ * the lender-offer model used by the borrower comparison experience.
+ */
 export const adminProductService = {
   async list(): Promise<Product[]> {
     const { data, error } = await supabase
@@ -37,8 +41,6 @@ export const adminProductService = {
       .select()
       .single();
     if (error) throw error;
-    // Catalogue/comparison caches are now stale — purge (best-effort).
-    void referenceDataService.invalidate();
     return data as Product;
   },
 
@@ -55,10 +57,8 @@ export const adminProductService = {
       .select()
       .single();
     if (error) throw error;
-    void referenceDataService.invalidate();
     return data as Product;
   },
-
 
   async toggleStatus(id: string, currentStatus: string): Promise<Product> {
     const newStatus = currentStatus === "active" ? "inactive" : "active";
