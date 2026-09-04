@@ -20,31 +20,16 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          replacements = {
-              "src/services/fraudDetectionService.ts": {
-                  r"/[^\w\s\/\-\.]/g": r"/[^\w\s/.-]/g",
-                  r"/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/": r"/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/",
-                  r"/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/": r"/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/",
-              },
-              "src/services/ocrService.ts": {
-                  r"[\/\-]": r"[/-]",
-              },
-              "supabase/functions/crb-proxy/index.ts": {
-                  r"^[0-9\/\s-]+$": r"^[0-9/\s-]+$",
-              },
-          }
-          for name, mapping in replacements.items():
-              path = Path(name)
-              text = path.read_text()
-              for old, new in mapping.items():
-                  text = text.replace(old, new)
-              path.write_text(text)
+          path = Path("src/services/ocrService.ts")
+          text = path.read_text()
+          text = text.replace(r"[\/-]", r"[/-]")
+          path.write_text(text)
           PY
       - run: bun run lint
       - name: Commit source fixes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/services/fraudDetectionService.ts src/services/ocrService.ts supabase/functions/crb-proxy/index.ts
-          git diff --cached --quiet || git commit -m "fix: normalize regex literals for lint correctness"
+          git add src/services/ocrService.ts
+          git diff --cached --quiet || git commit -m "fix: normalize OCR date regex literals"
           git push
