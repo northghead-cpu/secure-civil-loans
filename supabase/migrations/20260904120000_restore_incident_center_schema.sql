@@ -43,15 +43,15 @@ create policy "incidents_admin_select"
   on public.incidents
   for select
   to authenticated
-  using (public.has_any_role('admin', 'super_admin'));
+  using (private.has_any_role('admin', 'super_admin'));
 
 drop policy if exists "incidents_admin_update" on public.incidents;
 create policy "incidents_admin_update"
   on public.incidents
   for update
   to authenticated
-  using (public.has_any_role('admin', 'super_admin'))
-  with check (public.has_any_role('admin', 'super_admin'));
+  using (private.has_any_role('admin', 'super_admin'))
+  with check (private.has_any_role('admin', 'super_admin'));
 
 revoke insert, delete on public.incidents from authenticated, anon;
 grant select, update on public.incidents to authenticated;
