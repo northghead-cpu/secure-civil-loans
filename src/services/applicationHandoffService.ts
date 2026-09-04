@@ -43,6 +43,14 @@ export const isLenderControlledStatus = (status: string): boolean =>
 export const isRiverbancOperationalStatus = (status: string): boolean =>
   (RIVERBANC_OPERATIONAL_STATUSES as readonly string[]).includes(status);
 
+export const canTransitionRiverbancStatus = (from: string, to: string): boolean => {
+  if (from === to) return true;
+  const fromIndex = RIVERBANC_OPERATIONAL_STATUSES.indexOf(from as (typeof RIVERBANC_OPERATIONAL_STATUSES)[number]);
+  const toIndex = RIVERBANC_OPERATIONAL_STATUSES.indexOf(to as (typeof RIVERBANC_OPERATIONAL_STATUSES)[number]);
+  if (from === "pending_authorization") return to === "authorized";
+  return fromIndex >= 0 && toIndex === fromIndex + 1;
+};
+
 const HANDOFF_SELECT = "id, user_id, lender_name, product_name, requested_amount, term_months, interest_rate, estimated_monthly_repayment, total_repayment, status, created_at, updated_at";
 
 export const listApplicationHandoffs = async (): Promise<ApplicationHandoffRecord[]> => {
@@ -61,6 +69,17 @@ export const updateApplicationHandoffStatus = async (
 ): Promise<ApplicationHandoffRecord> => {
   if (!isRiverbancOperationalStatus(status)) {
     throw new Error("Lender-controlled application statuses must be reported by the financial institution.");
+  }
+
+  const { data: current, error: readError } = await (supabase as any)
+    .from("application_handoffs")
+    .select("status")
+    .eq("id", handoffId)
+    .single();
+
+  if (readError) throw readError;
+  if (!canTransitionRiverbancStatus(current.status, status)) {
+    throw new Error("Application handoff status can only move forward through Riverbanc operational stages.");
   }
 
   const { data, error } = await (supabase as any)
