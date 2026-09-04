@@ -86,14 +86,14 @@ const ComplianceRiskFlags = () => {
   }, []);
 
   useEffect(() => {
-    void fetchFlags();
+    fetchFlags();
     const channel = supabase
       .channel("risk_flags_realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "risk_flags" }, () => {
-        void fetchFlags();
+        fetchFlags();
       })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchFlags]);
 
   const filteredFlags = flags.filter((f) => {
@@ -135,11 +135,12 @@ const ComplianceRiskFlags = () => {
     setSaving(true);
     try {
       await riskService.resolve(selectedFlag.id, newStatus as "approved" | "rejected" | "needs_review", resolutionNotes, user.id);
+
       await logAction("resolve_risk_flag", selectedFlag.id, "risk_flags", { status: selectedFlag.status }, { status: newStatus, notes: resolutionNotes });
 
       toast.success(`Risk flag ${newStatus === "approved" ? "approved" : newStatus === "rejected" ? "rejected" : "updated"}`);
       setShowResolutionModal(false);
-      void fetchFlags();
+      fetchFlags();
     } catch {
       toast.error("Failed to resolve risk flag");
     } finally {
@@ -164,24 +165,66 @@ const ComplianceRiskFlags = () => {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Critical</p><p className="text-2xl font-display font-bold text-destructive">{stats.critical}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Open</p><p className="text-2xl font-display font-bold">{stats.open}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Investigating</p><p className="text-2xl font-display font-bold">{stats.investigating}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-muted-foreground">Resolved</p><p className="text-2xl font-display font-bold text-success">{stats.resolved}</p></CardContent></Card>
+        <Card className={stats.critical > 0 ? "border-destructive/50" : ""}>
+          <CardContent className="pt-6">
+            <div className={`text-2xl font-display font-bold ${stats.critical > 0 ? "text-destructive" : "text-muted-foreground"}`}>{stats.critical}</div>
+            <p className="text-xs sm:text-sm text-muted-foreground">Critical</p>
+          </CardContent>
+        </Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-warning">{stats.open}</div><p className="text-xs sm:text-sm text-muted-foreground">Open</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-info">{stats.investigating}</div><p className="text-xs sm:text-sm text-muted-foreground">Investigating</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-display font-bold text-success">{stats.resolved}</div><p className="text-xs sm:text-sm text-muted-foreground">Resolved</p></CardContent></Card>
       </div>
 
-      <Card><CardContent className="pt-6"><div className="flex flex-col lg:flex-row gap-3"><div className="relative flex-1"><Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" /><Input className="pl-9" placeholder="Search flag type or application ID" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div><Select value={severityFilter} onValueChange={setSeverityFilter}><SelectTrigger className="w-full lg:w-44"><SelectValue placeholder="Severity" /></SelectTrigger><SelectContent><SelectItem value="all">All severity</SelectItem><SelectItem value="critical">Critical</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="low">Low</SelectItem></SelectContent></Select><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-full lg:w-44"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">All status</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="needs_review">Needs review</SelectItem><SelectItem value="approved">Approved</SelectItem><SelectItem value="rejected">Rejected</SelectItem></SelectContent></Select></div></CardContent></Card>
-
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          {loadingFlags ? <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div> : <Table><TableHeader><TableRow><TableHead>Application</TableHead><TableHead>Flag</TableHead><TableHead>Severity</TableHead><TableHead>Score</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{filteredFlags.map((flag) => { const severity = severityFromScore(flag.fraud_score); return <TableRow key={flag.id}><TableCell className="font-mono text-xs">{flag.application_id}</TableCell><TableCell className="font-medium">{flag.flag_type}</TableCell><TableCell><Badge className={severityColors[severity]}>{severity}</Badge></TableCell><TableCell>{flag.fraud_score}</TableCell><TableCell><Badge className={statusColors[flag.status] || ""}>{flag.status}</Badge></TableCell><TableCell className="text-right"><div className="flex justify-end gap-2"><Button size="sm" variant="ghost" onClick={() => setViewFlag(flag)}><Eye className="w-4 h-4 mr-1" /> View</Button>{isSuperAdmin && flag.status !== "approved" && flag.status !== "rejected" && <Button size="sm" onClick={() => openResolutionModal(flag)}>Resolve</Button>}</div></TableCell></TableRow>; })}</TableBody></Table>}
-          {!loadingFlags && filteredFlags.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No risk flags match the current filters.</p>}
+        <CardContent className="pt-4 pb-2 px-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by type or application ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Severity" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All Severities</SelectItem><SelectItem value="critical">Critical</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="low">Low</SelectItem></SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All Statuses</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="needs_review">Needs Review</SelectItem><SelectItem value="approved">Approved</SelectItem><SelectItem value="rejected">Rejected</SelectItem></SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
-      <Dialog open={Boolean(viewFlag)} onOpenChange={(open) => !open && setViewFlag(null)}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Risk flag details</DialogTitle></DialogHeader>{viewFlag && <div className="space-y-4 text-sm"><div className="grid grid-cols-2 gap-4"><div><p className="text-muted-foreground">Application</p><p className="font-mono text-xs mt-1">{viewFlag.application_id}</p></div><div><p className="text-muted-foreground">User</p><p className="font-mono text-xs mt-1">{viewFlag.user_id}</p></div><div><p className="text-muted-foreground">Flag</p><p className="mt-1 font-medium">{viewFlag.flag_type}</p></div><div><p className="text-muted-foreground">Fraud score</p><p className="mt-1 font-medium">{viewFlag.fraud_score}</p></div></div><div><p className="text-muted-foreground">Flags</p><pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-muted/40 p-3 text-xs">{JSON.stringify(viewFlag.flags, null, 2)}</pre></div>{viewFlag.resolution_notes && <div><p className="text-muted-foreground">Resolution notes</p><p className="mt-1">{viewFlag.resolution_notes}</p></div>}</div>}</DialogContent></Dialog>
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          {loadingFlags ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Severity</TableHead><TableHead className="hidden md:table-cell">Status</TableHead><TableHead className="hidden lg:table-cell">Date</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {filteredFlags.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No risk flags match your filters</TableCell></TableRow> : filteredFlags.map((f) => {
+                  const severity = severityFromScore(f.fraud_score);
+                  return <TableRow key={f.id} className={f.status === "pending" ? "bg-destructive/5" : ""}><TableCell className="font-medium">{f.flag_type}</TableCell><TableCell><Badge className={severityColors[severity]}>{severity}</Badge></TableCell><TableCell className="hidden md:table-cell"><Badge className={statusColors[f.status] || "bg-muted text-muted-foreground"}>{f.status.replace("_", " ")}</Badge></TableCell><TableCell className="hidden lg:table-cell text-muted-foreground">{new Date(f.created_at).toLocaleDateString()}</TableCell><TableCell className="text-right"><div className="flex gap-1 justify-end"><Button size="sm" variant="ghost" title="View Details" onClick={() => setViewFlag(f)}><Eye className="h-4 w-4" /></Button>{isSuperAdmin && f.status === "pending" && <Button size="sm" variant="ghost" className="text-success" onClick={() => openResolutionModal(f)} title="Resolve Flag"><CheckCircle2 className="h-4 w-4" /></Button>}</div></TableCell></TableRow>;
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-      <Dialog open={showResolutionModal} onOpenChange={setShowResolutionModal}><DialogContent><DialogHeader><DialogTitle>Resolve Risk Flag</DialogTitle></DialogHeader><div className="space-y-4"><div><Label htmlFor="resolutionNotes">Resolution notes</Label><textarea id="resolutionNotes" className="mt-1.5 w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={resolutionNotes} onChange={(e) => setResolutionNotes(e.target.value)} placeholder="Document the evidence and rationale..." /></div><DialogFooter>{statusOptions.map(({ value, label, icon: Icon, cls }) => <Button key={value} variant="outline" className={cls} disabled={saving} onClick={() => void resolveFlag(value)}><Icon className="w-4 h-4 mr-1" /> {label}</Button>)}</DialogFooter></div></DialogContent></Dialog>
+      <Dialog open={!!viewFlag} onOpenChange={() => setViewFlag(null)}>
+        <DialogContent className="sm:max-w-[500px]"><DialogHeader><DialogTitle>Risk Flag Details</DialogTitle></DialogHeader>{viewFlag && <div className="space-y-3 py-2"><div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Type:</span><span className="font-medium">{viewFlag.flag_type}</span></div><div className="flex justify-between"><span className="text-muted-foreground">Fraud Score:</span><span className="font-medium">{viewFlag.fraud_score}</span></div><div className="flex justify-between"><span className="text-muted-foreground">Severity:</span><Badge className={severityColors[severityFromScore(viewFlag.fraud_score)]}>{severityFromScore(viewFlag.fraud_score)}</Badge></div><div className="flex justify-between"><span className="text-muted-foreground">Status:</span><Badge className={statusColors[viewFlag.status] || "bg-muted"}>{viewFlag.status}</Badge></div><div className="flex justify-between"><span className="text-muted-foreground">Created:</span><span>{new Date(viewFlag.created_at).toLocaleString()}</span></div>{viewFlag.resolution_notes && <div className="flex justify-between"><span className="text-muted-foreground">Notes:</span><span>{viewFlag.resolution_notes}</span></div>}{viewFlag.resolved_at && <div className="flex justify-between"><span className="text-muted-foreground">Resolved:</span><span>{new Date(viewFlag.resolved_at).toLocaleString()}</span></div>}</div></div>}</DialogContent>
+      </Dialog>
+
+      <Dialog open={showResolutionModal} onOpenChange={setShowResolutionModal}>
+        <DialogContent className="sm:max-w-[500px]"><DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-destructive" />Resolve Risk Flag</DialogTitle></DialogHeader>{selectedFlag && <div className="space-y-4 py-4"><div className="bg-muted/50 rounded-lg p-4 space-y-2"><div className="flex justify-between"><span className="text-sm text-muted-foreground">Type:</span><span className="text-sm font-medium">{selectedFlag.flag_type}</span></div><div className="flex justify-between"><span className="text-sm text-muted-foreground">Fraud Score:</span><span className="text-sm font-medium">{selectedFlag.fraud_score}</span></div><div className="flex justify-between"><span className="text-sm text-muted-foreground">Severity:</span><Badge className={severityColors[severityFromScore(selectedFlag.fraud_score)]}>{severityFromScore(selectedFlag.fraud_score)}</Badge></div></div><div className="space-y-2"><Label htmlFor="resolutionNotes">Resolution Notes *</Label><textarea id="resolutionNotes" className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Describe the resolution and findings..." value={resolutionNotes} onChange={(e) => setResolutionNotes(e.target.value)} /></div><div className="space-y-2"><Label>Resolution Action</Label><div className="grid grid-cols-3 gap-2">{statusOptions.map((option) => <Button key={option.value} variant="outline" size="sm" onClick={() => resolveFlag(option.value)} disabled={saving} className={option.cls}><option.icon className="h-4 w-4 mr-1" />{option.label}</Button>)}</div></div></div>}<DialogFooter><Button variant="outline" onClick={() => setShowResolutionModal(false)}>Cancel</Button></DialogFooter></DialogContent>
+      </Dialog>
     </div>
   );
 };
