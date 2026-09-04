@@ -18,19 +18,21 @@ drop policy if exists automation_rules_insert_super_admin on public.automation_r
 drop policy if exists automation_rules_update_super_admin on public.automation_rules;
 drop policy if exists automation_rules_delete_super_admin on public.automation_rules;
 
+-- Authorization is owned by public.has_role(text), backed by user_roles.
+-- Do not reference a private helper that is absent from the canonical schema.
 create policy automation_rules_select_admin on public.automation_rules
 for select to authenticated
-using (private.has_role('admin') or private.has_role('super_admin') or private.has_role('super_user') or private.has_role('compliance_team') or private.has_role('data_entry_team'));
+using (public.has_role('admin') or public.has_role('super_admin') or public.has_role('super_user') or public.has_role('compliance_team') or public.has_role('data_entry_team'));
 
 create policy automation_rules_insert_super_admin on public.automation_rules
 for insert to authenticated
-with check (private.has_role('super_admin'));
+with check (public.has_role('super_admin'));
 
 create policy automation_rules_update_super_admin on public.automation_rules
 for update to authenticated
-using (private.has_role('super_admin'))
-with check (private.has_role('super_admin'));
+using (public.has_role('super_admin'))
+with check (public.has_role('super_admin'));
 
 create policy automation_rules_delete_super_admin on public.automation_rules
 for delete to authenticated
-using (private.has_role('super_admin'));
+using (public.has_role('super_admin'));
