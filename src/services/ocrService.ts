@@ -81,8 +81,8 @@ const extractPatterns = {
 
   dates: (text: string): string[] => {
     const patterns = [
-      /\b(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})\b/g,
-      /\b(\d{4}[\/-]\d{1,2}[\/-]\d{1,2})\b/g,
+      /\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b/g,
+      /\b(\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/g,
       /\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4})\b/gi,
     ];
     const matches: string[] = [];
