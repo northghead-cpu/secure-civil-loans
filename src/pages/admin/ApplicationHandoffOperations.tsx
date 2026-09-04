@@ -36,7 +36,7 @@ const statusClasses: Record<string, string> = {
 };
 
 const ApplicationHandoffOperations = () => {
-  const { highestRole } = useRBAC();
+  const { highestRole, logAction } = useRBAC();
   const [handoffs, setHandoffs] = useState<ApplicationHandoffRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -65,6 +65,7 @@ const ApplicationHandoffOperations = () => {
     setSavingId(handoff.id);
     try {
       const updated = await updateApplicationHandoffStatus(handoff.id, status);
+      await logAction("update_application_handoff_status", handoff.id, "application_handoffs", { status: handoff.status }, { status: updated.status });
       setHandoffs((current) => current.map((item) => item.id === updated.id ? updated : item));
       toast.success(`Handoff marked ${statusLabels[status] ?? status}`);
     } catch (error) {
