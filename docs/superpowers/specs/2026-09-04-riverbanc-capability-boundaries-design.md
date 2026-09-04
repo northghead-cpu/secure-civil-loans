@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04
 **Branch:** `systems-health-95pct`
-**Baseline:** current branch after the architecture documentation and repayment-boundary commits.
+**Baseline:** `5196c740e8c6866b8c976281c774ce11664b2171`
 
 ## Goal
 
@@ -15,7 +15,7 @@ Align the Riverbanc frontend and service architecture with the company's busines
 3. Participating financial institutions own lending decisions and disbursement decisions.
 4. Each business responsibility has one authoritative owner, while distinct actor-facing interfaces remain separate.
 5. No duplicate source of truth is permitted for the same business object.
-6. Consequential actions must remain auditable and appropriately role/tenant scoped.
+6. Consequential actions must be auditable and appropriately role/tenant scoped.
 7. The UI must never imply a capability that the backend cannot actually execute.
 8. Sensitive applicant, KYC, lender and risk data must remain segregated according to role and access boundaries.
 9. Automation may assist operations but must not silently replace accountable business decisions.
@@ -61,58 +61,44 @@ Cron jobs, internal RPCs, cache invalidation, security controls and MCP/external
 - Underwriting Reference vs CRB Reference.
 - Product Management vs Loan Comparison UI.
 - MCP tools vs conventional application UI.
-- `products` vs `bank_products`: these are currently distinct domain models and must **not** be merged.
 
-These may share appropriate infrastructure or service conventions but represent different actors, responsibilities, data semantics or trust boundaries.
+These may share domain services/data contracts but represent different actors, responsibilities or trust boundaries.
 
 ### Consolidate at the Service/Data Boundary
 
-- Frontend consumers of risk data should use the existing `riskService` where that service is authoritative.
+- Product administration and comparison must converge on one authoritative product model and service contract. The UI responsibilities remain separate.
+- Frontend consumers of risk data should use the existing `riskService` rather than direct table access where the service is authoritative.
 - Payroll Manager should use `payrollService` for payroll integration lifecycle operations rather than maintaining a parallel data-access path.
-- Reference-data consumers should use `referenceDataService` only where its response semantics are proven equivalent to the current frontend behavior.
-- Product administration and lender-offer comparison must **not** be consolidated merely because both contain the word product. They use different models and responsibilities. Any shared abstractions must preserve that distinction.
+- Reference-data consumers should use `referenceDataService` for catalogue/comparison/reference resources instead of duplicating calculations or direct table reads.
 
-## Important Financial-Logic Guardrail
+### Existing Capabilities Not to Rebuild
 
-The current `reference-data` comparison endpoint calculates repayment using a simple-interest formula, while the current `ComparePage` calculates an amortizing-payment formula. The catalogue endpoint also does not expose `product_type`, which the comparison UI currently requires. Therefore the comparison service is **not yet safe to designate as the authoritative replacement** for the current comparison path.
-
-The repayment calculation has been isolated behind `loanComparisonService` and protected by regression tests without changing borrower-facing behavior. The next comparison work must establish the intended lender pricing semantics and response contract before changing the calculation or data source.
-
-This is a deliberate business-protection rule: Riverbanc must not alter displayed repayment figures merely to achieve architectural consolidation.
-
-## Verified Product-Model Finding
-
-The repository defines `public.products` as a generic Product Management table with `name`, `description`, `pricing`, `status` and creator/audit metadata. Its policies are oriented toward super-admin management and admin visibility. fileciteturn56file0
-
-Separately, `public.bank_products` is the lender-offer model used for loan comparison, with lender name, interest rate, amount limits, term limits, processing days and active status. It is explicitly created as part of the loan workflow. fileciteturn57file0
-
-Therefore the earlier hypothesis that these are necessarily duplicate product implementations is **rejected**. They have materially different schemas and business purposes. `adminProductService` correctly targets the generic `products` model. The actual defect found there is narrower: it currently invalidates reference-data cache after writes to `products`, despite the reference-data comparison/catalogue path operating on lender `bank_products`. That coupling is semantically suspect and should be removed or proven necessary before further work.
+KYC, OCR/NRC/government-ID/payslip parsing, fraud pipeline, underwriting UI, CRB UI/proxy, lender-product comparison, application authorization, borrower application status, audit-log UI, data export and RBAC administration remain in place unless the boundary audit proves a concrete defect.
 
 ## Initial Verified Drift
 
-1. `ComparePage` historically contained the borrower repayment calculation inline. It is now isolated behind `loanComparisonService` without changing its formula. fileciteturn50file0
-2. `referenceDataService` exposes catalogue, comparison, underwriting-reference and CRB-reference resources, but its comparison response is not yet semantically equivalent to the borrower calculation. fileciteturn48file0
-3. `adminProductService` operates on generic `products`, not lender `bank_products`. Its cache invalidation call is the remaining coupling requiring review. fileciteturn58file0
-4. Lender-offer comparison operates on `bank_products`; this is the correct domain model for participating financial-institution offers and should remain distinct from generic product administration. fileciteturn57file0
+The current branch contains an implemented `referenceDataService` exposing catalogue, comparison, underwriting-reference and CRB-reference resources, while `ComparePage` directly reads `bank_products` and performs comparison mathematics locally. The service therefore exists but is not the authoritative frontend path for that capability.
+
+The codebase also contains `adminProductService` for CRUD on `products`, while the product-management UI path directly uses `bank_products`. This is a potential competing data model and must be resolved by evidence before any migration or deletion.
+
+These findings are architectural drift, not permission to blindly merge interfaces.
 
 ## Implementation Strategy
 
 1. Reconfirm the capability map against the exact current branch.
 2. Establish authoritative ownership for each B/C/D/E finding.
-3. Treat financial calculations and product schemas as correctness boundaries, not ordinary refactors.
-4. Add or update tests before behavior changes.
-5. Implement one bounded subsystem at a time.
-6. Verify functional behavior, role boundaries, RLS/security assumptions and business-language implications after each subsystem.
-7. Run full repository tests/build and deployment verification before declaring completion.
-8. Re-audit the capability map after implementation to ensure no new duplicate path or actor-boundary violation was introduced.
+3. Add or update tests before behavior changes.
+4. Implement one bounded subsystem at a time.
+5. Verify functional behavior, role boundaries, RLS/security assumptions and business-language implications after each subsystem.
+6. Run full repository tests/build and deployment verification before declaring completion.
+7. Re-audit the capability map after implementation to ensure no new duplicate path or actor-boundary violation was introduced.
 
 ## Success Criteria
 
 - Every material backend capability is classified A-F with evidence.
 - Distinct Riverbanc business responsibilities remain distinct in the UI.
-- Shared business objects have one authoritative service/data path where equivalence is proven.
+- Shared business objects have one authoritative service/data path.
 - Missing borrower, operations and lender surfaces are exposed only to their intended actors.
-- No borrower UI implies Riverbanc itself lends, approves or disburses funds.
+- No frontend feature claims Riverbanc itself lends, approves or disburses funds.
 - No production capability is represented by mock or fabricated data.
-- Repayment figures and lender product semantics are not changed by refactoring unless the business rule is explicitly established and tested.
 - Automated tests, build, security checks and deployment verification support the final state.
