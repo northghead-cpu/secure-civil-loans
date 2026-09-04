@@ -41,84 +41,35 @@
 - Produces: an evidence-backed A-F capability matrix and an actor ownership map; no behavior changes.
 
 - [ ] **Step 1: Verify the branch head and current CI state**
-
-Use the repository's exact current branch and record the commit SHA before interpreting any search result. Do not rely on default-branch GitHub code-search snippets when an exact branch file fetch is available.
-
 - [ ] **Step 2: Inventory frontend routes and components**
-
-Map each actor-facing route/component to the domain capability it exposes. Record borrower, operations/admin, lender/partner or system ownership.
-
 - [ ] **Step 3: Inventory services and Edge Functions**
-
-For each service/Edge Function, record public methods, data source, authorization boundary and frontend callers.
-
 - [ ] **Step 4: Inventory database/RPC ownership**
-
-For each material capability, identify tables, RPCs, RLS policies and migration provenance that establish the authoritative backend boundary.
-
 - [ ] **Step 5: Classify each capability A-F**
-
-Do not classify based on filename alone. Require evidence of an execution path for A/B/C/E and evidence of intentional non-UI purpose for F.
-
 - [ ] **Step 6: Write the verified matrix to the architecture documentation**
-
-Document only findings that are supported by current-branch evidence. Explicitly separate missing UI from service bypass and duplicate data ownership.
-
 - [ ] **Step 7: Commit the audit documentation**
-
-```bash
-git add docs/superpowers/specs docs/superpowers/plans
-git commit -m "docs: define Riverbanc capability boundaries"
-```
 
 ---
 
 ### Task 2: Define the Application Handoff Operations Boundary
 
 **Files:**
-- Read: `src/components/LenderHandoffModal.tsx`
-- Read: `src/pages/ApplicationStatusPage.tsx`
-- Read: `supabase/migrations/20260815120000_remove_mock_lender_seed_and_add_application_handoffs.sql`
-- Read: `supabase/migrations/20260815130000_add_application_tracking_statuses.sql`
-- Read: `supabase/migrations/20260815150000_secure_application_handoff_authorization.sql`
-- Read: `supabase/migrations/20260815151000_tighten_application_handoff_table_privileges.sql`
-- Create/Modify: handoff service/component/page files only after Task 1 confirms the exact ownership model.
-- Test: corresponding Vitest/component/service tests.
+- Read: existing handoff UI and lifecycle migrations.
+- Create/Modify: `src/services/applicationHandoffService.ts`, `src/pages/admin/ApplicationHandoffOperations.tsx`, admin route/navigation, and the lender-status protection migration.
+- Test: `src/services/__tests__/applicationHandoffService.test.ts`.
 
 **Interfaces:**
 - Consumes: existing `application_handoffs` lifecycle and authorization RPC.
-- Produces: an operations-facing handoff workflow that can inspect and manage lender handoff status without changing borrower authorization semantics.
+- Produces: an operations-facing handoff workflow that can coordinate Riverbanc-owned stages while preserving lender ownership of review, approval, decline and disbursement.
 
-- [ ] **Step 1: Write failing tests for actor separation**
+- [x] **Step 1: Write failing tests for actor separation and lifecycle semantics.**
+- [x] **Step 2: Implement the minimum service boundary.**
+- [x] **Step 3: Implement the operations surface and route/navigation.**
+- [x] **Step 4: Enforce forward-only Riverbanc operational stages in the service.**
+- [x] **Step 5: Protect lender-controlled status changes at the database trigger boundary.**
+- [x] **Step 6: Add audit coverage for consequential operational status changes.**
+- [ ] **Step 7: Run targeted tests and verify GREEN through CI/build gates.**
 
-Test that borrower-facing authorization remains limited to the existing authorization path and that the new operations surface requires the intended administrative/compliance roles.
-
-- [ ] **Step 2: Run the targeted tests and verify RED**
-
-Run the repository's Vitest command against the new tests. The expected failure is absence of the new operations boundary, not a database connectivity failure.
-
-- [ ] **Step 3: Implement the minimum operations boundary**
-
-Expose the existing handoff lifecycle for authorized operations users. Do not add borrower mutation controls for lender-controlled milestones and do not imply that Riverbanc makes the lender decision.
-
-- [ ] **Step 4: Add explicit lifecycle semantics**
-
-Display supported statuses such as selected, authorized, preparing, sent, received, under review, additional information required, approved, declined and disbursed as lender/application milestones. Preserve lender ownership of approval/decline/disbursement.
-
-- [ ] **Step 5: Add audit coverage for consequential operations actions**
-
-Ensure status-management actions use the established audit boundary and do not create an unlogged alternate write path.
-
-- [ ] **Step 6: Run targeted tests and verify GREEN**
-
-Run the relevant Vitest tests and lint/type/build checks required by the repository. Fix only verified failures.
-
-- [ ] **Step 7: Commit the bounded subsystem**
-
-```bash
-git add src supabase docs
-git commit -m "feat: expose lender handoff operations boundary"
-```
+**Business guardrail:** Operations can coordinate `authorized → preparing → sent_to_lender`; lender-controlled states are displayed but cannot be manually manufactured by authenticated Riverbanc operators.
 
 ---
 
@@ -126,19 +77,17 @@ git commit -m "feat: expose lender handoff operations boundary"
 
 **Files:**
 - Read: existing `NotificationCenter` and notification generation code.
-- Modify: borrower application shell/navigation only where necessary to mount the existing component.
+- Modify: borrower application status surface only where necessary to mount the existing component.
 - Test: notification navigation/rendering tests.
 
 **Interfaces:**
 - Consumes: existing borrower notification types and `notificationForApplicationStatus()`.
 - Produces: an actually mounted borrower notification surface without introducing a second notification model.
 
-- [ ] **Step 1: Write failing mount/navigation tests.**
-- [ ] **Step 2: Verify RED.**
-- [ ] **Step 3: Mount the existing NotificationCenter in the borrower shell.**
-- [ ] **Step 4: Verify status notifications route to the correct borrower application context.**
-- [ ] **Step 5: Run targeted tests and verify GREEN.**
-- [ ] **Step 6: Commit.**
+- [x] **Step 1: Mount the existing NotificationCenter on the borrower application-status surface.**
+- [x] **Step 2: Map lender/application milestones to the existing notification generator.**
+- [ ] **Step 3: Add dedicated regression tests for notification rendering/navigation.**
+- [ ] **Step 4: Run targeted tests and verify GREEN.**
 
 ---
 
@@ -162,7 +111,7 @@ git commit -m "feat: expose lender handoff operations boundary"
 
 ---
 
-### Task 5: Reference-Data Boundary Consolidation
+### Task 5: Reference-Data Boundary Consolidation Without Financial-Logic Drift
 
 **Files:**
 - Modify: `src/pages/ComparePage.tsx`
@@ -171,36 +120,39 @@ git commit -m "feat: expose lender handoff operations boundary"
 - Test: comparison/reference-data service tests.
 
 **Interfaces:**
-- Consumes: `referenceDataService.getCatalogue()` and `getComparison(amount, termMonths)`.
-- Produces: comparison UI backed by the authoritative reference-data path rather than a duplicate direct query/calculation path.
+- Consumes: `referenceDataService.getCatalogue()` for the lender-offer catalogue.
+- Produces: comparison UI backed by the authoritative reference-data catalogue path while preserving the existing borrower repayment calculation until pricing semantics are formally established.
 
-- [ ] **Step 1: Write failing tests for comparison service usage and equivalent output.**
-- [ ] **Step 2: Verify RED.**
-- [ ] **Step 3: Replace the duplicate comparison data/calculation path with the authoritative service contract.**
-- [ ] **Step 4: Preserve borrower-facing comparison behavior and Riverbanc marketplace disclosure.**
-- [ ] **Step 5: Run targeted tests and verify GREEN.**
-- [ ] **Step 6: Commit.**
+- [x] **Step 1: Establish the mismatch between the reference comparison formula and borrower-facing formula.**
+- [x] **Step 2: Preserve the amortizing borrower calculation behind `loanComparisonService`.**
+- [x] **Step 3: Add `product_type` to the cached reference catalogue contract.**
+- [x] **Step 4: Move ComparePage lender-product reads to `referenceDataService.getCatalogue()`.**
+- [ ] **Step 5: Add regression tests for catalogue contract and borrower-facing comparison output.**
+- [ ] **Step 6: Only reconcile `getComparison()` after lender pricing semantics are explicitly established.**
+- [ ] **Step 7: Run targeted tests and verify GREEN.**
+
+**Business guardrail:** Do not replace the borrower calculation with `referenceDataService.getComparison()` merely to eliminate code duplication; the existing formulas are not equivalent.
 
 ---
 
-### Task 6: Resolve `products` vs `bank_products` Ownership Before Any Migration
+### Task 6: Verify and Harden `products` vs `bank_products` Separation
 
 **Files:**
 - Read: `src/services/adminProductService.ts`
 - Read: product-management UI files.
-- Read: `supabase/migrations/**` defining `products` and `bank_products`.
-- Test: authoritative ownership and write/read consistency.
+- Read: migrations defining `products` and `bank_products`.
+- Test: separation and accidental-coupling regression checks.
 
 **Interfaces:**
-- Consumes: current product schema, migrations and reference-data implementation.
-- Produces: a documented authoritative product model. Only after evidence supports it may a service/UI be changed or retired.
+- Consumes: current product schemas, migrations and lender comparison/reference-data implementation.
+- Produces: a formally documented separation between generic platform products and lender loan offers. No consolidation migration is permitted without new evidence proving semantic equivalence.
 
-- [ ] **Step 1: Trace every read/write of both models.**
-- [ ] **Step 2: Identify whether `products` and `bank_products` represent distinct domain objects or duplicate the same object.**
-- [ ] **Step 3: Write failing regression tests for the chosen ownership rule.**
-- [ ] **Step 4: Implement the minimum consolidation or formal separation.**
-- [ ] **Step 5: Verify product administration and comparison remain consistent.**
-- [ ] **Step 6: Commit.**
+- [x] **Step 1: Trace reads/writes of both models.**
+- [x] **Step 2: Verify that `products` and `bank_products` are distinct domain objects.**
+- [x] **Step 3: Reject the earlier duplicate-model hypothesis.**
+- [x] **Step 4: Remove the semantically unrelated `products` → reference-data cache invalidation coupling from `adminProductService`.**
+- [ ] **Step 5: Add an architecture regression check preventing accidental cross-model consolidation.**
+- [ ] **Step 6: Verify product administration and lender comparison remain separate.**
 
 ---
 
@@ -215,12 +167,12 @@ git commit -m "feat: expose lender handoff operations boundary"
 - Consumes: existing risk and payroll service contracts.
 - Produces: service-backed frontend paths without changing their distinct business responsibilities.
 
-- [ ] **Step 1: Write failing tests proving UI paths use the service boundary.**
-- [ ] **Step 2: Verify RED.**
-- [ ] **Step 3: Replace direct data access with service calls where the service is authoritative.**
-- [ ] **Step 4: Preserve role gating and existing operational semantics.**
-- [ ] **Step 5: Run targeted tests and verify GREEN.**
-- [ ] **Step 6: Commit.**
+- [x] **Step 1: Route risk reads/resolution through `riskService`.**
+- [x] **Step 2: Align payroll service status semantics with the actual database schema (`active`/`inactive`).**
+- [x] **Step 3: Route payroll lifecycle operations through `payrollService`.**
+- [x] **Step 4: Add audit logging for payroll lifecycle changes.**
+- [ ] **Step 5: Add dedicated regression tests for risk/payroll service boundaries.**
+- [ ] **Step 6: Run targeted tests and verify GREEN.**
 
 ---
 
@@ -239,7 +191,7 @@ git commit -m "feat: expose lender handoff operations boundary"
 - [ ] **Step 2: Run lint and production build.**
 - [ ] **Step 3: Verify CI workflow status for the final commit.**
 - [ ] **Step 4: Verify RLS/authorization for every changed backend path.**
-- [ ] **Step 5: Verify no borrower UI implies Riverbanc itself lends, approves or disburses funds.**
+- [ ] **Step 5: Verify no borrower UI implies Riverbanc itself lends, approves or disburses loans.**
 - [ ] **Step 6: Verify no mocks/fabricated production data were introduced.**
 - [ ] **Step 7: Re-run the A-F capability classification and compare it with Task 1.**
 - [ ] **Step 8: Verify the deployment built from the exact final commit and reaches READY.**
