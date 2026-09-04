@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export const HANDOFF_OPERATION_ROLES = ["admin", "super_admin", "compliance_team"] as const;
 export type HandoffOperationRole = (typeof HANDOFF_OPERATION_ROLES)[number];
 
+export const RIVERBANC_OPERATIONAL_STATUSES = ["authorized", "preparing", "sent_to_lender"] as const;
+
 export const LENDER_CONTROLLED_STATUSES = [
   "lender_review",
   "additional_information_requested",
@@ -13,9 +15,7 @@ export const LENDER_CONTROLLED_STATUSES = [
 
 export const HANDOFF_STATUSES = [
   "pending_authorization",
-  "authorized",
-  "preparing",
-  "sent_to_lender",
+  ...RIVERBANC_OPERATIONAL_STATUSES,
   ...LENDER_CONTROLLED_STATUSES,
 ] as const;
 
@@ -40,6 +40,9 @@ export const canManageHandoffOperations = (role: string | null | undefined): rol
 export const isLenderControlledStatus = (status: string): boolean =>
   (LENDER_CONTROLLED_STATUSES as readonly string[]).includes(status);
 
+export const isRiverbancOperationalStatus = (status: string): boolean =>
+  (RIVERBANC_OPERATIONAL_STATUSES as readonly string[]).includes(status);
+
 const HANDOFF_SELECT = "id, user_id, lender_name, product_name, requested_amount, term_months, interest_rate, estimated_monthly_repayment, total_repayment, status, created_at, updated_at";
 
 export const listApplicationHandoffs = async (): Promise<ApplicationHandoffRecord[]> => {
@@ -56,8 +59,8 @@ export const updateApplicationHandoffStatus = async (
   handoffId: string,
   status: string,
 ): Promise<ApplicationHandoffRecord> => {
-  if (!(HANDOFF_STATUSES as readonly string[]).includes(status)) {
-    throw new Error("Unsupported application handoff status.");
+  if (!isRiverbancOperationalStatus(status)) {
+    throw new Error("Lender-controlled application statuses must be reported by the financial institution.");
   }
 
   const { data, error } = await (supabase as any)
