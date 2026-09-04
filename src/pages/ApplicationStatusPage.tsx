@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { notificationForApplicationStatus } from "@/lib/borrowerNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,6 +28,18 @@ const statusCopy: Record<string, { label: string; description: string }> = {
   disbursed: { label: "Loan disbursed", description: "The selected financial institution has reported that the loan has been disbursed." },
 };
 
+const notificationStatus = (status: string): Parameters<typeof notificationForApplicationStatus>[0] | null => {
+  const map: Record<string, Parameters<typeof notificationForApplicationStatus>[0]> = {
+    sent_to_lender: "received",
+    lender_review: "under_review",
+    additional_information_requested: "additional_information_required",
+    approved: "approved",
+    declined: "declined",
+    disbursed: "disbursed",
+  };
+  return map[status] ?? null;
+};
+
 const ApplicationStatusPage = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -37,7 +51,7 @@ const ApplicationStatusPage = () => {
     if (!user) { navigate("/login", { replace: true }); return; }
 
     const fetchHandoff = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("application_handoffs")
         .select("id, lender_name, product_name, requested_amount, term_months, interest_rate, estimated_monthly_repayment, total_repayment, status, created_at, updated_at")
         .eq("user_id", user.id)
@@ -61,6 +75,12 @@ const ApplicationStatusPage = () => {
     return Math.max(0, statusOrder.indexOf(handoff.status));
   }, [handoff]);
 
+  const notification = useMemo(() => {
+    if (!handoff) return null;
+    const mappedStatus = notificationStatus(handoff.status);
+    return mappedStatus ? notificationForApplicationStatus(mappedStatus, handoff.lender_name, `handoff-${handoff.id}-${handoff.status}`) : null;
+  }, [handoff]);
+
   if (authLoading || loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
   if (!user) return null;
   const finalStatus = handoff ? statusCopy[handoff.status] : null;
@@ -68,7 +88,7 @@ const ApplicationStatusPage = () => {
 
   return (
     <div className="min-h-screen bg-background"><Navbar /><main className="pt-24 pb-16"><div className="container mx-auto px-4 lg:px-8 max-w-4xl space-y-6">
-      <header><p className="text-sm font-medium text-primary mb-2">Borrower dashboard</p><h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">Your application</h1><p className="text-muted-foreground mt-2">Track your application and see who is responsible for the next step.</p></header>
+      <header className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-primary mb-2">Borrower dashboard</p><h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">Your application</h1><p className="text-muted-foreground mt-2">Track your application and see who is responsible for the next step.</p></div>{notification && <NotificationCenter notifications={[notification]} onNavigate={navigate} />}</header>
       {!handoff ? <Card><CardContent className="p-8 text-center"><FileCheck2 className="w-10 h-10 mx-auto mb-4 text-muted-foreground" /><h2 className="text-xl font-display font-semibold">No active application</h2><p className="text-muted-foreground mt-2">Choose a verified loan offer to begin an application with a participating financial institution.</p><Button className="mt-6" onClick={() => navigate("/compare")}>Compare loan options</Button></CardContent></Card> : <>
         <Card><CardHeader><div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"><div><CardTitle className="text-xl font-display">{handoff.lender_name}</CardTitle>{handoff.product_name && <p className="text-sm text-muted-foreground mt-1">{handoff.product_name}</p>}</div><Badge variant={isDecision ? "default" : "secondary"}>{finalStatus?.label || "Application in progress"}</Badge></div></CardHeader><CardContent className="space-y-5"><div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm"><div><p className="text-muted-foreground">Amount</p><p className="font-semibold">{handoff.requested_amount != null ? `K${Number(handoff.requested_amount).toLocaleString()}` : "—"}</p></div><div><p className="text-muted-foreground">Term</p><p className="font-semibold">{handoff.term_months != null ? `${handoff.term_months} months` : "—"}</p></div><div><p className="text-muted-foreground">Interest rate</p><p className="font-semibold">{handoff.interest_rate != null ? `${handoff.interest_rate}%` : "—"}</p></div><div><p className="text-muted-foreground">Monthly repayment</p><p className="font-semibold">{handoff.estimated_monthly_repayment != null ? `K${Number(handoff.estimated_monthly_repayment).toLocaleString()}` : "—"}</p></div></div><div className="rounded-lg border border-border/60 bg-muted/30 p-4"><p className="font-medium text-foreground">{finalStatus?.label}</p><p className="text-sm text-muted-foreground mt-1">{finalStatus?.description}</p></div></CardContent></Card>
         <Card><CardHeader><CardTitle className="text-lg font-display">Application journey</CardTitle></CardHeader><CardContent><div className="space-y-5">{[["Offer selected", "You've selected this financial institution.", CheckCircle2],["Information sharing authorized", "You authorized Riverbanc to share the agreed information.", Send],["Application prepared and sent", "Riverbanc prepares and sends your authorized information.", FileCheck2],["Financial institution review", "The financial institution reviews your application.", Clock3],["Decision", "The financial institution makes the lending decision.", isDecision && handoff.status === "declined" ? XCircle : CheckCircle2]].map(([title, description, Icon], index) => { const complete = index < currentIndex || (index === 4 && isDecision); const active = index === currentIndex && !isDecision; return <div key={String(title)} className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${complete ? "border-primary bg-primary/10 text-primary" : active ? "border-primary text-primary" : "border-border text-muted-foreground"}`}><Icon className="h-4 w-4" /></div><div><p className={`font-medium ${active ? "text-primary" : "text-foreground"}`}>{String(title)}</p><p className="text-sm text-muted-foreground">{String(description)}</p></div></div>; })}</div></CardContent></Card>
