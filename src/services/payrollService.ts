@@ -14,7 +14,7 @@ export interface PayrollIntegration {
 
 export interface PayrollIntegrationInput {
   provider_name: string;
-  api_endpoint?: string;
+  api_endpoint?: string | null;
   status?: "active" | "inactive";
   config?: Json;
 }
@@ -47,7 +47,7 @@ export const payrollService = {
     if (input.config !== undefined) payload.config = input.config;
     const { data, error } = await supabase
       .from("payroll_integrations")
-      .update(payload as { provider_name?: string; api_endpoint?: string; status?: string; config?: Json })
+      .update(payload as { provider_name?: string; api_endpoint?: string | null; status?: string; config?: Json })
       .eq("id", id)
       .select()
       .single();
@@ -55,8 +55,13 @@ export const payrollService = {
     return data as PayrollIntegration;
   },
 
-  async toggleStatus(id: string, currentStatus: string): Promise<PayrollIntegration> {
+  async toggleStatus(id: string, currentStatus: "active" | "inactive"): Promise<PayrollIntegration> {
     const newStatus = currentStatus === "active" ? "inactive" : "active";
-    return this.update(id, { status: newStatus as "active" | "inactive" });
+    return this.update(id, { status: newStatus });
+  },
+
+  async remove(id: string): Promise<void> {
+    const { error } = await supabase.from("payroll_integrations").delete().eq("id", id);
+    if (error) throw error;
   },
 };
