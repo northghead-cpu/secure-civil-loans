@@ -16,9 +16,30 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
-      - name: Remove unnecessary regex escapes
+      - name: Normalize only the lint-reported regex literals
         run: |
-          sed -i 's#\\\\/#/#g; s#\\\\-#-#g' src/services/fraudDetectionService.ts src/services/ocrService.ts supabase/functions/crb-proxy/index.ts
+          python3 - <<'PY'
+          from pathlib import Path
+          replacements = {
+              "src/services/fraudDetectionService.ts": {
+                  r"/[^\\w\\s\\/\\-\\.]/g": r"/[^\\w\\s/.-]/g",
+                  r"/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{2,4})$/": r"/^(\\d{1,2})[/-](\\d{1,2})[/-](\\d{2,4})$/",
+                  r"/^(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})$/": r"/^(\\d{4})[/-](\\d{1,2})[/-](\\d{1,2})$/",
+              },
+              "src/services/ocrService.ts": {
+                  r"[\\/\\-]": r"[/-]",
+              },
+              "supabase/functions/crb-proxy/index.ts": {
+                  r"^[0-9\\/\\s-]+$": r"^[0-9/\\s-]+$",
+              },
+          }
+          for name, mapping in replacements.items():
+              path = Path(name)
+              text = path.read_text()
+              for old, new in mapping.items():
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
       - run: bun run lint
       - name: Commit source fixes
         run: |
