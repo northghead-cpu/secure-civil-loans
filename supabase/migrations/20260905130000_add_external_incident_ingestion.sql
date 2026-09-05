@@ -18,8 +18,6 @@ create index if not exists incident_ingestion_events_incident_idx
 alter table public.incident_ingestion_events enable row level security;
 revoke all on public.incident_ingestion_events from anon, authenticated;
 
-authority: service_role only
-
 create or replace function public.record_external_incident(
   p_source text,
   p_external_event_id text,
@@ -27,9 +25,7 @@ create or replace function public.record_external_incident(
   p_operation text,
   p_severity text,
   p_summary text,
-  p_correlation_id text default null,
-  p_source_url text default null,
-  p_occurred_at timestamptz default now()
+  p_correlation_id text default null
 )
 returns uuid
 language plpgsql
@@ -47,9 +43,6 @@ begin
   end if;
   if p_event_type is null or char_length(trim(p_event_type)) not between 1 and 120 then
     raise exception 'invalid external event type';
-  end if;
-  if p_source_url is not null and char_length(p_source_url) > 2048 then
-    raise exception 'invalid external incident source url';
   end if;
 
   select incident_id into v_incident_id
@@ -86,9 +79,9 @@ exception
 end;
 $$;
 
-revoke execute on function public.record_external_incident(text, text, text, text, text, text, text, text, timestamptz)
+revoke execute on function public.record_external_incident(text, text, text, text, text, text, text)
   from public, anon, authenticated;
-grant execute on function public.record_external_incident(text, text, text, text, text, text, text, text, timestamptz)
+grant execute on function public.record_external_incident(text, text, text, text, text, text, text)
   to service_role;
 
 -- Keep the table inaccessible through the Data API; only the privileged
