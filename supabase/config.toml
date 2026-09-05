@@ -1,1 +1,7 @@
 project_id = "zdpeaxkormwjrgllwalq"
+
+[functions.sentry-incident-webhook]
+verify_jwt = false
+
+[functions.aikido-incident-webhook]
+verify_jwt = false
