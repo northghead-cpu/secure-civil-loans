@@ -8,13 +8,7 @@ function hex(bytes: ArrayBuffer): string {
 }
 
 async function hmacSha256(secret: string, body: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return hex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body)));
 }
 
@@ -60,28 +54,15 @@ function clampSummary(value: string): string {
 }
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, Allow: "POST" },
-    });
-  }
+  if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...corsHeaders, Allow: "POST" } });
 
   const rawBody = await req.text();
-  if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
-    return new Response(JSON.stringify({ error: "Payload too large" }), { status: 413, headers: corsHeaders });
-  }
+  if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return new Response(JSON.stringify({ error: "Payload too large" }), { status: 413, headers: corsHeaders });
 
-  const secret = Deno.env.get("SENTRY_INCIDENT_WEBHOOK_SECRET");
+  const secret = Deno.env.get("SENTRY_WEBHOOK_SECRET");
   const signature = req.headers.get("Sentry-Hook-Signature") ?? req.headers.get("X-Sentry-Hook-Signature");
-  if (!secret || !signature) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-  }
-
-  const expected = await hmacSha256(secret, rawBody);
-  if (!equalHex(signature, expected)) {
-    return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: corsHeaders });
-  }
+  if (!secret || !signature) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+  if (!equalHex(signature, await hmacSha256(secret, rawBody))) return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: corsHeaders });
 
   let payload: Record<string, unknown>;
   try {
@@ -92,47 +73,16 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: corsHeaders });
   }
 
-  const eventType = text(
-    req.headers.get("Sentry-Hook-Resource") ?? payload.action ?? payload.event ?? payload.type,
-    "event.alert",
-  );
-
-  // The webhook is deliberately scoped to actionable Sentry alerts. Routine
-  // event.created traffic should not become an incident flood.
+  const eventType = text(req.headers.get("Sentry-Hook-Resource") ?? payload.action ?? payload.event ?? payload.type, "event.alert");
   const level = getNested(payload, ["data", "event", "level"]) ?? payload.level;
-  if (eventType !== "event.alert" && !["fatal", "error"].includes(text(level).toLowerCase())) {
-    return new Response(JSON.stringify({ accepted: true, ignored: "non-actionable-event" }), {
-      status: 200,
-      headers: corsHeaders,
-    });
-  }
+  if (eventType !== "event.alert" && !["fatal", "error"].includes(text(level).toLowerCase())) return new Response(JSON.stringify({ accepted: true, ignored: "non-actionable-event" }), { status: 200, headers: corsHeaders });
 
-  const eventId = text(
-    payload.id ??
-      payload.event_id ??
-      getNested(payload, ["data", "event", "eventID"]) ??
-      getNested(payload, ["data", "event", "event_id"]) ??
-      getNested(payload, ["data", "issue", "id"]),
-  ) || `body:${await sha256(rawBody)}`;
-
-  const title = text(
-    getNested(payload, ["data", "issue", "title"]) ??
-      getNested(payload, ["data", "event", "title"]) ??
-      payload.title ??
-      payload.message,
-    "Sentry alert",
-  );
+  const eventId = text(payload.id ?? payload.event_id ?? getNested(payload, ["data", "event", "eventID"]) ?? getNested(payload, ["data", "event", "event_id"]) ?? getNested(payload, ["data", "issue", "id"])) || `body:${await sha256(rawBody)}`;
+  const title = text(getNested(payload, ["data", "issue", "title"]) ?? getNested(payload, ["data", "event", "title"]) ?? payload.title ?? payload.message, "Sentry alert");
   const operation = text(payload.type ?? payload.action, "sentry_alert").slice(0, 80) || "sentry_alert";
-  const correlationId = text(
-    getNested(payload, ["data", "issue", "id"]) ??
-      getNested(payload, ["data", "event", "eventID"]),
-  ) || null;
+  const correlationId = text(getNested(payload, ["data", "issue", "id"]) ?? getNested(payload, ["data", "event", "eventID"])) || null;
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { data: incidentId, error } = await supabase.rpc("record_external_incident", {
     p_source: "sentry",
     p_external_event_id: eventId,
@@ -148,8 +98,5 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Incident ingestion failed" }), { status: 500, headers: corsHeaders });
   }
 
-  return new Response(JSON.stringify({ accepted: true, incident_id: incidentId }), {
-    status: 200,
-    headers: corsHeaders,
-  });
+  return new Response(JSON.stringify({ accepted: true, incident_id: incidentId }), { status: 200, headers: corsHeaders });
 });
