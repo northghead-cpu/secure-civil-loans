@@ -1,0 +1,3 @@
+-- Historical migration marker for remote version 20260814062738.
+-- The later KYC storage policy hardening preserves the effective state.
+-- Keep this exact timestamp so Supabase preview replay matches production history.

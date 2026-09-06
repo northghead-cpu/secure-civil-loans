@@ -1,0 +1,3 @@
+-- Historical migration marker for remote version 20260811103315.
+-- Preserve the exact remote migration timestamp for reproducible preview
+-- branch creation without rewriting production migration history.
