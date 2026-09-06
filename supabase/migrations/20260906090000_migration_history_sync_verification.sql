@@ -1,0 +1,3 @@
+-- Supabase migration-history verification marker.
+-- No schema change. This commit intentionally retriggers the Supabase Preview
+-- environment after stale preview branch cleanup.
