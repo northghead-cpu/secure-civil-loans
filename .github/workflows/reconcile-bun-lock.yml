@@ -1,0 +1,32 @@
+name: Reconcile Bun lockfile
+
+on:
+  push:
+    branches: [fix/crb-and-ci-health-20260906]
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/crb-and-ci-health-20260906
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+      - name: Regenerate lockfile from package manifest
+        run: bun install --lockfile-only
+      - name: Commit reconciled lockfile
+        run: |
+          if git diff --quiet -- bun.lock; then
+            echo "bun.lock is already reconciled"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git commit -m "chore: reconcile Bun lockfile"
+          git push origin HEAD:fix/crb-and-ci-health-20260906
