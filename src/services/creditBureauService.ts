@@ -2,9 +2,8 @@
  * Credit Bureau Service
  * Handles CRB (Credit Reference Bureau) checks for Zambia.
  *
- * This service deliberately does not fabricate credit data. Until a configured
- * CRB provider integration is available, a check fails closed instead of
- * returning simulated scores, adverse records, or recommendations.
+ * This service never fabricates bureau data. Until the contracted bureau
+ * provider API is configured, checks fail closed and no report is returned.
  */
 
 export interface CRBCheckRequest {
@@ -51,7 +50,6 @@ export interface CRBCheckResult {
   success: boolean;
   report?: CRBReport;
   error?: string;
-  mockData?: false;
 }
 
 export const performCRBCheck = async (
@@ -69,8 +67,7 @@ export const performCRBCheck = async (
 
   return {
     success: false,
-    error: "Credit bureau provider is not configured. No simulated credit result will be returned.",
-    mockData: false,
+    error: "Credit bureau provider is not configured",
   };
 };
 
