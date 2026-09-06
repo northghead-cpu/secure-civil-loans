@@ -1,4 +1,5 @@
--- Historical migration marker.
--- The remote Supabase project records this migration version as applied.
--- This file intentionally performs no schema change; the current schema is
--- represented by the repository's reconstructed migrations and later fixes.
+-- Historical migration marker for the exact remote Supabase version.
+-- Remote version: 20260905121835
+-- Remote name: 20260905130000_add_external_incident_ingestion
+-- Intentionally no-op: production schema changes are already represented by
+-- the repository's authoritative reconstructed/current migrations.
