@@ -15,12 +15,12 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Super admins can manage products" ON public.products;
 CREATE POLICY "Super admins can manage products" ON public.products
   FOR ALL TO authenticated
-  USING (public.has_role('super_admin'))
-  WITH CHECK (public.has_role('super_admin'));
+  USING (has_role(auth.uid(), 'super_admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'super_admin'::app_role));
 DROP POLICY IF EXISTS "Admins can view products" ON public.products;
 CREATE POLICY "Admins can view products" ON public.products
   FOR SELECT TO authenticated
-  USING (public.has_role('admin'));
+  USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- Risk flags table
 CREATE TABLE IF NOT EXISTS public.risk_flags (
@@ -42,12 +42,12 @@ ALTER TABLE public.risk_flags ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Super admins can manage risk flags" ON public.risk_flags;
 CREATE POLICY "Super admins can manage risk flags" ON public.risk_flags
   FOR ALL TO authenticated
-  USING (public.has_role('super_admin'))
-  WITH CHECK (public.has_role('super_admin'));
+  USING (has_role(auth.uid(), 'super_admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'super_admin'::app_role));
 DROP POLICY IF EXISTS "Admins can view risk flags" ON public.risk_flags;
 CREATE POLICY "Admins can view risk flags" ON public.risk_flags
   FOR SELECT TO authenticated
-  USING (public.has_role('admin') OR public.has_role('compliance_team'));
+  USING (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'compliance_team'::app_role));
 
 -- Payroll integrations table
 CREATE TABLE IF NOT EXISTS public.payroll_integrations (
@@ -65,12 +65,12 @@ ALTER TABLE public.payroll_integrations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Super admins can manage payroll integrations" ON public.payroll_integrations;
 CREATE POLICY "Super admins can manage payroll integrations" ON public.payroll_integrations
   FOR ALL TO authenticated
-  USING (public.has_role('super_admin'))
-  WITH CHECK (public.has_role('super_admin'));
+  USING (has_role(auth.uid(), 'super_admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'super_admin'::app_role));
 DROP POLICY IF EXISTS "Admins can view payroll integrations" ON public.payroll_integrations;
 CREATE POLICY "Admins can view payroll integrations" ON public.payroll_integrations
   FOR SELECT TO authenticated
-  USING (public.has_role('admin'));
+  USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- Triggers for updated_at
 DROP TRIGGER IF EXISTS update_products_updated_at ON public.products;
