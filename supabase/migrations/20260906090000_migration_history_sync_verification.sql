@@ -1,3 +1,3 @@
 -- Supabase migration-history verification marker.
--- No schema change. This commit intentionally retriggers the Supabase Preview
--- environment after stale preview branch cleanup.
+-- No schema change. This marker only retriggers the Supabase Preview branch
+-- after stale preview cleanup; it must remain a no-op.
