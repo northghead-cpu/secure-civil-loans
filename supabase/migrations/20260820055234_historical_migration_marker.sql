@@ -1,2 +1,0 @@
--- Historical migration marker for remote version 20260820055234.
--- Preserve remote migration ordering; no production history rewrite.
