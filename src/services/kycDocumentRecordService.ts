@@ -1,3 +1,5 @@
+import { parseOcrPayslipPeriod } from "./payslipPeriodValidationService";
+
 export type KycDocumentType = "NRC" | "GOV_ID" | "PAYSLIP" | "INTRODUCTORY_LETTER";
 
 export interface KycDocumentUpload {
@@ -25,12 +27,21 @@ export const buildKycDocumentRecords = ({
   userId: string;
   uploads: KycDocumentUpload[];
 }): KycDocumentRecord[] =>
-  uploads.map(({ documentType, storagePath, payPeriod, ocrPeriod, ocrConfidence }) => ({
-    user_id: userId,
-    document_type: documentType,
-    storage_path: storagePath,
-    ...(payPeriod ? { pay_period: payPeriod } : {}),
-    ...(ocrPeriod ? { ocr_period: ocrPeriod } : {}),
-    ...(ocrConfidence != null ? { ocr_confidence: ocrConfidence } : {}),
-    validation_status: "PENDING",
-  }));
+  uploads.map(({ documentType, storagePath, payPeriod, ocrPeriod, ocrConfidence }) => {
+    const detected = documentType === "PAYSLIP" && !payPeriod ? parseOcrPayslipPeriod(ocrPeriod) : null;
+    const resolvedPayPeriod = payPeriod ?? (detected ? `${detected.key}-01` : undefined);
+
+    if (documentType === "PAYSLIP" && !resolvedPayPeriod) {
+      throw new Error("PAYSLIP document record requires a valid OCR pay period");
+    }
+
+    return {
+      user_id: userId,
+      document_type: documentType,
+      storage_path: storagePath,
+      ...(resolvedPayPeriod ? { pay_period: resolvedPayPeriod } : {}),
+      ...(ocrPeriod ? { ocr_period: ocrPeriod } : {}),
+      ...(ocrConfidence != null ? { ocr_confidence: ocrConfidence } : {}),
+      validation_status: "PENDING",
+    };
+  });
