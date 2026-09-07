@@ -52,11 +52,19 @@ type ApplicationHandoffs = {
   Relationships: [];
 };
 
+type KycDocuments = {
+  Row: { id: string; user_id: string; document_type: string; storage_path: string; pay_period: string | null; ocr_period: string | null; ocr_confidence: number | null; validation_status: string; rejection_reason: string | null; created_at: string; updated_at: string };
+  Insert: { id?: string; user_id: string; document_type: string; storage_path: string; pay_period?: string | null; ocr_period?: string | null; ocr_confidence?: number | null; validation_status?: string; rejection_reason?: string | null; created_at?: string; updated_at?: string };
+  Update: { id?: string; user_id?: string; document_type?: string; storage_path?: string; pay_period?: string | null; ocr_period?: string | null; ocr_confidence?: number | null; validation_status?: string; rejection_reason?: string | null; created_at?: string; updated_at?: string };
+  Relationships: [];
+};
+
 type ExtendedFunctions = BaseDatabase['public']['Functions'] & {
   authorize_application_handoff: { Args: { _lender_product_id: string; _requested_amount: number; _signature_name: string; _term_months: number }; Returns: string };
 };
 
-type ExtendedTables = Omit<BaseDatabase['public']['Tables'], 'application_handoffs' | 'audit_logs' | 'automation_rules' | 'bank_products' | 'incidents' | 'lender_commission_settings' | 'system_settings'> & {
+type ExtendedTables = BaseDatabase['public']['Tables'] & {
+  kyc_documents: KycDocuments;
   application_handoffs: ApplicationHandoffs;
   audit_logs: AuditLogs;
   automation_rules: AutomationRules;
