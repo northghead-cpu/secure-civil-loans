@@ -104,7 +104,7 @@ const StrictKYCPage = () => {
       const files = [
         { documentType: "NRC" as const, field: "nrc", file: nrcFile },
         { documentType: "GOV_ID" as const, field: "gov-id", file: govIdFile },
-        ...payslips.map((slot) => ({ documentType: "PAYSLIP" as const, field: "payslip", file: slot.file!, ocrPeriod: slot.result?.pay_period ?? null, payPeriod: slot.result?.pay_period ? `${slot.result.pay_period.slice(0, 7)}-01` : undefined, ocrConfidence: slot.result?.confidence ?? null })),
+        ...payslips.map((slot) => ({ documentType: "PAYSLIP" as const, field: "payslip", file: slot.file!, ocrPeriod: slot.result?.pay_period ?? null, ocrConfidence: slot.result?.confidence ?? null })),
         { documentType: "INTRODUCTORY_LETTER" as const, field: "introductory-letter", file: introductoryLetter },
       ];
       const uploadedDocuments = [];
@@ -117,7 +117,7 @@ const StrictKYCPage = () => {
       }
       const documentRecords = buildKycDocumentRecords({
         userId: user.id,
-        uploads: uploadedDocuments.map(({ documentType, storagePath, payPeriod, ocrPeriod, ocrConfidence }) => ({ documentType, storagePath, payPeriod, ocrPeriod, ocrConfidence })),
+        uploads: uploadedDocuments.map(({ documentType, storagePath, ocrPeriod, ocrConfidence }) => ({ documentType, storagePath, ocrPeriod, ocrConfidence })),
       });
       const { error: documentError } = await supabase.from("kyc_documents" as never).insert(documentRecords as never);
       if (documentError) throw new Error("Failed to record KYC documents");
