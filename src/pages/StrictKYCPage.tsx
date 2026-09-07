@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { parsePayslip, type PayrollParseResult } from "@/services/payrollParsingService";
 import { parseNRC, parseGovernmentID, type IDParseResult, type IDDocumentType } from "@/services/idDocumentParsingService";
 import { getRequiredPayslipPeriods, validatePayslipPeriod } from "@/services/payslipPeriodValidationService";
+import { buildKycDocumentRecords } from "@/services/kycDocumentRecordService";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -100,13 +101,26 @@ const StrictKYCPage = () => {
     if (!consentAccepted) { toast.error("Please review and authorize your Riverbanc subscription."); return; }
     setSubmitting(true);
     try {
-      const files = [{ field: "nrc", file: nrcFile }, { field: "gov-id", file: govIdFile }, ...payslips.map((slot) => ({ field: "payslip", file: slot.file! })), { field: "introductory-letter", file: introductoryLetter }];
-      for (const { field, file } of files) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
-        const path = `${user.id}/${field}-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from("kyc-documents").upload(path, file, { upsert: false });
-        if (error) throw new Error(`Failed to upload ${field}`);
+      const files = [
+        { documentType: "NRC" as const, field: "nrc", file: nrcFile },
+        { documentType: "GOV_ID" as const, field: "gov-id", file: govIdFile },
+        ...payslips.map((slot) => ({ documentType: "PAYSLIP" as const, field: "payslip", file: slot.file!, ocrPeriod: slot.result?.pay_period ?? null, payPeriod: slot.result?.pay_period ? `${slot.result.pay_period.slice(0, 7)}-01` : undefined, ocrConfidence: slot.result?.confidence ?? null })),
+        { documentType: "INTRODUCTORY_LETTER" as const, field: "introductory-letter", file: introductoryLetter },
+      ];
+      const uploadedDocuments = [];
+      for (const document of files) {
+        const ext = document.file.name.split(".").pop()?.toLowerCase() || "pdf";
+        const path = `${user.id}/${document.field}-${Date.now()}.${ext}`;
+        const { error } = await supabase.storage.from("kyc-documents").upload(path, document.file, { upsert: false });
+        if (error) throw new Error(`Failed to upload ${document.field}`);
+        uploadedDocuments.push({ ...document, storagePath: path });
       }
+      const documentRecords = buildKycDocumentRecords({
+        userId: user.id,
+        uploads: uploadedDocuments.map(({ documentType, storagePath, payPeriod, ocrPeriod, ocrConfidence }) => ({ documentType, storagePath, payPeriod, ocrPeriod, ocrConfidence })),
+      });
+      const { error: documentError } = await supabase.from("kyc_documents" as never).insert(documentRecords as never);
+      if (documentError) throw new Error("Failed to record KYC documents");
       const { error: profileError } = await supabase.from("profiles").upsert({ user_id: user.id, full_name: parsed.data.fullName, nrc_number: parsed.data.nrcNumber, phone: parsed.data.phone, employer: parsed.data.employer, employee_number: parsed.data.employeeNumber, kyc_status: "IN_REVIEW", consent_accepted: true, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
       if (profileError) throw new Error("Failed to save KYC profile");
       await refreshProfile();
