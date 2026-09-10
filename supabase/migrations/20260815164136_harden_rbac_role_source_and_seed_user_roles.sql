@@ -1,9 +1,27 @@
 -- Make user_roles the single source of truth for authorization checks.
-insert into public.user_roles (user_id, role)
-select p.user_id, p.role::public.app_role
-from public.profiles p
-where p.role in ('admin','user','super_admin','super_user','compliance_team','data_entry_team')
-on conflict (user_id, role) do nothing;
+-- The legacy profiles.role column is not part of the current schema, so seed
+-- roles and revoke its UPDATE privilege only when that legacy column exists.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'profiles'
+      AND column_name = 'role'
+  ) THEN
+    EXECUTE $sql$
+      insert into public.user_roles (user_id, role)
+      select p.user_id, p.role::public.app_role
+      from public.profiles p
+      where p.role in ('admin','user','super_admin','super_user','compliance_team','data_entry_team')
+      on conflict (user_id, role) do nothing
+    $sql$;
+
+    EXECUTE 'revoke update (role) on public.profiles from anon, authenticated';
+  END IF;
+END
+$$;
 
 -- Replace the legacy text helper that read the mutable profiles.role column.
 create or replace function public.has_role(required_role text)
@@ -17,8 +35,6 @@ as $$
     where user_id = auth.uid() and role::text = required_role
   );
 $$;
-
-revoke update (role) on public.profiles from anon, authenticated;
 
 drop policy if exists "audit_admin_only" on public.audit_logs;
 create policy "audit_admin_only" on public.audit_logs

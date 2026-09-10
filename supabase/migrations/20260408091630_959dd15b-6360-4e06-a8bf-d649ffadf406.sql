@@ -1,6 +1,6 @@
 
 -- Products table for Product Management
-CREATE TABLE public.products (
+CREATE TABLE IF NOT EXISTS public.products (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -12,18 +12,18 @@ CREATE TABLE public.products (
 );
 
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "Super admins can manage products" ON public.products;
 CREATE POLICY "Super admins can manage products" ON public.products
   FOR ALL TO authenticated
   USING (has_role(auth.uid(), 'super_admin'::app_role))
   WITH CHECK (has_role(auth.uid(), 'super_admin'::app_role));
-
+DROP POLICY IF EXISTS "Admins can view products" ON public.products;
 CREATE POLICY "Admins can view products" ON public.products
   FOR SELECT TO authenticated
   USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- Risk flags table
-CREATE TABLE public.risk_flags (
+CREATE TABLE IF NOT EXISTS public.risk_flags (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   application_id UUID NOT NULL,
   user_id UUID NOT NULL,
@@ -39,18 +39,18 @@ CREATE TABLE public.risk_flags (
 );
 
 ALTER TABLE public.risk_flags ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "Super admins can manage risk flags" ON public.risk_flags;
 CREATE POLICY "Super admins can manage risk flags" ON public.risk_flags
   FOR ALL TO authenticated
   USING (has_role(auth.uid(), 'super_admin'::app_role))
   WITH CHECK (has_role(auth.uid(), 'super_admin'::app_role));
-
+DROP POLICY IF EXISTS "Admins can view risk flags" ON public.risk_flags;
 CREATE POLICY "Admins can view risk flags" ON public.risk_flags
   FOR SELECT TO authenticated
   USING (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'compliance_team'::app_role));
 
 -- Payroll integrations table
-CREATE TABLE public.payroll_integrations (
+CREATE TABLE IF NOT EXISTS public.payroll_integrations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   provider_name TEXT NOT NULL,
   api_endpoint TEXT,
@@ -62,22 +62,25 @@ CREATE TABLE public.payroll_integrations (
 );
 
 ALTER TABLE public.payroll_integrations ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "Super admins can manage payroll integrations" ON public.payroll_integrations;
 CREATE POLICY "Super admins can manage payroll integrations" ON public.payroll_integrations
   FOR ALL TO authenticated
   USING (has_role(auth.uid(), 'super_admin'::app_role))
   WITH CHECK (has_role(auth.uid(), 'super_admin'::app_role));
-
+DROP POLICY IF EXISTS "Admins can view payroll integrations" ON public.payroll_integrations;
 CREATE POLICY "Admins can view payroll integrations" ON public.payroll_integrations
   FOR SELECT TO authenticated
   USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_products_updated_at ON public.products;
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON public.products
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_risk_flags_updated_at ON public.risk_flags;
 CREATE TRIGGER update_risk_flags_updated_at BEFORE UPDATE ON public.risk_flags
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_payroll_integrations_updated_at ON public.payroll_integrations;
 CREATE TRIGGER update_payroll_integrations_updated_at BEFORE UPDATE ON public.payroll_integrations
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
