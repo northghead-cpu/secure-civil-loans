@@ -107,7 +107,8 @@
     "glob": "10.5.0",
     "minimatch": "9.0.9",
     "brace-expansion": "2.1.4",
-    "fast-uri": "3.1.7"
+    "fast-uri": "3.1.7",
+    "proxy-addr": "2.0.8"
   },
   "description": "**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID",
   "main": "eslint.config.js",
