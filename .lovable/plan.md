@@ -1,38 +1,37 @@
-# Riverbanc public SEO + search branding patch
+# Riverbanc Email System Audit (report only, no changes made this turn)
 
-## Audit results (verified this turn)
+## 1. Email provider actually configured
+- Project sender email domain: none configured (Lovable email setup status: not_started).
+- Project secrets: only `GOOGLE_SHEETS_API_KEY` and `LOVABLE_API_KEY`. No Resend, Brevo, Mailgun, SendGrid or Postmark key.
+- Workspace connections: a "Brian's Resend" connection exists but is NOT linked to this project. No Brevo or Mailgun connection exists.
+- Codebase: no email-sending code, no email templates, no `auth-email-hook` or send-email functions.
+- Conclusion: no transactional email provider is connected to Riverbanc. Auth emails go out through the default Lovable sender with default templates.
 
-- **`https://www.riverbanc.co.zm/` is not configured.** The project has only the preview URL and the published `https://riverbanc.lovable.app`; no custom domain is attached. Flagging rather than guessing — I will keep `https://riverbanc.lovable.app` as the canonical host until the domain is connected and verified in Project Settings → Domains.
-- **`index.html`** already carries the requested title, description, OG title/description, `og:type`, `og:site_name`, `twitter:card`, `theme-color`, canonical, `og:url`, and Organization + WebSite JSON-LD. No `@Lovable` handle and no R2/Lovable preview image remain. What is missing: any `<link rel="icon">` / apple-touch-icon / manifest reference, and `twitter:url`.
-- **`public/favicon.ico`** is the stock Lovable icon (20 KB) and is still what browsers fetch by default.
-- **No Riverbanc logo exists in the project** — `src/config/logo.ts` points at `/logo.png`, which is not in `public/`; `src/assets` holds only `hero-bg.jpg`. **No user upload is mounted this turn**, so the supplied logo is not accessible to me.
-- **`public/robots.txt`** — production domain in the `Sitemap:` directive, marketing pages allowed, private routes (`/admin`, `/profile`, `/apply`, `/underwriting`, `/application-submitted`) disallowed. Correct as-is.
-- **`public/sitemap.xml`** — 5 URLs on the production domain. One issue: `/login` is listed; an auth page has no search value.
-- **`public/llms.txt`** — already on the approved description, no Lovable branding.
-- **Per-route Helmet canonicals** (`ComparePage`, `PrivacyPolicy`, `RetentionPolicy`) — already on the production domain, self-referencing correctly.
+## 2. Signup confirmation / welcome email
+- Signup sets `emailRedirectTo` to `<current site>/login` (plus `?next=` when present); the `/login` route exists.
+- Emails use the default unbranded template and sender. There is no separate welcome email.
+- Not verified: whether `https://riverbanc.co.zm` is on the allowed redirect list. No custom domain is attached to this project (only riverbanc.lovable.app), so links that start on the live domain may be refused.
 
-## The smallest safe patch
+## 3. Password reset and the /auth/callback flow
+- The app has no `/auth/callback` route. Before last turn's fix, reset links led to the "page not found" page.
+- Current state: the Forgot Password page now redirects to `<current site>/reset-password`. That page handles both `?code=` (PKCE) and hash-token (`type=recovery`) links, then signs the user out once the password is changed.
+- Remaining gap: the same as the redirect allowlist / custom domain gap in section 2.
 
-1. **`public/sitemap.xml`** — remove the `/login` entry (leaves `/`, `/compare`, `/privacy-policy`, `/retention-policy`).
-2. **`index.html`** — add the explicit icon block and `twitter:url`:
-   - `<link rel="icon" href="/favicon.ico" type="image/x-icon">` placeholder now, repointed to the Riverbanc PNG the moment the logo lands.
-   - `<meta name="twitter:url" content="https://riverbanc.lovable.app/">` for consistency with `og:url`.
-   - No JSON-LD changes: the existing Organization/WebSite blocks contain only verified facts (name, legalName, url, description, `areaServed: "ZM"`). No registration number, address, phone, or social profile will be invented.
+## 4. Receipt emails
+- No receipt implementation exists in the code or the backend functions.
+- Live database: there is no payments, receipts, invoices or transactions table. `payouts` holds payouts to lenders, not customer payments.
+- The `subscription_authorizations` (K60/month) migration exists in the repo but the table is not in the live database.
+- No payment provider or webhook confirms a successful customer payment, so there is no real event to send a receipt from.
 
-## Blocked on the logo asset (not substituted)
+## 5. Other configuration mismatch
+- `supabase/config.toml` and the fallback in `src/integrations/supabase/config.ts` point to a different backend project (`zdpeax...`) from the one the app actually uses (`amjbv...`, via the environment settings). This is harmless today, but it's misleading and risky if the environment settings ever go missing.
 
-These stay open until the logo file is re-attached and visible in the mount:
+## Human actions required
+1. Pick an email path: Lovable built-in email (add a domain you own, e.g. riverbanc.co.zm, via the email setup dialog), or explicitly choose Resend (link the connection and verify the domain in Resend).
+2. Connect riverbanc.co.zm as the project's custom domain. Make sure `https://riverbanc.co.zm/login` and `/reset-password` are allowed sign-in redirect URLs.
+3. Name the source of truth for successful payments (payment provider or payroll-deduction confirmation process), so receipts can be tied to a real paid record.
+4. Decide whether the missing `subscription_authorizations` migration should be applied to the live database.
 
-- 16/32/48 favicon PNGs + `favicon.ico`, 180 Apple touch icon, 192/512 app icons
-- `public/manifest.webmanifest` and its `<link rel="manifest">`
-- 1200×630 Riverbanc `og:image` / `twitter:image`
-
-I will not design, generate, or borrow a stand-in logo. Once the file is available, that becomes a second, equally narrow pass: generate icons from the official artwork, delete `public/favicon.ico`, and point the tags at the new files.
-
-## Out of scope
-
-No dependencies, no database or RLS changes, no auth/underwriting/admin/business-logic edits, no changes to `public/_headers`, `vercel.json`, or `package.json` metadata.
-
-## Domain switch, on request
-
-When `www.riverbanc.co.zm` is verified, one follow-up pass swaps the host in `index.html` (canonical, `og:url`, `twitter:url`, both JSON-LD `url` fields), `public/sitemap.xml`, `public/robots.txt`, and the three Helmet route heads.
+## Proposed next steps (only after the actions above)
+- Branded Riverbanc verification and password-reset emails, using the managed auth email templates.
+- A `payments`/`receipts` record written only on confirmed success, plus a receipt app email triggered from it. The receipt uses an idempotency key derived from the receipt ID, and logs contain no PII or tokens.
