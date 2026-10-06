@@ -109,7 +109,9 @@
     "hono": "4.13.9",
     "ip-address": "10.7.2",
     "qs": "6.16.0",
-    "source-map-js": "1.2.2"
+    "source-map-js": "1.2.2",
+    "yaml": "2.8.3",
+    "postcss-selector-parser": "6.1.4"
   },
   "packages": {
     "@21st-sdk/agent": ["@21st-sdk/agent@0.0.16", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@21st-sdk/agent/-/agent-0.0.16.tgz", { "dependencies": { "@21st-sdk/node": "^0.0.9" }, "peerDependencies": { "zod": ">=3.24" } }, "sha512-bMvMAGay7b5RD1x3rybBKCWTFxv7fa4fGkEquJsMH9xwxH2mV9S0im6KJV8NZ5Mbt/frAxZYVhM8ZL8DNfw6jw=="],
@@ -1410,7 +1412,7 @@
 
     "xmlchars": ["xmlchars@2.2.0", "", {}, "sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw=="],
 
-    "yaml": ["yaml@2.6.0", "", { "bin": "bin.mjs" }, "sha512-a6ae//JvKDEra2kdi1qzCyrJW/WZCgFi8ydDV+eXExl95t+5R+ijnqHJbz9tmMh8FUjx3iv2fCQ4dclAQlO2UQ=="],
+    "yaml": ["yaml@2.8.3", "", { "bin": "bin.mjs", "engines": { "node": ">= 14.6" } }, "sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg=="],
 
     "yocto-queue": ["yocto-queue@0.1.0", "", {}, "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="],
 
