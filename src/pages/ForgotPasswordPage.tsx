@@ -34,9 +34,11 @@ const ForgotPasswordPage = () => {
 
     setLoading(true);
     try {
-      // Use dynamic origin to support multiple environments (Lovable preview + custom domain)
+      // Use dynamic origin to support multiple environments (Lovable preview + custom domain).
+      // Redirect straight to /reset-password, which handles both PKCE (?code=) and
+      // hash-token recovery. (There is no /auth/callback route in this app.)
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       // Always show generic success to prevent email enumeration; never
       // log the raw error (Supabase includes internal identifiers).
