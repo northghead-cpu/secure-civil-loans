@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
     authHeader.replace("Bearer ", ""),
   );
   const userId = claims?.claims?.sub as string | undefined;
+  const aal = claims?.claims?.aal as string | undefined;
   if (claimsErr || !userId) return json({ error: "Unauthorized" }, 401);
 
   const [{ data: isAdmin }, { data: isSuperAdmin }] = await Promise.all([
@@ -106,6 +107,7 @@ Deno.serve(async (req) => {
     asUser.rpc("has_role", { _user_id: userId, _role: "super_admin" }),
   ]);
   if (!isAdmin && !isSuperAdmin) return json({ error: "Forbidden" }, 403);
+  if (aal !== "aal2") return json({ error: "MFA required" }, 403);
 
   if (!LOVABLE_API_KEY || !GOOGLE_SHEETS_API_KEY) {
     return json(
