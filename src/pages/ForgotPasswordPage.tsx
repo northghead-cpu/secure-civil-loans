@@ -54,8 +54,8 @@ const ForgotPasswordPage = () => {
       });
     } catch (err: unknown) {
       recordFailure(scope);
-      const msg = err instanceof Error ? err.message : "Failed to send reset email";
-      setError(msg);
+      // Keep the recovery flow generic even when the provider throws.
+      setError("Unable to process the request right now. Please try again later.");
     } finally {
       setLoading(false);
     }

@@ -157,9 +157,10 @@ const AuthPage = () => {
         lower.includes("user not found") ||
         lower.includes("email not confirmed") ||
         lower.includes("credentials");
-      const displayMessage = isAuthLookupError
-        ? "Invalid email or password combination."
-        : rawMessage;
+      // Never reflect backend/provider error text to the browser. Keep auth
+      // failures generic so internal identifiers, provider details, and lookup
+      // signals cannot become an information disclosure channel.
+      const displayMessage = "Authentication failed. Please check your details and try again.";
 
       // Record failure against both the per-email and global buckets. The
       // global bucket also tracks distinct emails so rotating addresses

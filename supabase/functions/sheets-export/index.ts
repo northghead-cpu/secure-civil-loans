@@ -900,10 +900,13 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Sync failed";
-    console.error("sheets-export failed:", message);
+    // Log only a bounded internal diagnostic; never return or persist provider
+    // error bodies because they can contain identifiers, URLs, or secrets.
+    const diagnostic = message.replace(/[\r\n\t]+/g, " ").slice(0, 160);
+    console.error("sheets-export failed:", diagnostic);
     await db
       .from("report_sync_state")
-      .upsert({ id: "google_sheets", last_error: message.slice(0, 500) });
-    return json({ error: "Report sync failed", details: message }, 502);
+      .upsert({ id: "google_sheets", last_error: "Report sync failed" });
+    return json({ error: "Report sync failed" }, 502);
   }
 });

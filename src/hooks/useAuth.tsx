@@ -107,6 +107,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         setSession(session);
         setUser(session?.user ?? null);
+        if (event === "SIGNED_IN") {
+          localStorage.setItem("rb.sessionStart", Date.now().toString());
+          localStorage.setItem("rb.lastActivity", Date.now().toString());
+        }
         if (session?.user) {
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
@@ -120,6 +124,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        const started = Number(localStorage.getItem("rb.sessionStart") || 0);
+        if (!started) {
+          localStorage.setItem("rb.sessionStart", Date.now().toString());
+          localStorage.setItem("rb.lastActivity", Date.now().toString());
+        }
         fetchProfile(session.user.id).then(() => setLoading(false));
       } else {
         setLoading(false);
