@@ -1,0 +1,5 @@
+-- Historical migration marker for the exact remote Supabase version.
+-- Remote version: 20260813192552
+-- Remote name: fix_kyc_storage_object_name_regex
+-- Intentionally no-op: the repository retains the authoritative reconstructed
+-- schema migration under the current lineage rather than rewriting remote history.
