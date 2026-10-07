@@ -39,25 +39,27 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Audit production dependencies
         run: |
-          set +e
-          timeout 120s npm audit --no-package-lock --omit=dev --audit-level=high
-          status=$?
-          set -e
-          if [ "$status" -eq 124 ]; then
-            echo "::warning::Production dependency audit timed out; CI cannot confirm advisory availability. This is an infrastructure limitation, not a clean audit result."
-          elif [ "$status" -ne 0 ]; then
-            exit "$status"
+          if timeout 120s npm audit --no-package-lock --omit=dev --audit-level=high; then
+            echo "Production dependency audit completed successfully."
+          else
+            status=$?
+            if [ "$status" -eq 124 ]; then
+              echo "::warning::Production dependency audit timed out; CI cannot confirm advisory availability. This is an infrastructure limitation, not a clean audit result."
+            else
+              exit "$status"
+            fi
           fi
       - name: Audit dev dependencies (non-blocking)
         run: |
-          set +e
-          timeout 60s bun audit --audit-level=high
-          status=$?
-          set -e
-          if [ "$status" -eq 124 ]; then
-            echo "::warning::Development dependency audit timed out; CI cannot confirm advisory availability."
-          elif [ "$status" -ne 0 ]; then
-            echo "::warning::Development dependency audit reported high/critical findings or another audit error; production CI remains governed by the blocking runtime-dependency audit."
+          if timeout 60s bun audit --audit-level=high; then
+            echo "Development dependency audit completed successfully."
+          else
+            status=$?
+            if [ "$status" -eq 124 ]; then
+              echo "::warning::Development dependency audit timed out; CI cannot confirm advisory availability."
+            else
+              echo "::warning::Development dependency audit reported high/critical findings or another audit error; production CI remains governed by the blocking runtime-dependency audit."
+            fi
           fi
 
   secret-scan:
