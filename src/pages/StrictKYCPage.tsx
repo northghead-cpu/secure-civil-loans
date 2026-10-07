@@ -20,6 +20,7 @@ import { toast } from "sonner";
 interface PayslipSlot { file: File | null; result: PayrollParseResult | null; validating: boolean; }
 const emptySlot = (): PayslipSlot => ({ file: null, result: null, validating: false });
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"]);
 
 const StrictKYCPage = () => {
   const navigate = useNavigate();
@@ -63,6 +64,7 @@ const StrictKYCPage = () => {
   const handleIdentity = async (kind: "nrc" | "gov", file: File | null) => {
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) { toast.error("Identity document exceeds the 10MB limit."); return; }
+    if (!ALLOWED_UPLOAD_TYPES.has(file.type)) { toast.error("Unsupported identity document type."); return; }
     setParsingIdentity(true);
     try {
       const result = kind === "nrc" ? await parseNRC(file) : await parseGovernmentID(file, govIdType);
@@ -77,6 +79,7 @@ const StrictKYCPage = () => {
   const handlePayslip = async (index: number, file: File | null) => {
     if (!file) { setPayslips((current) => current.map((slot, i) => i === index ? emptySlot() : slot)); return; }
     if (file.size > MAX_FILE_BYTES) { toast.error("Payslip exceeds the 10MB limit."); return; }
+    if (!ALLOWED_UPLOAD_TYPES.has(file.type)) { toast.error("Unsupported payslip document type."); return; }
     setPayslips((current) => current.map((slot, i) => i === index ? { file, result: null, validating: true } : slot));
     try {
       const result = await parsePayslip(file);
@@ -98,6 +101,7 @@ const StrictKYCPage = () => {
     if (!nrcFile || !govIdFile) { toast.error("NRC and government ID documents are required."); return; }
     if (!allPeriodsPresent) { toast.error("All three latest completed monthly payslips are required."); return; }
     if (!introductoryLetter) { toast.error("Your government-issued employment introductory letter is required."); return; }
+    if (introductoryLetter.size > MAX_FILE_BYTES || !ALLOWED_UPLOAD_TYPES.has(introductoryLetter.type)) { toast.error("Unsupported or oversized introductory letter."); return; }
     if (!consentAccepted) { toast.error("Please review and authorize your Riverbanc subscription."); return; }
     setSubmitting(true);
     try {
@@ -111,7 +115,7 @@ const StrictKYCPage = () => {
       for (const document of files) {
         const ext = document.file.name.split(".").pop()?.toLowerCase() || "pdf";
         const path = `${user.id}/${document.field}-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from("kyc-documents").upload(path, document.file, { upsert: false });
+        const { error } = await supabase.storage.from("kyc-documents").upload(path, document.file, { upsert: false, contentType: document.file.type });
         if (error) throw new Error(`Failed to upload ${document.field}`);
         uploadedDocuments.push({ ...document, storagePath: path });
       }
