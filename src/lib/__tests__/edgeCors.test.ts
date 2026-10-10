@@ -26,6 +26,13 @@ describe("Riverbanc Edge Function CORS", () => {
     expect(headers.Vary).toBe("Origin");
   });
 
+  it("does not accept a lookalike hostname", () => {
+    const headers = corsHeadersFor(new Request("https://api.example.test", {
+      headers: { origin: "https://riverbanc.co.zm.attacker.example" },
+    }), "POST");
+    expect(headers["Access-Control-Allow-Origin"]).toBeUndefined();
+  });
+
   it("does not emit an allow-origin header for requests without Origin", () => {
     const headers = corsHeadersFor(new Request("https://api.example.test"), "POST");
     expect(headers["Access-Control-Allow-Origin"]).toBeUndefined();
