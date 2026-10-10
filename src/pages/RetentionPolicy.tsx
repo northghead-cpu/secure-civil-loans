@@ -33,7 +33,7 @@ const RetentionPolicy = () => (
           <div className="space-y-4">
             <div className="rounded-lg border border-border p-4 sm:p-5">
               <h3 className="font-semibold text-foreground mb-1">Draft, abandoned or incomplete loan applications — 12 months</h3>
-              <p>Applications created more than 12 months ago are deleted by the scheduled task only where the status is <em>draft</em>, <em>abandoned</em> or <em>incomplete</em> and no decision has been recorded. Submitted applications, applications with a decision, and records in other statuses are not deleted by this rule.</p>
+              <p>Applications whose last recorded update was more than 12 months ago are deleted by the scheduled task only where the status is <em>draft</em>, <em>abandoned</em> or <em>incomplete</em> and no decision has been recorded. Submitted applications, applications with a decision, and records in other statuses are not deleted by this rule.</p>
             </div>
             <div className="rounded-lg border border-border p-4 sm:p-5">
               <h3 className="font-semibold text-foreground mb-1">Platform notifications — 24 months</h3>
