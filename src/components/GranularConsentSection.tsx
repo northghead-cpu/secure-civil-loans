@@ -32,19 +32,28 @@ const GranularConsentSection = () => {
   }, [profile]);
 
   const toggle = async (key: ConsentKey, next: boolean) => {
-    if (!user) return;
-    setSaving(key);
+    if (!user || saving) return;
     const previous = values[key];
-    setValues((v) => ({ ...v, [key]: next }));
-    const { error } = await supabase.from("profiles").update({ [key]: next }).eq("user_id", user.id);
-    if (error) {
-      setValues((v) => ({ ...v, [key]: previous }));
-      toast.error("Could not update preference. Please try again.");
-    } else {
+    setSaving(key);
+    setValues((current) => ({ ...current, [key]: next }));
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ [key]: next })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      // Refresh profile data without switching the whole page into its loading state.
+      await refreshProfile();
       toast.success("Preference updated");
-      void refreshProfile();
+    } catch {
+      setValues((current) => ({ ...current, [key]: previous }));
+      toast.error("Could not update preference. Please try again.");
+    } finally {
+      setSaving(null);
     }
-    setSaving(null);
   };
 
   const updatedAt = profile?.consents_updated_at;
