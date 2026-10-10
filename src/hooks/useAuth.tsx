@@ -86,13 +86,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // Refresh existing profile data in the background. Only the initial profile
+  // load should block page content; preference changes must not blank the page.
   const refreshProfile = useCallback(async (): Promise<ProfileData | null> => {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser) {
-      return fetchProfile(currentUser.id);
-    }
-    return null;
-  }, [fetchProfile]);
+    if (!currentUser) return null;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary, nrc_verified, phone_verified, consent_accepted, consent_signed_at, consent_marketing, consent_data_sharing_lenders, consent_crb_check, consent_analytics, consents_updated_at")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    setProfile(data);
+    return data;
+  }, []);
 
   const clearPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
 
