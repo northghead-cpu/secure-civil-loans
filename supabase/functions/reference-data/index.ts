@@ -13,23 +13,13 @@
  * POST { action: "invalidate", resource?: "..." }   (admin/super_admin only)
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { corsHeadersFor } from "../_shared/cors.ts";
 import {
   CACHE_TTL,
   cacheDelPattern,
   cacheEnabled,
   cached,
 } from "../_shared/cache.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json", ...extra },
-  });
 
 const RESOURCES = ["catalogue", "comparison", "underwriting-reference", "crb-reference"] as const;
 type Resource = (typeof RESOURCES)[number];
@@ -59,6 +49,13 @@ const CRB_REFERENCE = {
 };
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req, "GET, POST");
+  const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json", ...extra },
+    });
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const authHeader = req.headers.get("Authorization");

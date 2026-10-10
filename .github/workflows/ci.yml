@@ -26,8 +26,10 @@ jobs:
         run: bun run build
 
   audit:
-    # Supply-chain gate: fail the build on any high/critical advisory in
-    # runtime dependencies. Dev-only vulns are reported but don't block.
+    # Supply-chain gate: fail on high/critical runtime dependency advisories.
+    # Bun's workspace-root --prod audit currently includes this dev-only Tailwind/braces
+    # advisory; no upstream braces fix is published. Ignore it only in this blocking gate.
+    # The non-blocking full audit below still reports it for tracking.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -36,7 +38,7 @@ jobs:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
       - name: Audit production dependencies
-        run: bun audit --prod --audit-level=high
+        run: bun audit --prod --audit-level=high --ignore GHSA-vfj7-8cjw-p6xm
       - name: Audit dev dependencies (non-blocking)
         continue-on-error: true
         run: bun audit --audit-level=high
