@@ -68,7 +68,7 @@ const SupportPage = ({ staffMode = false }: { staffMode?: boolean }) => {
     if (!selected) { setMessages([]); return; }
     setStatus(selected.status); setPriority(selected.priority);
     void loadMessages(selected.id);
-  }, [selectedId, selected?.status, selected?.priority, loadMessages]);
+  }, [selected, loadMessages]);
 
   const createCase = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
