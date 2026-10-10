@@ -38,6 +38,10 @@ describe("ForgotPasswordPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
 
     expect(await screen.findByRole("heading", { name: /check your email/i })).toBeInTheDocument();
+    expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      "customer@example.com",
+      { redirectTo: expect.stringMatching(/\/reset-password$/) },
+    );
     expect(screen.getByText(/didn't receive the email/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /contact support/i })).toHaveAttribute(
       "href",
