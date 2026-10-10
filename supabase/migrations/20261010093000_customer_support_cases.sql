@@ -193,8 +193,7 @@ begin
   update public.support_cases
   set last_message_at = now(),
       updated_at = now(),
-      status = case when not v_is_staff and status = 'resolved' then 'open' else status end,
-      closed_at = case when v_is_staff and status = 'closed' then now() else closed_at end
+      status = case when not v_is_staff and status = 'resolved' then 'open' else status end
   where id = p_case_id;
 
   return v_message_id;
