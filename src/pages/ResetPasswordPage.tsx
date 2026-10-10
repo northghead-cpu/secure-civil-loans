@@ -25,7 +25,6 @@ const ResetPasswordPage = () => {
   useEffect(() => {
     let active = true;
     let recoveryConfirmed = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     let subscription: { unsubscribe: () => void } | undefined;
 
     const markReady = () => {
@@ -40,8 +39,8 @@ const ResetPasswordPage = () => {
       if (active && !recoveryConfirmed) setLinkInvalid(true);
     };
 
+    const timer = setTimeout(markInvalid, 10000);
     const code = searchParams.get("code");
-    timer = setTimeout(markInvalid, 10000);
 
     if (code) {
       // PKCE: exchange the one-time code and confirm a real session before
