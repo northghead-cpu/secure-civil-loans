@@ -150,7 +150,7 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
             {needsEnrollment ? (
               <>
                 <p className="text-sm text-muted-foreground">Set up an authenticator app before accessing privileged Riverbanc functions.</p>
-{qrCode && <img src={qrCode} alt="Riverbanc administrator MFA QR code" className="mx-auto h-48 w-48" />}
+                {qrCode && <img src={qrCode} alt="Riverbanc administrator MFA QR code" className="mx-auto h-48 w-48" />}
                 {setupKey && (
                   <section className="space-y-2 rounded-md border p-3" aria-label="Manual authenticator setup">
                     <p className="text-sm font-medium">Can\u0027t scan the QR code?</p>
