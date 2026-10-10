@@ -13,38 +13,27 @@ const DataErasureSection = () => {
         <CardHeader>
           <CardTitle className="text-lg font-display flex items-center gap-2">
             <Trash2 className="h-5 w-5 text-destructive" />
-            Data Erasure
+            Data erasure
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-foreground/90 leading-relaxed">
-            Under Section 60 of the Data Protection Act 2021, you have the right to request the
-            erasure of your personal data. Note: If you have an active financial obligation or
-            outstanding loan balance, deletion will be rejected. Legally settled historical records
-            must be archived for 7 years under banking laws.
+            Section 60 of Zambia's Data Protection Act No. 3 of 2021 provides a right to request erasure in specified circumstances. Riverbanc assesses each request against the purpose for holding each category of information and any applicable legal obligation or need to establish, exercise or defend a legal claim. An active loan or financial obligation does not automatically require all of your information to be retained. Where a record must lawfully be kept, access and use remain limited to the permitted purpose.
           </p>
-          <Button
-            variant="destructive"
-            onClick={() => setOpen(true)}
-            className="w-full sm:w-auto"
-          >
-            Request Account Deletion
+          <Button variant="destructive" onClick={() => setOpen(true)} className="w-full sm:w-auto">
+            Request data erasure
           </Button>
         </CardContent>
       </Card>
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Data Erasure Request</DialogTitle>
+            <DialogTitle>Data erasure request</DialogTitle>
             <DialogDescription className="pt-2 text-foreground/80">
-              To complete your identity verification and request data erasure, please contact our
-              Data Protection Officer. Verified requests are processed within 30 days.
+              Email <a className="underline text-primary" href="mailto:support@riverbanc.co.zm?subject=Privacy%20request">support@riverbanc.co.zm</a> with the subject "Privacy request". We may ask for information to verify your identity. We will assess the request and respond within the applicable statutory timeframe, generally 14 days under the Data Protection (General) Regulations. If any information cannot lawfully be erased, we will explain the applicable reason where appropriate.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setOpen(false)}>Close</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={() => setOpen(false)}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </>
