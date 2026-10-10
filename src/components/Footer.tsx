@@ -24,6 +24,7 @@ const Footer = () => {
               <Link to="/compare" className="block text-primary-foreground/50 text-sm hover:text-accent transition-colors">Compare Loans</Link>
               <Link to="/apply" className="block text-primary-foreground/50 text-sm hover:text-accent transition-colors">Get Started</Link>
               <Link to="/#how-it-works" className="block text-primary-foreground/50 text-sm hover:text-accent transition-colors">How It Works</Link>
+              <Link to="/support" className="block text-primary-foreground/50 text-sm hover:text-accent transition-colors">Customer Support</Link>
             </div>
           </div>
 
