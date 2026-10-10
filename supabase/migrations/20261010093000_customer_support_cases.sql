@@ -113,7 +113,7 @@ begin
     insert into public.support_case_events (case_id, actor_id, event_type, details)
     values (new.case_id, new.sender_id, 'message_added', jsonb_build_object('message_id', new.id, 'staff_reply', new.is_staff_reply));
   end if;
-  return coalesce(new, old);
+  return new;
 end;
 $$;
 
@@ -144,7 +144,7 @@ begin
   if p_message is null or char_length(btrim(p_message)) not between 1 and 10000 then
     raise exception 'Message must be between 1 and 10000 characters';
   end if;
-  if p_category not in ('account', 'kyc', 'application', 'loan_comparison', 'subscription', 'privacy', 'technical', 'other') then
+  if p_category is null or p_category not in ('account', 'kyc', 'application', 'loan_comparison', 'subscription', 'privacy', 'technical', 'other') then
     raise exception 'Invalid support category';
   end if;
 
