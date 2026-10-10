@@ -62,7 +62,7 @@ const ForgotPasswordPage = () => {
       setSent(true);
       toast({
         title: "Check your email",
-        description: "If an account exists for that email, follow the instructions on screen.",
+        description: "If an account exists, a reset email may arrive shortly. Check the on-screen guidance if it does not.",
       });
     } catch {
       recordFailure(scope);
