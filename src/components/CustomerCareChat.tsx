@@ -128,6 +128,14 @@ export default function CustomerCareChat() {
     setSending(false);
   };
 
+  useEffect(() => {
+    // Never retain a prior account's conversation if auth changes in an open tab.
+    setCases([]);
+    setCaseId(null);
+    setMessages([]);
+    setShowNewCase(false);
+  }, [user?.id]);
+
   const selectedCase = cases.find((item) => item.id === caseId) ?? null;
 
   return (
