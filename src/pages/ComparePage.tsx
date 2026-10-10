@@ -33,14 +33,21 @@ const ComparePage = () => {
     const checkKycAccess = async () => {
       try {
         // Fetch the latest profile before deciding access; initial context state may be null.
-        const latestProfile = await refreshProfile();
+        const { data: latestProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("kyc_status")
+          .eq("user_id", user.id)
+          .maybeSingle();
         if (cancelled) return;
+        if (profileError) throw profileError;
         const isAdmin = hasRole("super_admin") || hasRole("admin") || hasRole("super_user");
         const status = latestProfile?.kyc_status;
         if (!isAdmin && status !== "VERIFIED" && status !== "COMPLETED") {
           navigate("/apply", { replace: true });
           return;
         }
+        // Refresh the shared context only after the authoritative access check succeeds.
+        void refreshProfile().catch(() => undefined);
         setAccessCheckComplete(true);
       } catch {
         if (!cancelled) { setProductsError("We couldn't verify your profile status. Please refresh and try again."); setAccessCheckComplete(true); }
