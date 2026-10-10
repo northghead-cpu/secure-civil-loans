@@ -45,9 +45,9 @@ const GranularConsentSection = () => {
 
       if (error) throw error;
 
-      // Refresh profile data without switching the whole page into its loading state.
-      await refreshProfile();
       toast.success("Preference updated");
+      // Keep the saved switch responsive even if a follow-up profile read fails.
+      void refreshProfile().catch(() => undefined);
     } catch {
       setValues((current) => ({ ...current, [key]: previous }));
       toast.error("Could not update preference. Please try again.");
