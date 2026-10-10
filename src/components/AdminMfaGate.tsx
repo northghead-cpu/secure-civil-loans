@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Check, Copy, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRBAC } from "@/hooks/useRBAC";
@@ -17,6 +17,8 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
   const [factorId, setFactorId] = useState("");
   const [challengeId, setChallengeId] = useState("");
   const [qrCode, setQrCode] = useState("");
+  const [setupKey, setSetupKey] = useState("");
+  const [copiedSetupKey, setCopiedSetupKey] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 
@@ -72,6 +74,7 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
         } else if (!cancelled) {
           setFactorId(enrollment.id);
           setQrCode(enrollment.totp.qr_code);
+          setSetupKey(enrollment.totp.secret);
           setNeedsEnrollment(true);
         }
         if (!cancelled) setLoading(false);
@@ -111,10 +114,17 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
       return;
     }
 
-    await supabase.auth.refreshSession();
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      setError("MFA was verified, but the session could not be refreshed. Refresh the page and verify your session before continuing.");
+      setLoading(false);
+      return;
+    }
     setCode("");
     setNeedsEnrollment(false);
     setQrCode("");
+    setSetupKey("");
+    setCopiedSetupKey(false);
     setChallengeId("");
     setLoading(true);
     const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -140,7 +150,23 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
             {needsEnrollment ? (
               <>
                 <p className="text-sm text-muted-foreground">Set up an authenticator app before accessing privileged Riverbanc functions.</p>
-                {qrCode && <img src={qrCode} alt="Riverbanc administrator MFA QR code" className="mx-auto h-48 w-48" />}
+{qrCode && <img src={qrCode} alt="Riverbanc administrator MFA QR code" className="mx-auto h-48 w-48" />}
+                {setupKey && (
+                  <section className="space-y-2 rounded-md border p-3" aria-label="Manual authenticator setup">
+                    <p className="text-sm font-medium">Can\u0027t scan the QR code?</p>
+                    <p className="text-xs text-muted-foreground">In your authenticator app, choose to enter a setup key manually. Keep this key private.</p>
+                    <div className="flex items-center gap-2">
+                      <code className="min-w-0 flex-1 break-all rounded bg-muted p-2 text-sm select-all">{setupKey}</code>
+                      <Button type="button" variant="outline" size="icon" aria-label="Copy MFA setup key" onClick={async () => {
+                        try { await navigator.clipboard.writeText(setupKey); setCopiedSetupKey(true); }
+                        catch { setError("Copy is unavailable in this browser. Select the setup key and copy it manually."); }
+                      }}>
+                        {copiedSetupKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {copiedSetupKey && <p className="text-xs text-muted-foreground">Setup key copied. Store it only in your authenticator app.</p>}
+                  </section>
+                )}
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Enter the current code from your authenticator app.</p>
