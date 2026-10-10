@@ -25,7 +25,7 @@ const RetentionPolicy = () => (
         <section className="space-y-3">
           <h2 className="font-display text-xl font-semibold text-foreground">1. Purpose and legal framework</h2>
           <p>Riverbanc Technology Limited ("Riverbanc", "we", "us" or "our") operates a loan-comparison technology platform. We are not a lender. This policy applies the storage-limitation and retention requirements of the Data Protection Act No. 3 of 2021, including section 51, together with any other legal or contractual record-keeping duty that actually applies to a particular record or service.</p>
-          <p>Personal information must not be kept indefinitely simply because it was once collected. We retain it while it is relevant to a specified purpose and for any additional period required by applicable law, then securely delete it or irreversibly anonymise it when retention is no longer justified.</p>
+          <p>Under section 51 of the Data Protection Act, personal information is kept while it is used and relevant to the specific purpose for which it was collected and for at least one year after that purpose ends, or for another period prescribed by law. Other applicable legal duties may require a different or longer period for a particular record. Personal information must not be kept indefinitely simply because it was once collected; when no lawful retention basis remains, it must be securely deleted or irreversibly anonymised.</p>
         </section>
         <section className="space-y-3">
           <h2 className="font-display text-xl font-semibold text-foreground">2. Automatic deletion rules currently configured</h2>
