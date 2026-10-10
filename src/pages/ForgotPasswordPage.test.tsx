@@ -58,6 +58,27 @@ describe("ForgotPasswordPage", () => {
     );
   });
 
+  it("uses Riverbanc's canonical domain for production reset links", async () => {
+    vi.stubEnv("PROD", true);
+    vi.mocked(supabase.auth.resetPasswordForEmail).mockResolvedValue({
+      data: {},
+      error: null,
+    } as never);
+
+    renderPage();
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: "customer@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+    await screen.findByRole("heading", { name: /check your email/i });
+    expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      "customer@example.com",
+      { redirectTo: "https://riverbanc.co.zm/reset-password" },
+    );
+    vi.unstubAllEnvs();
+  });
+
   it("allows the customer to retry after the generic confirmation", async () => {
     vi.mocked(supabase.auth.resetPasswordForEmail).mockResolvedValue({
       data: {},
