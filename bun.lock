@@ -83,8 +83,6 @@
         "jsdom": "^20.0.3",
         "lovable-tagger": "^1.1.13",
         "postcss": "8.5.26",
-    "proxy-addr": "2.0.8",
-    "qs": "6.16.0",
         "tailwindcss": "^3.4.19",
         "typescript": "^5.8.3",
         "typescript-eslint": "^8.67.0",
@@ -94,24 +92,24 @@
     },
   },
   "overrides": {
-    "vite": "6.4.3",
-    "postcss": "8.5.26",
-    "lodash": "4.18.1",
-    "nanoid": "3.3.18",
-    "ws": "8.21.1",
-    "rollup": "4.59.0",
-    "glob": "10.5.0",
-    "minimatch": "9.0.9",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "brace-expansion": "2.1.7",
     "fast-uri": "3.1.8",
-    "proxy-addr": "2.0.8",
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "glob": "10.5.0",
     "hono": "4.13.9",
     "ip-address": "10.7.2",
+    "lodash": "4.18.1",
+    "minimatch": "9.0.9",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.26",
+    "postcss-selector-parser": "6.1.4",
+    "proxy-addr": "2.0.8",
     "qs": "6.16.0",
+    "rollup": "4.59.0",
     "source-map-js": "1.2.2",
+    "vite": "6.4.3",
+    "ws": "8.21.1",
     "yaml": "2.8.3",
-    "postcss-selector-parser": "6.1.4"
   },
   "packages": {
     "@21st-sdk/agent": ["@21st-sdk/agent@0.0.16", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@21st-sdk/agent/-/agent-0.0.16.tgz", { "dependencies": { "@21st-sdk/node": "^0.0.9" }, "peerDependencies": { "zod": ">=3.24" } }, "sha512-bMvMAGay7b5RD1x3rybBKCWTFxv7fa4fGkEquJsMH9xwxH2mV9S0im6KJV8NZ5Mbt/frAxZYVhM8ZL8DNfw6jw=="],
@@ -1412,7 +1410,7 @@
 
     "xmlchars": ["xmlchars@2.2.0", "", {}, "sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw=="],
 
-    "yaml": ["yaml@2.8.3", "", { "bin": "bin.mjs", "engines": { "node": ">= 14.6" } }, "sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg=="],
+    "yaml": ["yaml@2.8.3", "", { "bin": "bin.mjs" }, "sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg=="],
 
     "yocto-queue": ["yocto-queue@0.1.0", "", {}, "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="],
 
