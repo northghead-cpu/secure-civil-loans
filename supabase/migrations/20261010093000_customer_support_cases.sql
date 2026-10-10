@@ -215,10 +215,10 @@ begin
     or (select private.has_role('super_user'))
     or (select private.has_role('compliance_team'))
   ) then raise exception 'Access denied'; end if;
-  if p_status not in ('open', 'in_progress', 'waiting_on_customer', 'resolved', 'closed') then
+  if p_status is null or p_status not in ('open', 'in_progress', 'waiting_on_customer', 'resolved', 'closed') then
     raise exception 'Invalid case status';
   end if;
-  if p_priority not in ('normal', 'high', 'urgent') then
+  if p_priority is null or p_priority not in ('normal', 'high', 'urgent') then
     raise exception 'Invalid case priority';
   end if;
 
