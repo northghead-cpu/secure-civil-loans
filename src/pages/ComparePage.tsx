@@ -43,7 +43,7 @@ const ComparePage = () => {
         }
         setAccessCheckComplete(true);
       } catch {
-        if (!cancelled) setProductsError("We couldn't verify your profile status. Please refresh and try again.");
+        if (!cancelled) { setProductsError("We couldn't verify your profile status. Please refresh and try again."); setAccessCheckComplete(true); }
       }
     };
     void checkKycAccess();
