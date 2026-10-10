@@ -103,7 +103,12 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
       }
     };
 
-    void check();
+    void check().catch(() => {
+      if (!cancelled) {
+        setError("MFA setup could not reach the authentication service. Retry when the connection is available.");
+        setLoading(false);
+      }
+    });
     return () => { cancelled = true; };
   }, [user, rolesLoading, privileged, retryCount]);
 
@@ -170,14 +175,19 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
     setChallengeId("");
     setFactorId("");
     setLoading(true);
-    const { data, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aalError || data.currentLevel !== "aal2") {
-      setError("MFA verification did not establish AAL2. Access remains blocked; retry verification.");
+    try {
+      const { data, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalError || data.currentLevel !== "aal2") {
+        setError("MFA verification did not establish AAL2. Access remains blocked; retry verification.");
+        setLoading(false);
+        return;
+      }
+      setError("");
       setLoading(false);
-      return;
+    } catch {
+      setError("MFA was verified, but the assurance level could not be confirmed. Access remains blocked; retry.");
+      setLoading(false);
     }
-    setError("");
-    setLoading(false);
   };
 
   if (!privileged) return <>{children}</>;
