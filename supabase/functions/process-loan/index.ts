@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { corsHeadersFor } from "../_shared/cors.ts";
 import { z } from "https://esm.sh/zod@3.23.8";
 
 const MAX_AMOUNT_ZMW = 100_000_000; // 100M ZMW upper bound sanity cap
@@ -26,11 +27,6 @@ const badRequest = (corsHeaders: Record<string, string>, message: string, detail
     status: 400,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const MAX_BODY_BYTES = 4 * 1024;
 const RATE_LIMIT_WINDOW_SEC = 60;
@@ -67,6 +63,7 @@ async function checkAndRecord(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req, "POST");
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
