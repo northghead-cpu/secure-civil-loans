@@ -37,7 +37,7 @@ const ForgotPasswordPage = () => {
       // Keep the redirect on the current origin so custom-domain and preview
       // environments return to the same app's recovery route.
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${import.meta.env.PROD ? "https://riverbanc.co.zm" : window.location.origin}/reset-password`,
       });
 
       if (resetError) {
