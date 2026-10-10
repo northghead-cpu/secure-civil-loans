@@ -36,7 +36,6 @@ export default function CustomerCareChat() {
   const [cases, setCases] = useState<SupportCase[]>([]);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
-  const [loadingCases, setLoadingCases] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [showNewCase, setShowNewCase] = useState(false);
@@ -46,7 +45,6 @@ export default function CustomerCareChat() {
 
   const loadCases = useCallback(async (quiet = false) => {
     if (!user) return;
-    if (!quiet) setLoadingCases(true);
     const { data, error } = await supabase
       .from("support_cases")
       .select("id,case_number,subject,status,last_message_at")
@@ -60,7 +58,6 @@ export default function CustomerCareChat() {
       setCaseId((current) => current && rows.some((row) => row.id === current)
         ? current : rows[0]?.id ?? null);
     }
-    if (!quiet) setLoadingCases(false);
   }, [user]);
 
   const loadMessages = useCallback(async (id: string, quiet = false) => {
