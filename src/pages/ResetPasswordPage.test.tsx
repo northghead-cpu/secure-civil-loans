@@ -72,7 +72,7 @@ describe("ResetPasswordPage", () => {
 
     renderPage();
 
-    fireEvent.change(await screen.findByLabelText(/new password/i), {
+    fireEvent.change(await screen.findByLabelText("New password"), {
       target: { value: "ValidPassword123!" },
     });
     fireEvent.change(screen.getByLabelText(/confirm new password/i), {
