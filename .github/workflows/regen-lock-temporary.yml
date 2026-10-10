@@ -19,6 +19,6 @@ jobs:
       - name: Emit refreshed lockfile for commit
         run: |
           echo LOCKFILE_BASE64_BEGIN
-          base64 -w0 bun.lock
+          base64 -w0 bun.lock | fold -w 76
           echo
           echo LOCKFILE_BASE64_END
