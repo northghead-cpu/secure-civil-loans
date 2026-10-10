@@ -52,6 +52,17 @@ CREATE TRIGGER trg_enforce_profile_insert_security_fields
   BEFORE INSERT ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.enforce_profile_insert_security_fields();
 
+DROP POLICY IF EXISTS profiles_admin_select_policy ON public.profiles;
+CREATE POLICY profiles_admin_select_policy ON public.profiles
+  FOR SELECT TO authenticated
+  USING (private.has_role('admin') OR private.has_role('super_admin'));
+
+DROP POLICY IF EXISTS profiles_admin_update_policy ON public.profiles;
+CREATE POLICY profiles_admin_update_policy ON public.profiles
+  FOR UPDATE TO authenticated
+  USING (private.has_role('admin') OR private.has_role('super_admin'))
+  WITH CHECK (private.has_role('admin') OR private.has_role('super_admin'));
+
 DROP POLICY IF EXISTS loan_applications_select_own_or_staff ON public.loan_applications;
 CREATE POLICY loan_applications_select_own_or_staff ON public.loan_applications
   FOR SELECT TO authenticated
