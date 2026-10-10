@@ -19,6 +19,7 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
   const [qrCode, setQrCode] = useState("");
   const [setupKey, setSetupKey] = useState("");
   const [copiedSetupKey, setCopiedSetupKey] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 
@@ -104,7 +105,19 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
 
     void check();
     return () => { cancelled = true; };
-  }, [user, rolesLoading, privileged]);
+  }, [user, rolesLoading, privileged, retryCount]);
+
+  const retryMfaSetup = () => {
+    setError("");
+    setLoading(true);
+    setFactorId("");
+    setChallengeId("");
+    setNeedsEnrollment(false);
+    setQrCode("");
+    setSetupKey("");
+    setCopiedSetupKey(false);
+    setRetryCount((count) => count + 1);
+  };
 
   const verify = async () => {
     setError("");
@@ -204,7 +217,12 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
             )}
             <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" />
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="w-full" onClick={verify} disabled={code.length !== 6}>Verify MFA</Button>
+            {error && !factorId && (
+              <Button type="button" variant="outline" className="w-full" onClick={retryMfaSetup}>
+                Retry MFA setup
+              </Button>
+            )}
+            <Button className="w-full" onClick={verify} disabled={code.length !== 6 || !factorId}>Verify MFA</Button>
           </CardContent>
         </Card>
       </main>
