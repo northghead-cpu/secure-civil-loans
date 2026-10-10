@@ -34,8 +34,8 @@ const ForgotPasswordPage = () => {
 
     setLoading(true);
     try {
-      // Keep the redirect on the current origin so custom-domain and preview
-      // environments return to the same app's recovery route.
+      // Production reset links always return to Riverbanc's canonical domain,
+      // even when the request originates from a Vercel preview deployment.
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
         redirectTo: `${import.meta.env.PROD ? "https://riverbanc.co.zm" : window.location.origin}/reset-password`,
       });
