@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import * as Sentry from "@sentry/react";
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState("");
@@ -22,50 +23,63 @@ const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // If there's a code query parameter (PKCE flow), exchange it for a session immediately
+    let active = true;
+    let recoveryConfirmed = false;
+    let subscription: { unsubscribe: () => void } | undefined;
+
+    const markReady = () => {
+      if (!active) return;
+      recoveryConfirmed = true;
+      if (timer) clearTimeout(timer);
+      setLinkInvalid(false);
+      setReady(true);
+    };
+
+    const markInvalid = () => {
+      if (active && !recoveryConfirmed) setLinkInvalid(true);
+    };
+
+    const timer = setTimeout(markInvalid, 10000);
     const code = searchParams.get("code");
+
     if (code) {
-      (async () => {
-        try {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            console.error("Failed to exchange code for session:", exchangeError);
-            setLinkInvalid(true);
-            return;
-          }
-          // Session established successfully
-          setReady(true);
-        } catch (err) {
-          console.error("Error exchanging code:", err);
-          setLinkInvalid(true);
+      // PKCE: exchange the one-time code and confirm a real session before
+      // allowing a password update.
+      void (async () => {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) throw exchangeError;
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.user) throw sessionError ?? new Error("Recovery session unavailable");
+        markReady();
+      })().catch(() => markInvalid());
+    } else {
+      // Implicit/hash flow: PASSWORD_RECOVERY is the authoritative signal.
+      const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          if (session?.user) markReady();
+          else markInvalid();
         }
-      })();
-      return;
+      });
+      subscription = authSubscription;
+
+      // The auth provider seeds recovery mode from the initial URL. If Supabase
+      // has already processed the hash, only accept it once a session exists.
+      if (isPasswordRecovery) {
+        void supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
+          if (!sessionError && session?.user) markReady();
+        }).catch(() => undefined);
+      }
     }
 
-    // Recovery sessions arrive via URL hash; Supabase parses it and fires
-    // PASSWORD_RECOVERY. Track readiness from either signal.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
-    });
-
-    if (isPasswordRecovery) setReady(true);
-
-    // If user lands here with neither a recovery token nor an existing
-    // recovery session, the link is missing/expired.
-    const timer = setTimeout(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session && !isPasswordRecovery) setLinkInvalid(true);
-      });
-    }, 1500);
-
     return () => {
-      subscription.unsubscribe();
-      clearTimeout(timer);
+      active = false;
+      if (timer) clearTimeout(timer);
+      subscription?.unsubscribe();
     };
-  }, [isPasswordRecovery, searchParams]);
+  // The recovery URL is processed once per route visit. Auth events and getSession
+  // handle session readiness without re-exchanging a one-time PKCE code.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +96,13 @@ const ResetPasswordPage = () => {
 
     setLoading(true);
     try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.user) {
+        setReady(false);
+        setLinkInvalid(true);
+        return;
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
 
@@ -100,10 +121,19 @@ const ResetPasswordPage = () => {
         1200,
       );
     } catch (err: unknown) {
-      const { sanitizeError } = await import("@/lib/errors");
-      const msg = sanitizeError(err, "Failed to update password. Please try again.");
+      const providerError = err as { name?: string; code?: string; status?: number };
+      Sentry.captureMessage("Password reset update rejected by auth provider", {
+        level: "error",
+        tags: { flow: "password-reset", provider: "supabase-auth", stage: "update-password" },
+        extra: {
+          errorName: providerError?.name,
+          errorCode: providerError?.code,
+          status: providerError?.status,
+        },
+      });
+      const msg = "We couldn't update your password. Your reset link may have expired. Request a new reset link and try again.";
       setError(msg);
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "Password update failed", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
