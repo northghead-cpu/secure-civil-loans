@@ -207,7 +207,7 @@ export default function AdminMfaGate({ children }: { children: ReactNode }) {
                 {qrCode && <img src={qrCode} alt="Riverbanc administrator MFA QR code" className="mx-auto h-48 w-48" />}
                 {setupKey && (
                   <section className="space-y-2 rounded-md border p-3" aria-label="Manual authenticator setup">
-                    <p className="text-sm font-medium">Can\u0027t scan the QR code?</p>
+                    <p className="text-sm font-medium">Can't scan the QR code?</p>
                     <p className="text-xs text-muted-foreground">In your authenticator app, choose to enter a setup key manually. Keep this key private.</p>
                     <div className="flex items-center gap-2">
                       <code className="min-w-0 flex-1 break-all rounded bg-muted p-2 text-sm select-all">{setupKey}</code>
