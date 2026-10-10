@@ -16,17 +16,7 @@
  * POST { action: "status" }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+import { corsHeadersFor } from "../_shared/cors.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -83,6 +73,13 @@ async function gateway(path: string, init: RequestInit = {}) {
 type Grid = (string | number)[][];
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req, "POST");
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
