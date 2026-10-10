@@ -309,12 +309,10 @@ const AuthPage = () => {
                 className="mt-1 h-4 w-4 shrink-0 rounded border-border accent-primary"
               />
               <span>
-                I am at least 18 years old and a resident of Zambia. I explicitly consent to Riverbanc
-                collecting, processing, and sharing my personal data (NRC, PMEC number, payslips) to
-                evaluate my loan applications as detailed in the{" "}
+                I confirm that I am at least 18 years old and a resident of Zambia. I have read the{" "}
                 <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</a>{" "}
                 and{" "}
-                <a href="/retention-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Data Retention Policy</a>.
+                <a href="/retention-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Data Retention Policy</a>. Riverbanc processes information needed to provide its comparison service. This checkbox does not authorise disclosure to a particular lender or a credit-reference check; the required separate authorization will be requested before either action.
               </span>
             </label>
           )}
