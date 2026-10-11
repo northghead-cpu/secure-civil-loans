@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Headset, MessageCircle, Minus, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +31,7 @@ const statusLabel: Record<SupportCase["status"], string> = {
  * and tables as the full support desk; it does not create a separate messaging store.
  */
 export default function CustomerCareChat() {
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [cases, setCases] = useState<SupportCase[]>([]);
@@ -137,6 +138,10 @@ export default function CustomerCareChat() {
   }, [user?.id]);
 
   const selectedCase = cases.find((item) => item.id === caseId) ?? null;
+
+  // The full support desk replaces the floating widget on these routes. This
+  // prevents the chat launcher from obscuring the case list, messages, or forms.
+  if (location.pathname === "/support" || location.pathname === "/admin/support") return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[100] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6" data-testid="customer-care-chat">
