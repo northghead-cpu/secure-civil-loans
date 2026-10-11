@@ -100,6 +100,79 @@ async function createReceiptPdf(receipt: Receipt): Promise<Uint8Array> {
   return pdf.save();
 }
 
+
+async function createTestReceiptPdf(customerName: string, testRunId: string): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([595.28, 841.89]);
+  const regular = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  page.drawText('RIVERBANC', { x: 48, y: 780, size: 22, font: bold, color: rgb(0.04, 0.24, 0.35) });
+  page.drawText('Technology Limited', { x: 48, y: 758, size: 10, font: regular, color: rgb(0.25, 0.30, 0.34) });
+  page.drawRectangle({ x: 42, y: 670, width: 511, height: 52, borderColor: rgb(0.72, 0.11, 0.11), borderWidth: 2 });
+  page.drawText('TEST ONLY — NOT PROOF OF PAYMENT', { x: 70, y: 690, size: 16, font: bold, color: rgb(0.72, 0.11, 0.11) });
+  page.drawText('Receipt PDF and email delivery test', { x: 48, y: 625, size: 15, font: bold, color: rgb(0.04, 0.24, 0.35) });
+  const rows: [string, string][] = [
+    ['Subscriber', customerName],
+    ['Illustrative amount', 'ZMW 60.00 per month'],
+    ['Payment status', 'NOT PAID — no payroll deduction confirmed'],
+    ['Test run', testRunId],
+    ['Billing period', 'Not assigned — test only'],
+  ];
+  let y = 575;
+  for (const [label, value] of rows) {
+    page.drawText(label, { x: 48, y, size: 10, font: bold, color: rgb(0.30, 0.34, 0.38) });
+    page.drawText(escapePdfText(value), { x: 190, y, size: 10, font: regular, color: rgb(0.10, 0.12, 0.14) });
+    y -= 34;
+  }
+  page.drawLine({ start: { x: 48, y: 380 }, end: { x: 547, y: 380 }, thickness: 1, color: rgb(0.82, 0.84, 0.86) });
+  page.drawText('No payment was received. No billing transaction or payment receipt was created.', { x: 48, y: 348, size: 9, font: bold, color: rgb(0.72, 0.11, 0.11) });
+  page.drawText('This document is intentionally watermarked for testing and must not be used', { x: 48, y: 330, size: 9, font: regular });
+  page.drawText('as proof of payment.', { x: 48, y: 314, size: 9, font: regular });
+  page.drawText('Riverbanc Technology Limited', { x: 48, y: 250, size: 10, font: bold });
+  page.drawText('Generated automatically for a non-financial pipeline test.', { x: 48, y: 80, size: 8, font: regular, color: rgb(0.45, 0.48, 0.50) });
+  return pdf.save();
+}
+
+async function sendTestReceiptEmail(
+  recipient: string,
+  customerName: string,
+  pdfBytes: Uint8Array,
+  userId: string,
+  testRunId: string,
+): Promise<EmailResult> {
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  const from = Deno.env.get('RESEND_FROM_EMAIL');
+  if (!apiKey || !from) return { ok: false, code: 'email_provider_not_configured', retryable: true };
+  const binary = Array.from(pdfBytes, (byte) => String.fromCharCode(byte)).join('');
+  const encoded = btoa(binary);
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': `riverbanc-test-receipt-${userId}-${testRunId}`,
+    },
+    body: JSON.stringify({
+      from,
+      to: [recipient],
+      subject: 'TEST ONLY — Riverbanc receipt PDF pipeline (not proof of payment)',
+      tags: [{ name: 'purpose', value: 'riverbanc-receipt-test' }],
+      html: `<p style="color:#b91c1c;font-weight:bold">TEST ONLY — NOT PROOF OF PAYMENT</p><p>Hello ${escapeHtml(customerName)},</p><p>This tests Riverbanc's production PDF generator and email delivery path. No payment was received, and no billing transaction or payment receipt was created.</p>`,
+      text: 'TEST ONLY — NOT PROOF OF PAYMENT. This tests Riverbanc\'s production PDF generator and email delivery path. No payment was received, and no billing transaction or payment receipt was created.',
+      attachments: [{ filename: `TEST-ONLY-${testRunId}.pdf`, content: encoded }],
+    }),
+  });
+  if (!response.ok) {
+    const retryable = response.status === 408 || response.status === 409 || response.status === 429 || response.status >= 500;
+    return { ok: false, code: `resend_http_${response.status}`, retryable };
+  }
+  const responseBody = await response.json().catch(() => ({}));
+  if (typeof responseBody.id !== 'string' || !responseBody.id) {
+    return { ok: false, code: 'resend_message_id_missing', retryable: true };
+  }
+  return { ok: true, messageId: responseBody.id, retryable: false };
+}
+
 async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array, attemptNumber: number): Promise<EmailResult> {
   if (!receipt.customer_email) return { ok: false, code: 'missing_customer_email', retryable: false };
 
@@ -141,6 +214,41 @@ export default {
   fetch: withSupabase({ auth: 'secret' }, async (req, ctx) => {
     try {
       const body = await req.json().catch(() => ({}));
+      if (body.mode === 'test_email') {
+        const userId = typeof body.test_user_id === 'string' ? body.test_user_id : '';
+        const testRunId = typeof body.test_run_id === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(body.test_run_id) ? body.test_run_id : '';
+        if (!userId || !testRunId) {
+          return Response.json({ ok: false, error: 'Test mode requires test_user_id and a unique test_run_id' }, { status: 400 });
+        }
+        const { data: authorization, error: authorizationError } = await ctx.supabaseAdmin
+          .from('subscription_authorizations')
+          .select('user_id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (authorizationError) throw authorizationError;
+        if (!authorization) return Response.json({ ok: false, error: 'Active subscription authorization not found' }, { status: 404 });
+        const { data: profile, error: profileError } = await ctx.supabaseAdmin
+          .from('profiles')
+          .select('full_name,email')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        if (!profile?.email) return Response.json({ ok: false, error: 'Registered email is unavailable' }, { status: 400 });
+        const customerName = profile.full_name || 'Riverbanc Subscriber';
+        const pdfBytes = await createTestReceiptPdf(customerName, testRunId);
+        const emailResult = await sendTestReceiptEmail(profile.email, customerName, pdfBytes, userId, testRunId);
+        return Response.json({
+          ok: emailResult.ok,
+          test_only: true,
+          payment_record_created: false,
+          billing_transaction_created: false,
+          payment_receipt_created: false,
+          email_status: emailResult.ok ? 'sent' : 'failed',
+          provider_message_id: emailResult.messageId ?? null,
+          error_code: emailResult.code ?? null,
+        }, { status: emailResult.ok ? 200 : 502 });
+      }
       const billingDate = typeof body.billing_date === 'string' ? body.billing_date : currentLusakaDate();
       assertBillingDate(billingDate);
 
