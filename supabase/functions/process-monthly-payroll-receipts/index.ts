@@ -100,7 +100,7 @@ async function createReceiptPdf(receipt: Receipt): Promise<Uint8Array> {
   return pdf.save();
 }
 
-async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array): Promise<EmailResult> {
+async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array, attemptNumber: number): Promise<EmailResult> {
   if (!receipt.customer_email) return { ok: false, code: 'missing_customer_email', retryable: false };
 
   const apiKey = Deno.env.get('RESEND_API_KEY');
@@ -114,7 +114,7 @@ async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array): Promise
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'Idempotency-Key': `riverbanc-receipt-${receipt.id}`,
+      'Idempotency-Key': `riverbanc-receipt-${receipt.id}-attempt-${attemptNumber}`,
     },
     body: JSON.stringify({
       from,
@@ -193,8 +193,8 @@ export default {
           if (documentError) throw documentError;
         }
 
-        const deliveryResult = await sendReceiptEmail(receipt, pdfBytes);
-        const nextAttempt = (delivery?.attempt_count ?? 0) + 1;
+        const nextAttempt = delivery.attempt_count + 1;
+        const deliveryResult = await sendReceiptEmail(receipt, pdfBytes, nextAttempt);
         const now = new Date().toISOString();
         const deliveryUpdate = {
           status: deliveryResult.ok ? 'sent' : 'failed',
