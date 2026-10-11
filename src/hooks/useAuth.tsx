@@ -111,10 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (event === "SIGNED_OUT") setIsPasswordRecovery(false);
         setSession(nextSession);
         setUser(nextSession?.user ?? null);
-        if (event === "SIGNED_IN") {
-          localStorage.setItem("rb.sessionStart", Date.now().toString());
-          localStorage.setItem("rb.lastActivity", Date.now().toString());
-        }
+        // Session-lifetime metadata is owned by useIdleTimeout. SIGNED_IN can
+        // also fire on session recovery, so it must never reset activity here.
         if (nextSession?.user) {
           const userId = nextSession.user.id;
           // Avoid awaiting Supabase calls inside onAuthStateChange; its auth lock
@@ -132,11 +130,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       if (initialSession?.user) {
-        const started = Number(localStorage.getItem("rb.sessionStart") || 0);
-        if (!started) {
-          localStorage.setItem("rb.sessionStart", Date.now().toString());
-          localStorage.setItem("rb.lastActivity", Date.now().toString());
-        }
         void fetchProfile(initialSession.user.id).finally(() => setLoading(false));
       } else {
         setProfile(null);
