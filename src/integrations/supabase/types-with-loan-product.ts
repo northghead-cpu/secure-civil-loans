@@ -14,6 +14,19 @@ type BankProducts = {
   Relationships: BaseBankProduct['Relationships'];
 };
 
+type SubscriptionAuthorization = {
+  Row: {
+    id: string; user_id: string; amount: number; currency: string; frequency: string;
+    deduction_method: string; status: string; payroll_status: string; signed_name: string | null;
+    authorized_at: string | null; revoked_at: string | null; created_at: string; updated_at: string;
+    signature_method: string | null; agreement_version: string | null; agreement_hash: string | null;
+    signature_hash: string | null; payroll_reference: string | null; payroll_confirmed_at: string | null;
+  };
+  Insert: Partial<SubscriptionAuthorization['Row']>;
+  Update: Partial<SubscriptionAuthorization['Row']>;
+  Relationships: [];
+};
+
 type BillingRun = {
   Row: { id: string; billing_date: string; period_start: string; period_end: string; timezone: 'Africa/Lusaka'; amount: number; currency: 'ZMW'; status: 'pending' | 'running' | 'completed' | 'partial' | 'failed'; eligible_count: number; confirmed_count: number; transaction_count: number; receipt_count: number; delivery_failure_count: number; started_at: string | null; completed_at: string | null; error_message: string | null; created_at: string; updated_at: string };
   Insert: Partial<BillingRun['Row']> & Pick<BillingRun['Row'], 'billing_date' | 'period_start' | 'period_end'>;
@@ -46,7 +59,7 @@ type PaymentReceiptRpcRow = { id: string; receipt_number: string; amount: number
 
 export type Database = Omit<BaseDatabase, 'public'> & {
   public: Omit<BaseDatabase['public'], 'Tables' | 'Functions'> & {
-    Tables: Omit<BaseDatabase['public']['Tables'], 'bank_products'> & { bank_products: BankProducts; billing_runs: BillingRun; billing_transactions: BillingTransaction; payment_receipts: PaymentReceipt; receipt_deliveries: ReceiptDelivery };
+    Tables: Omit<BaseDatabase['public']['Tables'], 'bank_products'> & { bank_products: BankProducts; subscription_authorizations: SubscriptionAuthorization; billing_runs: BillingRun; billing_transactions: BillingTransaction; payment_receipts: PaymentReceipt; receipt_deliveries: ReceiptDelivery };
     Functions: BaseDatabase['public']['Functions'] & { get_my_payment_receipts: { Args: Record<string, never>; Returns: PaymentReceiptRpcRow[] } };
   };
 };
