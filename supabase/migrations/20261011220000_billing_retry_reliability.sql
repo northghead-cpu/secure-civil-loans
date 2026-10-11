@@ -220,6 +220,8 @@ as $
 declare
   v_old public.payroll_deduction_confirmations;
   v_new public.payroll_deduction_confirmations;
+  v_auth_old public.subscription_authorizations;
+  v_auth_new public.subscription_authorizations;
   v_reference text := nullif(trim(coalesce(_payroll_reference, '')), '');
   v_evidence text := nullif(trim(coalesce(_evidence_reference, '')), '');
   v_role text;
@@ -290,6 +292,32 @@ begin
     when private.has_role('admin'::text) then 'admin'
     else 'compliance_team'
   end;
+
+  -- The first evidenced monthly deduction also completes initial payroll setup.
+  -- Later months use this period-specific table, never the one-time authorization flag.
+  if _status = 'confirmed' then
+    select * into v_auth_old
+    from public.subscription_authorizations
+    where user_id = _user_id and status = 'active'
+    for update;
+    if v_auth_old.payroll_status is distinct from 'confirmed' then
+      update public.subscription_authorizations
+      set payroll_status = 'confirmed',
+          payroll_reference = v_reference,
+          payroll_confirmed_at = now(),
+          updated_at = now()
+      where id = v_auth_old.id
+      returning * into v_auth_new;
+
+      insert into public.audit_logs(user_id, role, action_performed, record_id, table_name, old_value, new_value)
+      values (
+        auth.uid(), v_role, 'subscription_initial_payroll_setup_confirmed',
+        v_auth_new.id::text, 'subscription_authorizations',
+        jsonb_build_object('payroll_status', v_auth_old.payroll_status, 'payroll_reference', v_auth_old.payroll_reference),
+        jsonb_build_object('payroll_status', v_auth_new.payroll_status, 'payroll_reference', v_auth_new.payroll_reference, 'monthly_confirmation_id', v_new.id)
+      );
+    end if;
+  end if;
 
   insert into public.audit_logs(user_id, role, action_performed, record_id, table_name, old_value, new_value)
   values (
