@@ -2,12 +2,13 @@
 
 ## Production configuration
 
-The billing ledger and receipt PDF pipeline run through Supabase Edge Functions. Configure the following server-side secrets for the billing function:
+The billing ledger and receipt PDF pipeline run through Supabase Edge Functions. The function resolves email configuration through a service-role-only RPC backed by Supabase Vault:
 
-- RESEND_API_KEY — Resend API key.
-- RESEND_FROM_EMAIL — verified Riverbanc sender address.
+- `riverbanc_resend_api_key` — Resend sending-only API key restricted to the verified Riverbanc domain.
+- `riverbanc_resend_from_email` — verified sender address `no-reply@riverbanc.co.zm`.
+- `resend_receipt_webhook_secret` — Resend/Svix webhook signing secret.
 
-Never commit provider keys or webhook signing secrets to Git.
+Never commit provider keys or webhook signing secrets to Git, expose them to browser code, or log them.
 
 The Resend webhook endpoint is configured to verify Svix signatures in the database using a Vault secret named `resend_receipt_webhook_secret`. Provider acceptance is recorded as sent; `delivered_at` is populated only when a verified `email.delivered` event arrives.
 

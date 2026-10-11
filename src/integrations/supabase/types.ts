@@ -994,6 +994,10 @@ export type Database = {
         Args: { p_category: string; p_message: string; p_subject: string }
         Returns: string
       }
+      get_riverbanc_email_config: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       reconcile_riverbanc_monthly_payroll_deduction: {
         Args: {
           _billing_date: string
