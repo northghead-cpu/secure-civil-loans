@@ -8,10 +8,16 @@ const mocks = vi.hoisted(() => ({
   loading: false,
   order: vi.fn(),
   rpc: vi.fn(),
+  roles: [] as string[],
+  rbacLoading: false,
 }));
 
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: mocks.user, loading: mocks.loading }),
+}));
+
+vi.mock("@/hooks/useRBAC", () => ({
+  useRBAC: () => ({ roles: mocks.roles, loading: mocks.rbacLoading }),
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -34,8 +40,24 @@ describe("CustomerCareChat", () => {
     vi.clearAllMocks();
     mocks.user = null;
     mocks.loading = false;
+    mocks.roles = [];
+    mocks.rbacLoading = false;
     mocks.order.mockResolvedValue({ data: [], error: null });
     mocks.rpc.mockResolvedValue({ data: "new-case-id", error: null });
+  });
+
+  it("does not render the bubble for admin or staff accounts", () => {
+    mocks.user = { id: "admin-1" };
+    mocks.roles = ["admin"];
+    renderChat();
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
+  });
+
+  it("does not briefly render while an authenticated account role is loading", () => {
+    mocks.user = { id: "customer-1" };
+    mocks.rbacLoading = true;
+    renderChat();
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
   });
 
   it("opens as a customer-care bubble and directs signed-out visitors to sign in", () => {
@@ -49,6 +71,7 @@ describe("CustomerCareChat", () => {
 
   it("loads the signed-in customer's cases and offers a new conversation", async () => {
     mocks.user = { id: "customer-1" };
+    mocks.roles = ["user"];
     renderChat();
     fireEvent.click(screen.getByRole("button", { name: /chat with customer care/i }));
 
