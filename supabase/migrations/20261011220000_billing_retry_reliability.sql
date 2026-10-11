@@ -450,6 +450,10 @@ begin
   if v_event_type not in ('email.delivered', 'email.bounced', 'email.failed', 'email.complained', 'email.suppressed', 'email.delivery_delayed') then
     return jsonb_build_object('ok', true, 'ignored', true, 'event_type', v_event_type);
   end if;
+  -- This webhook is subscribed at account level; ignore unrelated mail such as password resets.
+  if _event -> 'data' -> 'tags' ->> 'purpose' is distinct from 'riverbanc-receipt' then
+    return jsonb_build_object('ok', true, 'ignored', true, 'event_type', v_event_type);
+  end if;
   if v_message_id = '' then raise exception 'Email provider message ID is missing'; end if;
 
   select * into v_delivery
