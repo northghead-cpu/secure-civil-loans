@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Headset, MessageCircle, Minus, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useRBAC } from "@/hooks/useRBAC";
 import { supabase } from "@/integrations/supabase/client";
 
 type SupportCase = {
@@ -33,6 +34,7 @@ const statusLabel: Record<SupportCase["status"], string> = {
 export default function CustomerCareChat() {
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
+  const { roles, loading: rbacLoading } = useRBAC();
   const [open, setOpen] = useState(false);
   const [cases, setCases] = useState<SupportCase[]>([]);
   const [caseId, setCaseId] = useState<string | null>(null);
@@ -144,6 +146,10 @@ export default function CustomerCareChat() {
   }, [user?.id]);
 
   const selectedCase = cases.find((item) => item.id === caseId) ?? null;
+
+  // The chat bubble is a customer-facing entry point, not an admin/staff tool.
+  // Fail closed while roles load, and only show it to accounts whose sole role is "user".
+  if (user && (rbacLoading || !roles.includes("user") || roles.some((role) => role !== "user"))) return null;
 
   // The full support desk replaces the floating widget on these routes. This
   // prevents the chat launcher from obscuring the case list, messages, or forms.
