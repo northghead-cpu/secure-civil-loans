@@ -37,6 +37,15 @@ interface PayrollAuthorization {
   employee_number: string | null;
 }
 
+interface MonthlyPayrollConfirmation {
+  user_id: string;
+  billing_period_start: string;
+  status: "confirmed" | "failed";
+  payroll_reference: string | null;
+  evidence_reference: string;
+  evidence_confirmed: boolean;
+}
+
 type ReconcileStatus = "submitted" | "confirmed" | "failed";
 
 const BillingReconciliationPanel = () => {
@@ -47,23 +56,40 @@ const BillingReconciliationPanel = () => {
   const [payrollReference, setPayrollReference] = useState("");
   const [evidenceConfirmed, setEvidenceConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [billingMonth, setBillingMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const billingDate = `${billingMonth}-23`;
+  const [monthlyAuthorizations, setMonthlyAuthorizations] = useState<PayrollAuthorization[]>([]);
+  const [monthlyConfirmations, setMonthlyConfirmations] = useState<Record<string, MonthlyPayrollConfirmation>>({});
+  const [selectedMonthly, setSelectedMonthly] = useState<PayrollAuthorization | null>(null);
+  const [monthlyPayrollReference, setMonthlyPayrollReference] = useState("");
+  const [evidenceReference, setEvidenceReference] = useState("");
+  const [monthlyEvidenceConfirmed, setMonthlyEvidenceConfirmed] = useState(false);
+  const [monthlySaving, setMonthlySaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [runsResult, authResult] = await Promise.all([
+      const [runsResult, authResult, monthlyResult] = await Promise.all([
         supabase.from("billing_runs")
           .select("id,billing_date,period_start,period_end,status,eligible_count,confirmed_count,transaction_count,receipt_count,delivery_failure_count,completed_at")
           .order("billing_date", { ascending: false }).limit(12),
         supabase.from("subscription_authorizations")
           .select("id,user_id,status,payroll_status,authorized_at,payroll_reference,amount,currency")
-          .eq("status", "active").neq("payroll_status", "confirmed")
+          .eq("status", "active")
           .order("authorized_at", { ascending: false }).limit(100),
+        supabase.from("payroll_deduction_confirmations")
+          .select("user_id,billing_period_start,status,payroll_reference,evidence_reference,evidence_confirmed")
+          .eq("billing_period_start", billingDate),
       ]);
       if (runsResult.error) throw runsResult.error;
       if (authResult.error) throw authResult.error;
-      const authRows = authResult.data ?? [];
-      const userIds = [...new Set(authRows.map((row) => row.user_id))];
+      if (monthlyResult.error) throw monthlyResult.error;
+      const allAuthRows = authResult.data ?? [];
+      const authRows = allAuthRows.filter((row) => row.payroll_status !== "confirmed");
+      const userIds = [...new Set(allAuthRows.map((row) => row.user_id))];
       const profileResult = userIds.length
         ? await supabase.from("profiles").select("user_id,full_name,employee_number").in("user_id", userIds)
         : { data: [], error: null };
@@ -75,12 +101,18 @@ const BillingReconciliationPanel = () => {
         full_name: profiles.get(row.user_id)?.full_name ?? null,
         employee_number: profiles.get(row.user_id)?.employee_number ?? null,
       })) as PayrollAuthorization[]);
+      setMonthlyAuthorizations(allAuthRows.map((row) => ({
+        ...row,
+        full_name: profiles.get(row.user_id)?.full_name ?? null,
+        employee_number: profiles.get(row.user_id)?.employee_number ?? null,
+      })) as PayrollAuthorization[]);
+      setMonthlyConfirmations(Object.fromEntries((monthlyResult.data ?? []).map((row) => [row.user_id, row as MonthlyPayrollConfirmation])));
     } catch {
       toast.error("Unable to load billing reconciliation.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [billingDate]);
 
   useEffect(() => { void load(); }, [load]);
 
