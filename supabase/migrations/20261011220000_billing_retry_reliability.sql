@@ -440,9 +440,9 @@ begin
   );
   if not exists (
     select 1
-    from unnest(string_to_array(_svix_signature, ' ')) as signature_part
-    where split_part(signature_part, ',', 1) = 'v1'
-      and split_part(signature_part, ',', 2) = v_expected
+    from unnest(string_to_array(_svix_signature, ' ')) as parts(signature_value)
+    where split_part(signature_value, ',', 1) = 'v1'
+      and split_part(signature_value, ',', 2) = v_expected
   ) then
     raise exception 'Webhook signature verification failed';
   end if;
