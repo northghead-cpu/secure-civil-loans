@@ -78,7 +78,7 @@ describe("CustomerCareChat", () => {
     fireEvent.click(screen.getByRole("button", { name: /chat with customer care/i }));
 
     expect(screen.getByRole("region", { name: /riverbanc customer care chat/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /close customer care chat/i })).toHaveTextContent(/^\s*$/);
+    expect(screen.getByTestId("customer-care-chat").querySelector("button[aria-expanded=\"true\"]")).toHaveTextContent(/^\s*$/);
     expect(screen.getByText(/sign in to start a private conversation/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /sign in to chat/i })).toHaveAttribute("href", "/login");
   });
