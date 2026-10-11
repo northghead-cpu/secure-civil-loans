@@ -57,7 +57,7 @@
       ]
     },
     {
-      "source": "/(profile|apply|underwriting|application-submitted|login|forgot-password|reset-password|admin)(/.*)?",
+      "source": "/(profile|apply|underwriting|application-submitted|login|forgot-password|reset-password|support|admin)(/.*)?",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, private" },
         { "key": "Pragma", "value": "no-cache" }
