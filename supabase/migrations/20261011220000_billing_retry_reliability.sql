@@ -216,7 +216,7 @@ create or replace function public.reconcile_riverbanc_monthly_payroll_deduction(
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $monthly$
 declare
   v_old public.payroll_deduction_confirmations;
   v_new public.payroll_deduction_confirmations;
@@ -345,7 +345,7 @@ begin
 
   return v_new;
 end;
-$;
+$monthly$;
 revoke all on function public.reconcile_riverbanc_monthly_payroll_deduction(uuid,date,text,text,text,boolean) from public, anon, authenticated;
 grant execute on function public.reconcile_riverbanc_monthly_payroll_deduction(uuid,date,text,text,text,boolean) to authenticated;
 
