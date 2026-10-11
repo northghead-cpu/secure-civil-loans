@@ -43,6 +43,16 @@ const PaymentReceiptHistory = () => {
       toast.info('This receipt document is still being prepared.');
       return;
     }
+    const popup = mode === 'download' ? null : window.open('about:blank', '_blank');
+    if (mode !== 'download' && !popup) {
+      toast.info('Allow pop-ups to view your receipt.');
+      return;
+    }
+    if (popup) {
+      popup.opener = null;
+      popup.document.title = 'Riverbanc payment receipt';
+      popup.document.body.textContent = 'Preparing your receipt…';
+    }
     setBusyId(receipt.id);
     try {
       const { data, error } = await supabase.storage.from('payment-receipts').createSignedUrl(receipt.document_path, 300);
@@ -54,12 +64,12 @@ const PaymentReceiptHistory = () => {
         anchor.target = '_blank';
         anchor.rel = 'noreferrer';
         anchor.click();
-      } else {
-        const opened = window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-        if (!opened) toast.info('Allow pop-ups to view your receipt.');
+      } else if (popup) {
+        popup.location.href = data.signedUrl;
         if (mode === 'print') toast.info('Use your browser PDF viewer to print the receipt.');
       }
     } catch {
+      popup?.close();
       toast.error('Unable to open this receipt right now.');
     } finally {
       setBusyId(null);
