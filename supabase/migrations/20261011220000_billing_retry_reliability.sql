@@ -161,9 +161,19 @@ $$;
 
 -- Daily retry: revisit this month's unfinished billing run and retry all outstanding
 -- email deliveries from completed runs, with the Edge Function's five-attempt cap.
-select cron.unschedule(3);
-
-select cron.schedule(
+do $migration$
+declare
+  v_job_id bigint;
+begin
+  select jobid into v_job_id from cron.job where jobname = 'riverbanc-retry-receipt-email-delivery';
+  if v_job_id is not null then
+    perform cron.unschedule(v_job_id);
+  end if;
+  select jobid into v_job_id from cron.job where jobname = 'riverbanc-billing-retry';
+  if v_job_id is not null then
+    perform cron.unschedule(v_job_id);
+  end if;
+  perform cron.schedule(
   'riverbanc-billing-retry',
   '30 3 * * *',
   $job$
@@ -197,4 +207,6 @@ select cron.schedule(
         and rd.attempt_count < 5
     ) due;
   $job$
-);
+  );
+end;
+$migration$;
