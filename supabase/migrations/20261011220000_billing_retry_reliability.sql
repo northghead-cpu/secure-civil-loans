@@ -26,9 +26,9 @@ drop policy if exists payroll_deduction_confirmations_admin_read on public.payro
 create policy payroll_deduction_confirmations_admin_read
   on public.payroll_deduction_confirmations for select to authenticated
   using (
-    private.has_role((select auth.uid()), 'admin'::app_role)
-    or private.has_role((select auth.uid()), 'super_admin'::app_role)
-    or private.has_role((select auth.uid()), 'compliance_team'::app_role)
+    (select private.has_role('admin'::text))
+    or (select private.has_role('super_admin'::text))
+    or (select private.has_role('compliance_team'::text))
   );
 revoke insert, update, delete on public.payroll_deduction_confirmations from anon, authenticated;
 
@@ -345,10 +345,8 @@ begin
       select br.billing_date
       from public.billing_runs br
       where br.status in ('pending', 'failed')
-        and br.billing_date = (
-          date_trunc('month', now() at time zone 'Africa/Lusaka')::date + interval '22 days'
-        )::date
         and br.billing_date <= (now() at time zone 'Africa/Lusaka')::date
+        and br.billing_date >= ((now() at time zone 'Africa/Lusaka')::date - interval '60 days')::date
 
       union
 
