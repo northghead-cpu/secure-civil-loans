@@ -74,6 +74,12 @@ export default function CustomerCareChat() {
   }, []);
 
   useEffect(() => {
+    if (location.pathname === "/support" || location.pathname === "/admin/support") {
+      setOpen(false);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (open && user) void loadCases();
   }, [open, user, loadCases]);
 
