@@ -82,6 +82,7 @@ describe("CustomerCareChat", () => {
 
   it("does not send an empty customer-care message", async () => {
     mocks.user = { id: "customer-1" };
+    mocks.roles = ["user"];
     renderChat();
     fireEvent.click(screen.getByRole("button", { name: /chat with customer care/i }));
 
