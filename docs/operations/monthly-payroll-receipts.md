@@ -2,35 +2,49 @@
 
 ## Production configuration
 
-The billing ledger and receipt PDF pipeline are deployed to Supabase. Email delivery intentionally fails closed unless the transaction email provider is configured.
+The billing ledger and receipt PDF pipeline run through Supabase Edge Functions. Configure the following server-side secrets for the billing function:
 
-Configure these Supabase Edge Function secrets for `process-monthly-payroll-receipts`:
+- RESEND_API_KEY — Resend API key.
+- RESEND_FROM_EMAIL — verified Riverbanc sender address.
 
-- `RESEND_API_KEY` — Resend API key stored as a secret. Never commit it to Git.
-- `RESEND_FROM_EMAIL` — verified Riverbanc sender address.
+Never commit provider keys or webhook signing secrets to Git.
 
-The Edge Function uses the secrets only server-side. Missing secrets produce a failed email delivery record and never change a confirmed payment, transaction, or receipt to unpaid.
+The Resend webhook endpoint is configured to verify Svix signatures in the database using a Vault secret named `resend_receipt_webhook_secret`. Provider acceptance is recorded as sent; `delivered_at` is populated only when a verified `email.delivered` event arrives.
 
-## Monthly flow
+## Payment source of truth
 
-1. Payroll system confirms deductions using the server-side confirmation boundary.
-2. At 00:05 Africa/Lusaka on the 23rd, the database billing job runs.
-3. Only `subscription_authorizations.status = active` AND `payroll_status = confirmed` are eligible.
-4. A single K60 ZMW billing transaction is created per subscriber per billing period.
-5. One unique receipt is created per transaction.
-6. Dashboard delivery is immediately available.
-7. The Edge Function generates a private PDF and attempts email delivery.
-8. Email failures are retained with attempt count and can be retried up to five attempts.
-9. Admins reconcile billing runs and export the receipt ledger from Financials Reports.
+A subscription authorization is not a payment record. A one-time payroll authorization confirmation must never create a recurring paid receipt.
 
-## Idempotency
+For each billing period, a privileged administrator or compliance reviewer must reconcile a separate monthly payroll outcome against official payroll evidence. The action requires MFA, a payroll reference for confirmed deductions, an evidence reference for either outcome, and an explicit evidence attestation. All outcomes are audit-logged.
 
-The billing date is unique at the run level, and `(user_id, period_start)` is unique at the transaction level. Re-running the same billing date therefore cannot create a second financial transaction or second receipt.
+- Confirmed monthly outcome: may produce one K60 ZMW transaction and one receipt for that period.
+- Failed monthly outcome: creates no transaction or receipt for that subscriber and period.
+- Missing monthly outcome: keeps the billing run pending.
+- Fully reconciled run with failed outcomes: marked partial.
+- Confirmed outcome without a corresponding transaction: keeps the run pending for remediation.
 
-## Production safety for tests
+## Monthly flow and schedule
 
-**Do not run a future billing date as a production smoke test.** The billing function records the billing date as completed even when there are zero subscribers. That completed run will cause the real scheduled invocation for that date to return idempotently without processing newly confirmed payroll subscriptions.
+1. Review the correct billing month; the period starts on the 23rd of that month.
+2. Match each active subscription to the official payroll register.
+3. Record a confirmed or failed outcome with evidence reference and MFA.
+4. At 00:05 Africa/Lusaka on the 23rd, the monthly billing job processes period-specific confirmed outcomes.
+5. Dashboard receipt records become available only for confirmed transactions.
+6. The Edge Function generates a private PDF and attempts email delivery.
+7. Resend delivery webhooks update delivered, bounced, failed, delayed, complained, or suppressed states after signature verification.
+8. Admins reconcile run totals and delivery failures from Financials Reports.
 
-Run full billing-path tests in an isolated development/test database. A production endpoint smoke test may reuse an already-completed run only to verify authentication and idempotency; it does not prove that the billing path will process a future cycle.
+## Retries and idempotency
 
-If a future production run was created accidentally, verify that it has zero transactions and zero receipts before resetting its status, and do so before the scheduled billing date. Never delete or alter a run that contains financial records. Do not insert synthetic paid transactions into production merely to test the ledger.
+- Billing runs are unique by billing date; transactions are unique by subscriber and period.
+- The daily retry job runs at 05:30 Africa/Lusaka.
+- It revisits pending/failed runs within a 60-day backlog and retries eligible email deliveries from completed/partial runs.
+- Email attempts are capped at five. Permanent bounce, complaint, and suppression events are not retried automatically.
+- The Edge Function sends a stable Resend idempotency key per receipt to reduce duplicate messages if a request is retried.
+
+## Verification safety
+
+- Migration SQL is tested inside an explicit transaction and rolled back before deployment.
+- A behavior test against the current pending billing run verifies repeated invocations remain pending and create zero transactions and receipts without monthly payroll evidence.
+- A separately labelled non-payment email test validates the outbound email channel.
+- Do not create synthetic paid transactions or receipts in production. Full paid-receipt acceptance testing requires an isolated test database or a real, evidence-backed payroll deduction.
