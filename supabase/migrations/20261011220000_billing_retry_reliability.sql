@@ -486,7 +486,11 @@ begin
 
   update public.receipt_deliveries
   set status = v_new_status,
-      delivered_at = case when v_event_type = 'email.delivered' then coalesce(delivered_at, now()) else null end,
+      delivered_at = case
+        when v_event_type = 'email.delivered' then coalesce(delivered_at, now())
+        when v_event_type in ('email.bounced', 'email.failed', 'email.suppressed') then null
+        else delivered_at
+      end,
       retryable = v_retryable,
       error_code = case when v_event_type in ('email.bounced', 'email.complained', 'email.suppressed', 'email.failed') then v_event_type else null end,
       error_message = case when v_event_type in ('email.bounced', 'email.complained', 'email.suppressed', 'email.failed') then v_event_type else null end,
