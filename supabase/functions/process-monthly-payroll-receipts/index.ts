@@ -37,6 +37,23 @@ interface EmailResult {
   retryable: boolean;
 }
 
+type EmailConfig = { api_key: string; from_email: string };
+
+async function getEmailConfig(supabaseAdmin: {
+  rpc: (functionName: string) => Promise<{ data: unknown; error: { message?: string } | null }>;
+}): Promise<EmailConfig | null> {
+  const { data, error } = await supabaseAdmin.rpc('get_riverbanc_email_config');
+  if (error) throw error;
+  const config = data as { configured?: boolean; api_key?: string; from_email?: string } | null;
+  if (config?.configured === true && typeof config.api_key === 'string' && typeof config.from_email === 'string') {
+    return { api_key: config.api_key, from_email: config.from_email };
+  }
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL');
+  return apiKey && fromEmail ? { api_key: apiKey, from_email: fromEmail } : null;
+}
+
+
 function currentLusakaDate(): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: BILLING_TIME_ZONE,
@@ -139,10 +156,10 @@ async function sendTestReceiptEmail(
   pdfBytes: Uint8Array,
   userId: string,
   testRunId: string,
+  emailConfig: EmailConfig,
 ): Promise<EmailResult> {
-  const apiKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('RESEND_FROM_EMAIL');
-  if (!apiKey || !from) return { ok: false, code: 'email_provider_not_configured', retryable: true };
+  const apiKey = emailConfig.api_key;
+  const from = emailConfig.from_email;
   const binary = Array.from(pdfBytes, (byte) => String.fromCharCode(byte)).join('');
   const encoded = btoa(binary);
   const response = await fetch('https://api.resend.com/emails', {
@@ -236,8 +253,12 @@ export default {
         if (profileError) throw profileError;
         if (!profile?.email) return Response.json({ ok: false, error: 'Registered email is unavailable' }, { status: 400 });
         const customerName = profile.full_name || 'Riverbanc Subscriber';
+        const emailConfig = await getEmailConfig(ctx.supabaseAdmin);
+        if (!emailConfig) {
+          return Response.json({ ok: false, error: 'email_provider_not_configured', test_only: true, payment_record_created: false }, { status: 503 });
+        }
         const pdfBytes = await createTestReceiptPdf(customerName, testRunId);
-        const emailResult = await sendTestReceiptEmail(profile.email, customerName, pdfBytes, userId, testRunId);
+        const emailResult = await sendTestReceiptEmail(profile.email, customerName, pdfBytes, userId, testRunId, emailConfig);
         return Response.json({
           ok: emailResult.ok,
           test_only: true,
@@ -271,6 +292,17 @@ export default {
       if (receiptError) throw receiptError;
 
       const receiptIds = (receipts ?? []).map((receipt) => receipt.id);
+      const emailConfig = await getEmailConfig(ctx.supabaseAdmin);
+      if (!emailConfig) {
+        return Response.json({
+          ok: false,
+          error: 'email_provider_not_configured',
+          billing_run_id: billingRun.id,
+          transactions: transactionIds.length,
+          receipts: receipts.length,
+          emails_sent: 0,
+        }, { status: 503 });
+      }
       const { data: deliveries, error: deliveryLookupError } = await ctx.supabaseAdmin
         .from('receipt_deliveries')
         .select('receipt_id,attempt_count,status,retryable,provider_message_id')
@@ -303,7 +335,7 @@ export default {
         }
 
         const nextAttempt = delivery.attempt_count + 1;
-        const deliveryResult = await sendReceiptEmail(receipt, pdfBytes, nextAttempt);
+        const deliveryResult = await sendReceiptEmail(receipt, pdfBytes, nextAttempt, emailConfig);
         const now = new Date().toISOString();
         const deliveryUpdate = {
           status: deliveryResult.ok ? 'sent' : 'failed',
