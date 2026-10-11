@@ -40,7 +40,7 @@ For each billing period, a privileged administrator or compliance reviewer must 
 - The daily retry job runs at 05:30 Africa/Lusaka.
 - It revisits pending/failed runs within a 60-day backlog and retries eligible email deliveries from completed/partial runs.
 - Email attempts are capped at five. Permanent bounce, complaint, and suppression events are not retried automatically.
-- The Edge Function sends a stable Resend idempotency key per receipt to reduce duplicate messages if a request is retried.
+- The Edge Function sends a Resend idempotency key per delivery attempt to reduce duplicate messages if a request is retried.
 
 ## Verification safety
 
