@@ -1,76 +1,81 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  evaluateSession,
+  LAST_ACTIVITY_KEY,
+  LEGACY_SESSION_START_KEY,
+  SIGNOUT_BROADCAST_KEY,
+} from "@/lib/sessionPolicy";
 
 /**
- * Phase 4 auth hardening: enforce an idle-session timeout and an absolute
- * session lifetime, plus cross-tab sign-out via storage events.
- *
- * Additive to Supabase's own token refresh — we only sign the user out; we
- * never extend a session beyond these caps.
+ * Client-side idle (30m) and absolute (12h) session caps plus cross-tab
+ * sign-out. Defence in depth only: real enforcement is the Auth server's
+ * session/refresh-token policy and RLS on every table.
  */
-const IDLE_MS = 30 * 60 * 1000;          // 30 minutes of inactivity
-const ABSOLUTE_MS = 12 * 60 * 60 * 1000; // 12 hours absolute cap
-const LAST_ACTIVITY_KEY = "rb.lastActivity";
-const SESSION_START_KEY = "rb.sessionStart";
-const SIGNOUT_BROADCAST_KEY = "rb.signoutAt";
+const INTERACTION_EVENTS = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"] as const;
+const CHECK_INTERVAL_MS = 30 * 1000;
 
-const ACTIVITY_EVENTS = [
-  "mousemove",
-  "mousedown",
-  "keydown",
-  "scroll",
-  "touchstart",
-  "visibilitychange",
-] as const;
+export function clearSessionMetadata() {
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
+  localStorage.removeItem(LEGACY_SESSION_START_KEY);
+}
 
-export function useIdleTimeout(active: boolean) {
-  const timerRef = useRef<number | null>(null);
+export function useIdleTimeout(user: { last_sign_in_at?: string | null } | null) {
+  const active = !!user;
+  const lastSignInAt = user?.last_sign_in_at ?? null;
 
   useEffect(() => {
     if (!active || typeof window === "undefined") return;
+    let signingOut = false;
 
-    if (!localStorage.getItem(SESSION_START_KEY)) {
-      localStorage.setItem(SESSION_START_KEY, Date.now().toString());
-    }
-
-    const forceSignOut = async (reason: "idle" | "absolute" | "remote") => {
+    const forceSignOut = async (broadcast: boolean) => {
+      if (signingOut) return;
+      signingOut = true;
+      clearSessionMetadata();
+      if (broadcast) localStorage.setItem(SIGNOUT_BROADCAST_KEY, Date.now().toString());
       try {
-        localStorage.setItem(SIGNOUT_BROADCAST_KEY, Date.now().toString());
-        localStorage.removeItem(SESSION_START_KEY);
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: "local" });
       } finally {
-        if (reason !== "remote") window.location.assign("/auth");
+        if (window.location.pathname !== "/login") window.location.assign("/login");
       }
     };
 
     const check = () => {
-      const now = Date.now();
-      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || now);
-      const started = Number(localStorage.getItem(SESSION_START_KEY) || now);
-      if (now - last > IDLE_MS) return forceSignOut("idle");
-      if (now - started > ABSOLUTE_MS) return forceSignOut("absolute");
+      if (signingOut) return;
+      const d = evaluateSession({ now: Date.now(), lastSignInAt, lastActivityRaw: localStorage.getItem(LAST_ACTIVITY_KEY) });
+      if (d.action === "init") localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+      else if (d.action === "expire") void forceSignOut(true);
     };
 
-    const bump = () => {
-      localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+    // Genuine interaction only: check first so a woken tab can't refresh itself.
+    const onInteraction = () => {
+      check();
+      if (!signingOut) localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
     };
-    bump();
-
-    ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, bump, { passive: true }));
-    timerRef.current = window.setInterval(check, 60 * 1000);
-
+    const onResume = () => {
+      if (document.visibilityState !== "hidden") check();
+    };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === SIGNOUT_BROADCAST_KEY && e.newValue) {
-        forceSignOut("remote");
-      }
+      if (e.key === SIGNOUT_BROADCAST_KEY && e.newValue) void forceSignOut(false);
     };
+
+    check();
+    INTERACTION_EVENTS.forEach((e) => window.addEventListener(e, onInteraction, { passive: true }));
+    document.addEventListener("visibilitychange", onResume);
+    window.addEventListener("focus", onResume);
+    window.addEventListener("pageshow", onResume);
+    window.addEventListener("online", onResume);
     window.addEventListener("storage", onStorage);
+    const timer = window.setInterval(check, CHECK_INTERVAL_MS);
 
     return () => {
-      ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, bump));
+      INTERACTION_EVENTS.forEach((e) => window.removeEventListener(e, onInteraction));
+      document.removeEventListener("visibilitychange", onResume);
+      window.removeEventListener("focus", onResume);
+      window.removeEventListener("pageshow", onResume);
+      window.removeEventListener("online", onResume);
       window.removeEventListener("storage", onStorage);
-      if (timerRef.current) window.clearInterval(timerRef.current);
+      window.clearInterval(timer);
     };
-  }, [active]);
+  }, [active, lastSignInAt]);
 }
