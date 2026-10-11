@@ -92,3 +92,5 @@ $$;
 
 revoke all on function public.authorize_riverbanc_subscription(text) from public, anon, authenticated;
 grant execute on function public.authorize_riverbanc_subscription(text) to authenticated;
+
+notify pgrst, 'reload schema';
