@@ -829,6 +829,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_deduction_confirmations: {
+        Row: {
+          billing_period_start: string
+          confirmed_at: string
+          confirmed_by: string
+          created_at: string
+          evidence_confirmed: boolean
+          evidence_reference: string
+          id: string
+          payroll_reference: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_period_start: string
+          confirmed_at?: string
+          confirmed_by: string
+          created_at?: string
+          evidence_confirmed: boolean
+          evidence_reference: string
+          id?: string
+          payroll_reference?: string | null
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_period_start?: string
+          confirmed_at?: string
+          confirmed_by?: string
+          created_at?: string
+          evidence_confirmed?: boolean
+          evidence_reference?: string
+          id?: string
+          payroll_reference?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_case_events: {
         Row: {
           actor_id: string | null
@@ -951,6 +993,17 @@ export type Database = {
       create_support_case: {
         Args: { p_category: string; p_message: string; p_subject: string }
         Returns: string
+      }
+      reconcile_riverbanc_monthly_payroll_deduction: {
+        Args: {
+          _billing_date: string
+          _evidence_confirmed: boolean
+          _evidence_reference: string
+          _payroll_reference: string | null
+          _status: string
+          _user_id: string
+        }
+        Returns: Database["public"]["Tables"]["payroll_deduction_confirmations"]["Row"]
       }
       reply_support_case: {
         Args: { p_case_id: string; p_message: string }
