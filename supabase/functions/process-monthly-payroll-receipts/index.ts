@@ -120,6 +120,7 @@ async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array, attemptN
       from,
       to: [receipt.customer_email],
       subject: `Riverbanc payment receipt ${receipt.receipt_number}`,
+      tags: [{ name: 'purpose', value: 'riverbanc-receipt' }],
       html: `<p>Hello ${escapeHtml(receipt.customer_name)},</p><p>Your Riverbanc subscription payment of ZMW ${Number(receipt.amount).toFixed(2)} has been recorded through payroll deduction.</p><p>Receipt number: <strong>${escapeHtml(receipt.receipt_number)}</strong></p><p>The receipt is attached to this email and is also available in your Riverbanc dashboard.</p><p>Riverbanc Technology Limited</p>`,
       attachments: [{ filename: `${receipt.receipt_number}.pdf`, content: encoded }],
     }),
