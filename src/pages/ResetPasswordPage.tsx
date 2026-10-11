@@ -110,7 +110,7 @@ const ResetPasswordPage = () => {
       toast({ title: "Password updated", description: "Please sign in with your new password." });
 
       // Tear down the recovery session entirely so the user must log in fresh.
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       clearPasswordRecovery();
       setTimeout(
         () =>
