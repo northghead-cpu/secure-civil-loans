@@ -93,6 +93,7 @@ type PaymentReceiptRpcRow = { id: string; receipt_number: string; amount: number
 
 type ExtendedFunctions = BaseDatabase['public']['Functions'] & {
   authorize_riverbanc_subscription: { Args: { _signed_name: string }; Returns: SubscriptionAuthorization['Row'] };
+  reconcile_riverbanc_subscription_payroll: { Args: { _authorization_id: string; _status: string; _payroll_reference: string | null; _evidence_confirmed: boolean }; Returns: SubscriptionAuthorization['Row'] };
   get_my_payment_receipts: { Args: Record<string, never>; Returns: PaymentReceiptRpcRow[] };
   authorize_application_handoff: { Args: { _lender_product_id: string; _requested_amount: number; _signature_name: string; _term_months: number }; Returns: string };
 };
