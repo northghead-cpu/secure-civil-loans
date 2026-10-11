@@ -42,6 +42,13 @@ For each billing period, a privileged administrator or compliance reviewer must 
 - Email attempts are capped at five. Permanent bounce, complaint, and suppression events are not retried automatically.
 - The Edge Function sends a Resend idempotency key per delivery attempt to reduce duplicate messages if a request is retried.
 
+
+## Safe PDF/email smoke test
+
+The billing Edge Function supports a secret-authenticated, non-financial test mode. Send a request with `mode: "test_email"`, the registered active subscriber's user ID, and a unique `test_run_id`. It generates a visibly watermarked PDF with the production PDF library and sends it to the profile's registered email address. It does not create a billing run, transaction, payment receipt, or delivery ledger row. The resulting Resend event is tagged as a test and ignored by the receipt ledger webhook after signature verification.
+
+Use the Vault-backed cron secret to invoke the function; never expose that secret in a client or log. Confirm the function response, Resend email status, and webhook event attempt status before closing the smoke test.
+
 ## Verification safety
 
 - Migration SQL is tested inside an explicit transaction and rolled back before deployment.
