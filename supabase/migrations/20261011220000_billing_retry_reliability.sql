@@ -149,11 +149,27 @@ begin
     select 1
     from public.subscription_authorizations sa
     where sa.status = 'active'
-      and not exists (
-        select 1
-        from public.payroll_deduction_confirmations pd
-        where pd.user_id = sa.user_id
-          and pd.billing_period_start = _billing_date
+      and (
+        not exists (
+          select 1
+          from public.payroll_deduction_confirmations pd
+          where pd.user_id = sa.user_id
+            and pd.billing_period_start = _billing_date
+        )
+        or exists (
+          select 1
+          from public.payroll_deduction_confirmations pd
+          where pd.user_id = sa.user_id
+            and pd.billing_period_start = _billing_date
+            and pd.status = 'confirmed'
+            and not exists (
+              select 1
+              from public.billing_transactions bt
+              where bt.user_id = sa.user_id
+                and bt.period_start = _billing_date
+                and bt.status = 'confirmed'
+            )
+        )
       )
   )
   into v_has_unconfirmed_active_authorizations;
@@ -177,7 +193,9 @@ begin
       status = case
         when v_has_unconfirmed_active_authorizations then 'pending'
         when exists (
-          select 1 from public.payroll_deduction_confirmations pd
+          select 1
+          from public.payroll_deduction_confirmations pd
+          join public.subscription_authorizations sa on sa.user_id = pd.user_id and sa.status = 'active'
           where pd.billing_period_start = _billing_date and pd.status = 'failed'
         ) then 'partial'
         else 'completed'
