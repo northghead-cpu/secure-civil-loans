@@ -92,6 +92,7 @@ type ReceiptDelivery = {
 type PaymentReceiptRpcRow = { id: string; receipt_number: string; amount: number; currency: string; billing_period_start: string; billing_period_end: string; payment_method: string; payroll_reference: string; issued_at: string; document_path: string | null; email_delivery_status: string | null };
 
 type ExtendedFunctions = BaseDatabase['public']['Functions'] & {
+  authorize_riverbanc_subscription: { Args: { _signed_name: string }; Returns: SubscriptionAuthorization['Row'] };
   get_my_payment_receipts: { Args: Record<string, never>; Returns: PaymentReceiptRpcRow[] };
   authorize_application_handoff: { Args: { _lender_product_id: string; _requested_amount: number; _signature_name: string; _term_months: number }; Returns: string };
 };
