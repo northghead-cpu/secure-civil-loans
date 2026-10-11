@@ -258,6 +258,12 @@ begin
   if found and v_old.status = 'confirmed' then
     raise exception 'A confirmed monthly deduction cannot be changed through this action';
   end if;
+  if not found and exists (
+    select 1 from public.billing_runs
+    where billing_date = _billing_date and status = 'completed'
+  ) then
+    raise exception 'This billing period is closed; a new deduction cannot be added';
+  end if;
 
   if found then
     update public.payroll_deduction_confirmations
