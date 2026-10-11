@@ -39,10 +39,11 @@ interface EmailResult {
 
 type EmailConfig = { api_key: string; from_email: string };
 
-async function getEmailConfig(supabaseAdmin: {
-  rpc: (functionName: string) => Promise<{ data: unknown; error: { message?: string } | null }>;
-}): Promise<EmailConfig | null> {
-  const { data, error } = await supabaseAdmin.rpc('get_riverbanc_email_config');
+async function getEmailConfig(supabaseAdmin: unknown): Promise<EmailConfig | null> {
+  const client = supabaseAdmin as {
+    rpc: (functionName: string) => Promise<{ data: unknown; error: { message?: string } | null }>;
+  };
+  const { data, error } = await client.rpc('get_riverbanc_email_config');
   if (error) throw error;
   const config = data as { configured?: boolean; api_key?: string; from_email?: string } | null;
   if (config?.configured === true && typeof config.api_key === 'string' && typeof config.from_email === 'string') {
