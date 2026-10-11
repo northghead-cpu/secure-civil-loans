@@ -212,7 +212,7 @@ const BillingReconciliationPanel = () => {
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
             <CardTitle className="text-lg font-display">Subscription billing reconciliation</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Only payroll-confirmed subscriptions enter billing. Confirmation requires a payroll reference and MFA-protected reconciliation.</p>
+            <p className="text-sm text-muted-foreground mt-1">Initial payroll setup is separate from monthly payment confirmation. This status alone never creates a paid transaction or receipt.</p>
           </div>
           <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -292,8 +292,8 @@ const BillingReconciliationPanel = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-display">Payroll authorization queue</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Review active K60 authorizations and record submission or confirmation only against the payroll record.</p>
+          <CardTitle className="text-lg font-display">Initial subscription payroll setup</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">Record initial payroll setup status against the official payroll record. Monthly receipts require separate period-specific evidence below.</p>
         </CardHeader>
         <CardContent>
           {loading ? <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div> : authorizations.length === 0 ? <p className="text-sm text-muted-foreground">No active subscriptions are awaiting payroll reconciliation.</p> : (
@@ -316,7 +316,7 @@ const BillingReconciliationPanel = () => {
       <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open && !saving) setSelected(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display">Reconcile payroll deduction</DialogTitle>
+            <DialogTitle className="font-display">Reconcile initial payroll setup</DialogTitle>
             <DialogDescription>
               {selected?.full_name || "Subscriber"} · ZMW {Number(selected?.amount ?? 60).toFixed(2)} monthly. Do not confirm a deduction without matching payroll evidence.
             </DialogDescription>
@@ -338,7 +338,7 @@ const BillingReconciliationPanel = () => {
             <Button variant="outline" onClick={() => void reconcile("failed")} disabled={saving}>Mark failed</Button>
             <Button variant="outline" onClick={() => void reconcile("submitted")} disabled={saving || !payrollReference.trim()}>Record submission</Button>
             <Button onClick={() => void reconcile("confirmed")} disabled={saving || !payrollReference.trim() || !evidenceConfirmed}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : "Confirm deduction"}
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : "Confirm initial setup"}
             </Button>
           </DialogFooter>
         </DialogContent>
