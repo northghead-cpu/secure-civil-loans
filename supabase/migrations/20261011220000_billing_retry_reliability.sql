@@ -33,6 +33,24 @@ create policy payroll_deduction_confirmations_admin_read
 revoke insert, update, delete on public.payroll_deduction_confirmations from anon, authenticated;
 grant select on public.payroll_deduction_confirmations to authenticated;
 
+-- Track provider acceptance separately from delivery and retain idempotent provider events.
+alter table public.receipt_deliveries
+  add column if not exists provider_message_id text,
+  add column if not exists retryable boolean not null default true;
+create unique index if not exists receipt_deliveries_provider_message_id_uidx
+  on public.receipt_deliveries(provider_message_id) where provider_message_id is not null;
+
+create table if not exists public.receipt_delivery_events (
+  provider_event_id text primary key,
+  receipt_delivery_id uuid not null references public.receipt_deliveries(id) on delete restrict,
+  event_type text not null,
+  provider_message_id text not null,
+  occurred_at timestamptz,
+  received_at timestamptz not null default now()
+);
+alter table public.receipt_delivery_events enable row level security;
+revoke all on public.receipt_delivery_events from public, anon, authenticated;
+
 create or replace function private.run_riverbanc_monthly_billing(_billing_date date)
 returns jsonb
 language plpgsql
@@ -368,6 +386,134 @@ $monthly$;
 revoke all on function public.reconcile_riverbanc_monthly_payroll_deduction(uuid,date,text,text,text,boolean) from public, anon, authenticated;
 grant execute on function public.reconcile_riverbanc_monthly_payroll_deduction(uuid,date,text,text,text,boolean) to authenticated;
 
+
+-- Verify Resend/Svix signatures in the database and apply events idempotently.
+create or replace function public.process_resend_receipt_webhook(
+  _event jsonb,
+  _raw_body text,
+  _svix_id text,
+  _svix_timestamp text,
+  _svix_signature text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $webhook$
+declare
+  v_secret text;
+  v_expected text;
+  v_signed text;
+  v_event_type text := coalesce(_event ->> 'type', '');
+  v_message_id text := coalesce(_event -> 'data' ->> 'email_id', '');
+  v_delivery public.receipt_deliveries;
+  v_event_inserted text;
+  v_occurred_at timestamptz;
+  v_new_status text;
+  v_retryable boolean;
+  v_run_id uuid;
+begin
+  if _event is null or nullif(_raw_body, '') is null or nullif(_svix_id, '') is null
+     or nullif(_svix_timestamp, '') is null or nullif(_svix_signature, '') is null then
+    raise exception 'Webhook payload or signature headers are missing';
+  end if;
+  if _svix_timestamp !~ '^[0-9]{1,12}$'
+     or abs(extract(epoch from (now() - to_timestamp(_svix_timestamp::double precision)))) > 300 then
+    raise exception 'Webhook timestamp is invalid or expired';
+  end if;
+
+  select decrypted_secret into v_secret
+  from vault.decrypted_secrets
+  where name = 'resend_receipt_webhook_secret'
+  limit 1;
+  if v_secret is null or v_secret not like 'whsec_%' then
+    raise exception 'Webhook verification secret is not configured';
+  end if;
+
+  v_signed := _svix_id || '.' || _svix_timestamp || '.' || _raw_body;
+  v_expected := encode(
+    extensions.hmac(
+      convert_to(v_signed, 'UTF8'),
+      decode(substr(v_secret, 7), 'base64'),
+      'sha256'
+    ),
+    'base64'
+  );
+  if not exists (
+    select 1
+    from unnest(string_to_array(_svix_signature, ' ')) as signature_part
+    where split_part(signature_part, ',', 1) = 'v1'
+      and split_part(signature_part, ',', 2) = v_expected
+  ) then
+    raise exception 'Webhook signature verification failed';
+  end if;
+
+  if v_event_type not in ('email.delivered', 'email.bounced', 'email.failed', 'email.complained', 'email.suppressed', 'email.delivery_delayed') then
+    return jsonb_build_object('ok', true, 'ignored', true, 'event_type', v_event_type);
+  end if;
+  if v_message_id = '' then raise exception 'Email provider message ID is missing'; end if;
+
+  select * into v_delivery
+  from public.receipt_deliveries
+  where provider_message_id = v_message_id and channel = 'email'
+  for update;
+  if not found then raise exception 'No receipt delivery found for provider message ID'; end if;
+
+  insert into public.receipt_delivery_events(provider_event_id, receipt_delivery_id, event_type, provider_message_id, occurred_at)
+  values (_svix_id, v_delivery.id, v_event_type, v_message_id, nullif(_event ->> 'created_at', '')::timestamptz)
+  on conflict (provider_event_id) do nothing
+  returning provider_event_id into v_event_inserted;
+
+  if v_event_inserted is null then
+    return jsonb_build_object('ok', true, 'duplicate', true, 'event_id', _svix_id);
+  end if;
+
+  v_new_status := v_delivery.status;
+  v_retryable := v_delivery.retryable;
+  if v_event_type = 'email.delivered' then
+    v_new_status := 'sent';
+    v_retryable := false;
+  elsif v_event_type in ('email.bounced', 'email.complained', 'email.suppressed') then
+    v_new_status := 'failed';
+    v_retryable := false;
+  elsif v_event_type = 'email.failed' then
+    v_new_status := 'failed';
+    v_retryable := true;
+  end if;
+
+  update public.receipt_deliveries
+  set status = v_new_status,
+      delivered_at = case when v_event_type = 'email.delivered' then coalesce(delivered_at, now()) else null end,
+      retryable = v_retryable,
+      error_code = case when v_event_type in ('email.bounced', 'email.complained', 'email.suppressed', 'email.failed') then v_event_type else null end,
+      error_message = case when v_event_type in ('email.bounced', 'email.complained', 'email.suppressed', 'email.failed') then v_event_type else null end,
+      updated_at = now()
+  where id = v_delivery.id
+  returning * into v_delivery;
+
+  select bt.billing_run_id into v_run_id
+  from public.payment_receipts pr
+  join public.billing_transactions bt on bt.id = pr.billing_transaction_id
+  where pr.id = v_delivery.receipt_id;
+
+  if v_run_id is not null then
+    update public.billing_runs br
+    set delivery_failure_count = (
+      select count(*)
+      from public.receipt_deliveries rd
+      join public.payment_receipts pr on pr.id = rd.receipt_id
+      join public.billing_transactions bt on bt.id = pr.billing_transaction_id
+      where bt.billing_run_id = v_run_id and rd.channel = 'email' and rd.status = 'failed'
+    ),
+    updated_at = now()
+    where br.id = v_run_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'event_id', _svix_id, 'event_type', v_event_type, 'delivery_status', v_delivery.status);
+end;
+$webhook$;
+revoke all on function public.process_resend_receipt_webhook(jsonb, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.process_resend_receipt_webhook(jsonb, text, text, text, text) to service_role;
+
 -- Daily retry: revisit this month's unfinished billing run and retry all outstanding
 -- email deliveries from completed runs, with the Edge Function's five-attempt cap.
 do $migration$
@@ -412,6 +558,7 @@ begin
         and rd.channel = 'email'
         and rd.status in ('pending', 'failed')
         and rd.attempt_count < 5
+        and rd.retryable = true
     ) due;
   $job$
   );
