@@ -829,6 +829,102 @@ export type Database = {
         }
         Relationships: []
       }
+      support_case_events: {
+        Row: {
+          actor_id: string | null
+          case_id: string
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          case_id: string
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_id?: string | null
+          case_id?: string
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      support_cases: {
+        Row: {
+          case_number: string
+          category: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          last_message_at: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_number?: string
+          category: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_number?: string
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          body: string
+          case_id: string
+          created_at: string
+          id: string
+          is_staff_reply: boolean
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          case_id: string
+          created_at?: string
+          id?: string
+          is_staff_reply?: boolean
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          case_id?: string
+          created_at?: string
+          id?: string
+          is_staff_reply?: boolean
+          sender_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -852,6 +948,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_support_case: {
+        Args: { p_category: string; p_message: string; p_subject: string }
+        Returns: string
+      }
+      reply_support_case: {
+        Args: { p_case_id: string; p_message: string }
+        Returns: string
+      }
+      update_support_case: {
+        Args: { p_case_id: string; p_priority: string; p_status: string }
+        Returns: undefined
+      }
       calculate_zmw_underwriting: {
         Args: { p_debt: number; p_income: number }
         Returns: {
