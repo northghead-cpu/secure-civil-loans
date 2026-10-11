@@ -31,6 +31,7 @@ create policy payroll_deduction_confirmations_admin_read
     or (select private.has_role('compliance_team'::text))
   );
 revoke insert, update, delete on public.payroll_deduction_confirmations from anon, authenticated;
+grant select on public.payroll_deduction_confirmations to authenticated;
 
 create or replace function private.run_riverbanc_monthly_billing(_billing_date date)
 returns jsonb
