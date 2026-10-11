@@ -1,0 +1,34 @@
+ALTER TABLE public.subscription_authorizations
+  ADD COLUMN IF NOT EXISTS payroll_reference text,
+  ADD COLUMN IF NOT EXISTS payroll_confirmed_at timestamptz;
+
+CREATE OR REPLACE FUNCTION private.confirm_riverbanc_payroll_deduction(
+  _user_id uuid,
+  _payroll_reference text,
+  _confirmed_at timestamptz DEFAULT now()
+) RETURNS public.subscription_authorizations
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
+DECLARE v_result public.subscription_authorizations;
+BEGIN
+  IF _user_id IS NULL OR nullif(trim(_payroll_reference),'') IS NULL THEN
+    RAISE EXCEPTION 'User and payroll reference are required';
+  END IF;
+  UPDATE public.subscription_authorizations
+  SET payroll_status='confirmed', payroll_reference=trim(_payroll_reference),
+      payroll_confirmed_at=coalesce(_confirmed_at,now()), updated_at=now()
+  WHERE user_id=_user_id AND status='active'
+  RETURNING * INTO v_result;
+  IF v_result.id IS NULL THEN RAISE EXCEPTION 'No active subscription authorization found'; END IF;
+  RETURN v_result;
+END;
+$$;
+REVOKE ALL ON FUNCTION private.confirm_riverbanc_payroll_deduction(uuid,text,timestamptz) FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION public.confirm_riverbanc_payroll_deduction(
+  _user_id uuid, _payroll_reference text, _confirmed_at timestamptz DEFAULT now()
+) RETURNS public.subscription_authorizations
+LANGUAGE sql SECURITY DEFINER SET search_path=''
+AS $$ SELECT private.confirm_riverbanc_payroll_deduction(_user_id,_payroll_reference,_confirmed_at); $$;
+REVOKE ALL ON FUNCTION public.confirm_riverbanc_payroll_deduction(uuid,text,timestamptz) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.confirm_riverbanc_payroll_deduction(uuid,text,timestamptz) TO service_role;

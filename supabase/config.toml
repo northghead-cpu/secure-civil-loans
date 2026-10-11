@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.aikido-incident-webhook]
 verify_jwt = false
+
+[functions.process-monthly-payroll-receipts]
+verify_jwt = false
+
+[functions.resend-receipt-webhook]
+verify_jwt = false

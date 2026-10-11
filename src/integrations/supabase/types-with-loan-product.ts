@@ -84,7 +84,7 @@ type PaymentReceipt = {
   Relationships: [];
 };
 type ReceiptDelivery = {
-  Row: { id: string; receipt_id: string; channel: string; status: string; attempt_count: number; last_attempt_at: string | null; delivered_at: string | null; error_code: string | null; error_message: string | null; created_at: string; updated_at: string };
+  Row: { id: string; receipt_id: string; channel: string; status: string; attempt_count: number; last_attempt_at: string | null; delivered_at: string | null; error_code: string | null; error_message: string | null; provider_message_id: string | null; retryable: boolean; created_at: string; updated_at: string };
   Insert: Partial<ReceiptDelivery['Row']>;
   Update: Partial<ReceiptDelivery['Row']>;
   Relationships: [];

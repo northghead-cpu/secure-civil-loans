@@ -37,6 +37,15 @@ interface PayrollAuthorization {
   employee_number: string | null;
 }
 
+interface MonthlyPayrollConfirmation {
+  user_id: string;
+  billing_period_start: string;
+  status: "confirmed" | "failed";
+  payroll_reference: string | null;
+  evidence_reference: string;
+  evidence_confirmed: boolean;
+}
+
 type ReconcileStatus = "submitted" | "confirmed" | "failed";
 
 const BillingReconciliationPanel = () => {
@@ -47,23 +56,40 @@ const BillingReconciliationPanel = () => {
   const [payrollReference, setPayrollReference] = useState("");
   const [evidenceConfirmed, setEvidenceConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [billingMonth, setBillingMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const billingDate = `${billingMonth}-23`;
+  const [monthlyAuthorizations, setMonthlyAuthorizations] = useState<PayrollAuthorization[]>([]);
+  const [monthlyConfirmations, setMonthlyConfirmations] = useState<Record<string, MonthlyPayrollConfirmation>>({});
+  const [selectedMonthly, setSelectedMonthly] = useState<PayrollAuthorization | null>(null);
+  const [monthlyPayrollReference, setMonthlyPayrollReference] = useState("");
+  const [evidenceReference, setEvidenceReference] = useState("");
+  const [monthlyEvidenceConfirmed, setMonthlyEvidenceConfirmed] = useState(false);
+  const [monthlySaving, setMonthlySaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [runsResult, authResult] = await Promise.all([
+      const [runsResult, authResult, monthlyResult] = await Promise.all([
         supabase.from("billing_runs")
           .select("id,billing_date,period_start,period_end,status,eligible_count,confirmed_count,transaction_count,receipt_count,delivery_failure_count,completed_at")
           .order("billing_date", { ascending: false }).limit(12),
         supabase.from("subscription_authorizations")
           .select("id,user_id,status,payroll_status,authorized_at,payroll_reference,amount,currency")
-          .eq("status", "active").neq("payroll_status", "confirmed")
+          .eq("status", "active")
           .order("authorized_at", { ascending: false }).limit(100),
+        supabase.from("payroll_deduction_confirmations")
+          .select("user_id,billing_period_start,status,payroll_reference,evidence_reference,evidence_confirmed")
+          .eq("billing_period_start", billingDate),
       ]);
       if (runsResult.error) throw runsResult.error;
       if (authResult.error) throw authResult.error;
-      const authRows = authResult.data ?? [];
-      const userIds = [...new Set(authRows.map((row) => row.user_id))];
+      if (monthlyResult.error) throw monthlyResult.error;
+      const allAuthRows = authResult.data ?? [];
+      const authRows = allAuthRows.filter((row) => row.payroll_status !== "confirmed");
+      const userIds = [...new Set(allAuthRows.map((row) => row.user_id))];
       const profileResult = userIds.length
         ? await supabase.from("profiles").select("user_id,full_name,employee_number").in("user_id", userIds)
         : { data: [], error: null };
@@ -75,12 +101,18 @@ const BillingReconciliationPanel = () => {
         full_name: profiles.get(row.user_id)?.full_name ?? null,
         employee_number: profiles.get(row.user_id)?.employee_number ?? null,
       })) as PayrollAuthorization[]);
+      setMonthlyAuthorizations(allAuthRows.map((row) => ({
+        ...row,
+        full_name: profiles.get(row.user_id)?.full_name ?? null,
+        employee_number: profiles.get(row.user_id)?.employee_number ?? null,
+      })) as PayrollAuthorization[]);
+      setMonthlyConfirmations(Object.fromEntries((monthlyResult.data ?? []).map((row) => [row.user_id, row as MonthlyPayrollConfirmation])));
     } catch {
       toast.error("Unable to load billing reconciliation.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [billingDate]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -124,13 +156,63 @@ const BillingReconciliationPanel = () => {
     }
   };
 
+  const openMonthlyReconciliation = (authorization: PayrollAuthorization) => {
+    setSelectedMonthly(authorization);
+    const existing = monthlyConfirmations[authorization.user_id];
+    setMonthlyPayrollReference(existing?.payroll_reference ?? "");
+    setEvidenceReference(existing?.evidence_reference ?? "");
+    setMonthlyEvidenceConfirmed(false);
+  };
+
+  const reconcileMonthly = async (status: "confirmed" | "failed") => {
+    if (!selectedMonthly || monthlySaving) return;
+    const reference = monthlyPayrollReference.trim();
+    const evidence = evidenceReference.trim();
+    if (status === "confirmed" && !reference) {
+      toast.error("A payroll reference is required for a confirmed deduction.");
+      return;
+    }
+    if (!evidence) {
+      toast.error("An evidence reference is required.");
+      return;
+    }
+    if (!monthlyEvidenceConfirmed) {
+      toast.error("Attest that you verified the monthly outcome against payroll evidence.");
+      return;
+    }
+
+    setMonthlySaving(true);
+    try {
+      const { error } = await supabase.rpc("reconcile_riverbanc_monthly_payroll_deduction", {
+        _user_id: selectedMonthly.user_id,
+        _billing_date: billingDate,
+        _status: status,
+        _payroll_reference: reference || null,
+        _evidence_reference: evidence,
+        _evidence_confirmed: monthlyEvidenceConfirmed,
+      });
+      if (error) throw error;
+      toast.success(status === "confirmed" ? "Monthly payroll deduction recorded" : "Monthly deduction failure recorded");
+      setSelectedMonthly(null);
+      setMonthlyPayrollReference("");
+      setEvidenceReference("");
+      setMonthlyEvidenceConfirmed(false);
+      await load();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to reconcile the monthly payroll outcome.";
+      toast.error(message);
+    } finally {
+      setMonthlySaving(false);
+    }
+  };
+
   return (
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
             <CardTitle className="text-lg font-display">Subscription billing reconciliation</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Only payroll-confirmed subscriptions enter billing. Confirmation requires a payroll reference and MFA-protected reconciliation.</p>
+            <p className="text-sm text-muted-foreground mt-1">Initial payroll setup is separate from monthly payment confirmation. This status alone never creates a paid transaction or receipt.</p>
           </div>
           <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -141,7 +223,7 @@ const BillingReconciliationPanel = () => {
           {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : runs.length === 0 ? <p className="text-sm text-muted-foreground">No billing runs have been recorded yet.</p> : (
             <div className="space-y-3">
               {runs.map((run) => {
-                const balanced = run.transaction_count === run.receipt_count;
+                const balanced = run.transaction_count === run.receipt_count && run.status === "completed";
                 return (
                   <div key={run.id} className="rounded-lg border border-border/60 bg-muted/20 p-4">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -166,9 +248,52 @@ const BillingReconciliationPanel = () => {
       </Card>
 
       <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-lg font-display">Monthly deduction evidence</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              A subscription authorization or a prior month's confirmation is not proof of this month's payment. Each receipt requires a period-specific payroll record and evidence reference.
+            </p>
+          </div>
+          <div className="min-w-40 space-y-1">
+            <Label htmlFor="billing-period-month">Billing month</Label>
+            <Input id="billing-period-month" type="month" value={billingMonth} onChange={(event) => setBillingMonth(event.target.value)} disabled={loading || monthlySaving} />
+            <p className="text-xs text-muted-foreground">Period starts {billingDate}</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div> : monthlyAuthorizations.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active subscription authorizations were found.</p>
+          ) : (
+            <div className="space-y-3">
+              {monthlyAuthorizations.map((authorization) => {
+                const confirmation = monthlyConfirmations[authorization.user_id];
+                return (
+                  <div key={authorization.id} className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-sm">{authorization.full_name || "Subscriber"}</p>
+                        <Badge variant="outline">{confirmation?.status ?? "awaiting evidence"}</Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">Employee number: {authorization.employee_number || "Not available"} · ZMW {Number(authorization.amount ?? 60).toFixed(2)}</p>
+                      {confirmation?.payroll_reference && <p className="mt-1 text-xs text-muted-foreground">Payroll reference: {confirmation.payroll_reference}</p>}
+                      {confirmation?.evidence_reference && <p className="mt-1 text-xs text-muted-foreground">Evidence reference: {confirmation.evidence_reference}</p>}
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => openMonthlyReconciliation(authorization)} disabled={confirmation?.status === "confirmed"}>
+                      {confirmation?.status === "confirmed" ? "Confirmed" : confirmation?.status === "failed" ? "Review outcome" : "Reconcile deduction"}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-display">Payroll authorization queue</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Review active K60 authorizations and record submission or confirmation only against the payroll record.</p>
+          <CardTitle className="text-lg font-display">Initial subscription payroll setup</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">Record initial payroll setup status against the official payroll record. Monthly receipts require separate period-specific evidence below.</p>
         </CardHeader>
         <CardContent>
           {loading ? <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div> : authorizations.length === 0 ? <p className="text-sm text-muted-foreground">No active subscriptions are awaiting payroll reconciliation.</p> : (
@@ -191,7 +316,7 @@ const BillingReconciliationPanel = () => {
       <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open && !saving) setSelected(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display">Reconcile payroll deduction</DialogTitle>
+            <DialogTitle className="font-display">Reconcile initial payroll setup</DialogTitle>
             <DialogDescription>
               {selected?.full_name || "Subscriber"} · ZMW {Number(selected?.amount ?? 60).toFixed(2)} monthly. Do not confirm a deduction without matching payroll evidence.
             </DialogDescription>
@@ -213,7 +338,42 @@ const BillingReconciliationPanel = () => {
             <Button variant="outline" onClick={() => void reconcile("failed")} disabled={saving}>Mark failed</Button>
             <Button variant="outline" onClick={() => void reconcile("submitted")} disabled={saving || !payrollReference.trim()}>Record submission</Button>
             <Button onClick={() => void reconcile("confirmed")} disabled={saving || !payrollReference.trim() || !evidenceConfirmed}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : "Confirm deduction"}
+              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : "Confirm initial setup"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(selectedMonthly)} onOpenChange={(open) => { if (!open && !monthlySaving) setSelectedMonthly(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display">Reconcile monthly deduction</DialogTitle>
+            <DialogDescription>
+              {selectedMonthly?.full_name || "Subscriber"} · ZMW {Number(selectedMonthly?.amount ?? 60).toFixed(2)} · billing period starting {billingDate}. Record the outcome for this month only.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="monthly-payroll-reference">Payroll deduction reference</Label>
+              <Input id="monthly-payroll-reference" value={monthlyPayrollReference} onChange={(event) => setMonthlyPayrollReference(event.target.value)} placeholder="Reference for this month's deduction" disabled={monthlySaving} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="monthly-evidence-reference">Evidence reference</Label>
+              <Input id="monthly-evidence-reference" value={evidenceReference} onChange={(event) => setEvidenceReference(event.target.value)} placeholder="Payroll register ID, batch number, or evidence record" disabled={monthlySaving} />
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border border-border/60 p-3">
+              <Checkbox id="monthly-payroll-evidence" checked={monthlyEvidenceConfirmed} onCheckedChange={(value) => setMonthlyEvidenceConfirmed(value === true)} disabled={monthlySaving} />
+              <Label htmlFor="monthly-payroll-evidence" className="text-sm font-normal leading-5">
+                I checked the official payroll evidence for this billing period and confirm the outcome and evidence reference above are accurate.
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">Requires an MFA-authenticated admin/compliance session. Confirmed monthly records are immutable; a failed record can be corrected only after rechecking evidence. Every outcome is audit-logged.</p>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-2">
+            <Button variant="outline" onClick={() => void reconcileMonthly("failed")} disabled={monthlySaving || !evidenceReference.trim() || !monthlyEvidenceConfirmed}>
+              {monthlySaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : "Mark failed"}
+            </Button>
+            <Button onClick={() => void reconcileMonthly("confirmed")} disabled={monthlySaving || !monthlyPayrollReference.trim() || !evidenceReference.trim() || !monthlyEvidenceConfirmed}>
+              {monthlySaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : "Confirm deduction"}
             </Button>
           </DialogFooter>
         </DialogContent>
