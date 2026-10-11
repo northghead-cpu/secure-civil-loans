@@ -49,6 +49,9 @@
 
 # Authenticated views are client-rendered from the same shell, but keep the
 # no-store contract explicit so intermediaries never retain them.
+/support
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
 /profile
   Cache-Control: no-store, no-cache, must-revalidate, private
   Pragma: no-cache
