@@ -147,13 +147,19 @@ export default function CustomerCareChat() {
 
   const selectedCase = cases.find((item) => item.id === caseId) ?? null;
 
-  // The chat bubble is a customer-facing entry point, not an admin/staff tool.
-  // Fail closed while roles load, and only show it to accounts whose sole role is "user".
+  // Fail closed during auth resolution: never flash the launcher before the session is known.
+  if (authLoading) return null;
+
+  // Never show customer chat on privileged routes, including while MFA is being checked
+  // or prompted. This route-level guard is immediate and does not wait for RBAC.
+  if (location.pathname.startsWith("/admin") || location.pathname === "/underwriting") return null;
+
+  // The chat bubble is customer-facing, not an admin/staff tool. Only accounts whose
+  // sole role is "user" may see it; fail closed while role state is being resolved.
   if (user && (rbacLoading || !roles.includes("user") || roles.some((role) => role !== "user"))) return null;
 
-  // The full support desk replaces the floating widget on these routes. This
-  // prevents the chat launcher from obscuring the case list, messages, or forms.
-  if (location.pathname === "/support" || location.pathname === "/admin/support") return null;
+  // The full support desk replaces the floating widget on the customer support route.
+  if (location.pathname === "/support") return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[100] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6" data-testid="customer-care-chat">
@@ -226,9 +232,8 @@ export default function CustomerCareChat() {
           )}
         </section>
       )}
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? "Close customer care chat" : "Chat with customer care"} className="flex h-14 items-center gap-2 rounded-full bg-primary px-5 text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
-        <span className="text-sm font-semibold">{open ? "Close chat" : "Customer care"}</span>
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? "Close customer care chat" : "Chat with customer care"} className="flex h-14 w-14 items-center justify-center rounded-full bg-primary p-0 text-primary-foreground shadow-lg transition-transform hover:scale-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+        {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>
     </div>
   );

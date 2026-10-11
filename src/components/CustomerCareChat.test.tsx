@@ -31,8 +31,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-const renderChat = () => render(
-  <MemoryRouter><CustomerCareChat /></MemoryRouter>,
+const renderChat = (path = "/") => render(
+  <MemoryRouter initialEntries={[path]}><CustomerCareChat /></MemoryRouter>,
 );
 
 describe("CustomerCareChat", () => {
@@ -44,6 +44,19 @@ describe("CustomerCareChat", () => {
     mocks.rbacLoading = false;
     mocks.order.mockResolvedValue({ data: [], error: null });
     mocks.rpc.mockResolvedValue({ data: "new-case-id", error: null });
+  });
+
+  it("does not flash the bubble while authentication is still resolving", () => {
+    mocks.loading = true;
+    renderChat();
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
+  });
+
+  it("hides the bubble immediately on privileged routes, before MFA status resolves", () => {
+    mocks.user = { id: "customer-1" };
+    mocks.roles = ["user"];
+    renderChat("/admin");
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
   });
 
   it("does not render the bubble for admin or staff accounts", () => {
@@ -65,6 +78,7 @@ describe("CustomerCareChat", () => {
     fireEvent.click(screen.getByRole("button", { name: /chat with customer care/i }));
 
     expect(screen.getByRole("region", { name: /riverbanc customer care chat/i })).toBeInTheDocument();
+    expect(screen.getByTestId("customer-care-chat").querySelector("button[aria-expanded=\"true\"]")).toHaveTextContent(/^\s*$/);
     expect(screen.getByText(/sign in to start a private conversation/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /sign in to chat/i })).toHaveAttribute("href", "/login");
   });
