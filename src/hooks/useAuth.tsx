@@ -55,9 +55,7 @@ const hasRecoveryTokenInUrl = (): boolean => {
   if (typeof window === "undefined") return false;
   const hash = window.location.hash || "";
   const search = window.location.search || "";
-  // Legacy hash-based recovery: type=recovery in hash
   const hashRecovery = /(?:^|[#&?])type=recovery(?:&|$)/.test(hash);
-  // Query parameter PKCE flow: code parameter present
   const pkceCode = /[?&]code=/.test(search);
   return hashRecovery || pkceCode;
 };
@@ -68,7 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
-  // Seed from URL so the first render already knows we're in recovery mode.
   const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() => hasRecoveryTokenInUrl());
 
   const fetchProfile = useCallback(async (userId: string): Promise<ProfileData | null> => {
@@ -79,6 +76,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select("full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary, nrc_verified, phone_verified, consent_accepted, consent_signed_at, consent_marketing, consent_data_sharing_lenders, consent_crb_check, consent_analytics, consents_updated_at")
         .eq("user_id", userId)
         .maybeSingle();
+      // Do not allow a delayed profile request to repopulate state after logout
+      // or after another account has signed in.
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser?.id !== userId) return null;
       setProfile(data);
       return data;
     } finally {
@@ -86,8 +87,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Refresh existing profile data in the background. Only the initial profile
-  // load should block page content; preference changes must not blank the page.
   const refreshProfile = useCallback(async (): Promise<ProfileData | null> => {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) return null;
@@ -107,39 +106,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setIsPasswordRecovery(true);
-        }
-        if (event === "SIGNED_OUT") {
-          setIsPasswordRecovery(false);
-        }
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, nextSession) => {
+        if (event === "PASSWORD_RECOVERY") setIsPasswordRecovery(true);
+        if (event === "SIGNED_OUT") setIsPasswordRecovery(false);
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
         if (event === "SIGNED_IN") {
           localStorage.setItem("rb.sessionStart", Date.now().toString());
           localStorage.setItem("rb.lastActivity", Date.now().toString());
         }
-        if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+        if (nextSession?.user) {
+          const userId = nextSession.user.id;
+          // Avoid awaiting Supabase calls inside onAuthStateChange; its auth lock
+          // must be released before fetchProfile makes another auth request.
+          setTimeout(() => { void fetchProfile(userId); }, 0);
         } else {
           setProfile(null);
+          setProfileLoading(false);
         }
         setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+      if (initialSession?.user) {
         const started = Number(localStorage.getItem("rb.sessionStart") || 0);
         if (!started) {
           localStorage.setItem("rb.sessionStart", Date.now().toString());
           localStorage.setItem("rb.lastActivity", Date.now().toString());
         }
-        fetchProfile(session.user.id).then(() => setLoading(false));
+        void fetchProfile(initialSession.user.id).finally(() => setLoading(false));
       } else {
+        setProfile(null);
         setLoading(false);
       }
     });
@@ -148,17 +148,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchProfile]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-    setIsPasswordRecovery(false);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("rb.sessionStart");
-      localStorage.removeItem("rb.lastActivity");
+    try {
+      // Explicit local scope guarantees this browser loses its session even if
+      // global sign-out/revocation of other sessions is unavailable.
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error) console.error("Supabase local sign-out reported an error:", error.message);
+    } catch (error) {
+      console.error("Supabase local sign-out failed:", error);
+    } finally {
+      // Fail closed in the UI: protected routes must not retain a stale user
+      // while the auth event or a network request is delayed.
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setProfileLoading(false);
+      setLoading(false);
+      setIsPasswordRecovery(false);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("rb.sessionStart");
+        localStorage.removeItem("rb.lastActivity");
+      }
     }
   };
 
   useIdleTimeout(!!session);
-
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, isPasswordRecovery, clearPasswordRecovery, signOut, refreshProfile }}>
