@@ -223,7 +223,7 @@ const BillingReconciliationPanel = () => {
           {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : runs.length === 0 ? <p className="text-sm text-muted-foreground">No billing runs have been recorded yet.</p> : (
             <div className="space-y-3">
               {runs.map((run) => {
-                const balanced = run.transaction_count === run.receipt_count;
+                const balanced = run.transaction_count === run.receipt_count && run.status === "completed";
                 return (
                   <div key={run.id} className="rounded-lg border border-border/60 bg-muted/20 p-4">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
