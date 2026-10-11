@@ -100,14 +100,21 @@ const SupportPage = ({ staffMode = false }: { staffMode?: boolean }) => {
     setLoadingMessages(false);
   }, []);
 
+  // Clear a previous account's support data immediately when the authenticated
+  // identity changes, before the next account's case query completes.
+  useEffect(() => {
+    setCases([]);
+    setMessages([]);
+    setSelectedId(null);
+    setMobileShowDetail(false);
+  }, [user?.id]);
+
   useEffect(() => { void loadCases(); }, [loadCases]);
 
   useEffect(() => {
-    if (!user) {
-      setCases([]);
+    if (!user || (!staffMode && selected?.user_id !== user.id)) {
       setMessages([]);
-      setSelectedId(null);
-      setLoading(false);
+      if (!user) setLoading(false);
       return;
     }
     if (!selected) { setMessages([]); return; }
