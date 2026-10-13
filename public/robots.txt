@@ -25,4 +25,4 @@ Disallow: /login
 Disallow: /forgot-password
 Disallow: /reset-password
 
-Sitemap: https://riverbanc.co.zm/sitemap.xml
+Sitemap: https://www.riverbanc.co.zm/sitemap.xml
