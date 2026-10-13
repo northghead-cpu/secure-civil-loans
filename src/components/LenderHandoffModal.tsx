@@ -94,8 +94,10 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
       reset();
       onClose();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to authorize the application handoff.";
-      toast.error(message);
+      const details = error as { message?: string; details?: string; hint?: string; code?: string } | null;
+      const message = details?.message || (error instanceof Error ? error.message : "Unable to authorize the application handoff.");
+      const description = [details?.details, details?.hint, details?.code ? `Reference: ${details.code}` : null].filter(Boolean).join(" ");
+      toast.error(message, description ? { description } : undefined);
     } finally {
       setSubmitting(false);
     }
