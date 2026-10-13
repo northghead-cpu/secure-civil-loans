@@ -70,8 +70,10 @@ const LendersProducts = () => {
     const rate = Number(formData.rate), minAmount = Number(formData.minAmount), maxAmount = Number(formData.maxAmount), maxTerm = Number(formData.maxTerm), processingDays = Number(formData.processingDays || 0);
     if (!formData.lender.trim() || !Number.isFinite(rate) || rate <= 0 || !Number.isFinite(minAmount) || minAmount < 0 || !Number.isFinite(maxAmount) || maxAmount <= minAmount || !Number.isInteger(maxTerm) || maxTerm <= 0 || !Number.isInteger(processingDays) || processingDays < 0) return toast.error("Enter valid lender, rate, amount, term and processing values");
     setSaving(true);
-    const payload = { bank_name: formData.lender.trim(), product_type: formData.productType, interest_rate: rate, min_amount: minAmount, max_amount: maxAmount, max_term_months: maxTerm, processing_days: processingDays, active: true };
-    const result = editingProduct ? await supabase.from("bank_products").update(payload).eq("id", editingProduct.id).select().single() : await supabase.from("bank_products").insert(payload).select().single();
+    const payload = { bank_name: formData.lender.trim(), product_type: formData.productType, interest_rate: rate, min_amount: minAmount, max_amount: maxAmount, max_term_months: maxTerm, processing_days: processingDays };
+    const result = editingProduct
+      ? await supabase.from("bank_products").update(payload).eq("id", editingProduct.id).select().single()
+      : await supabase.from("bank_products").insert({ ...payload, active: true }).select().single();
     if (result.error) toast.error(`Failed to save loan product: ${result.error.message}`);
     else { await logAction(editingProduct ? "update_product" : "add_product", result.data.id, "bank_products", editingProduct, result.data); toast.success(editingProduct ? "Product updated" : "Product added"); setShowModal(false); await loadProducts(); }
     setSaving(false);
