@@ -84,9 +84,15 @@ async function gateway(path: string, init: RequestInit = {}) {
   if (!res.ok) {
     const details = await res.text();
     console.error(`Google Sheets gateway ${path} failed [${res.status}]: ${details}`);
-    throw new Error(`[${res.status}] ${details}`);
+    throw new ProviderError(res.status);
   }
   return res.json();
+}
+
+class ProviderError extends Error {
+  constructor(public status: number) {
+    super(`Google Sheets provider request failed [${status}]`);
+  }
 }
 
 type Grid = (string | number)[][];
@@ -103,7 +109,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
 
   // --- Identity + role check with the caller's own token (RLS-respecting) ---
   const asUser = createClient(
@@ -116,27 +122,27 @@ Deno.serve(async (req) => {
   // signed with the project's current signing keys. Only read aal after that
   // server-side validation succeeds; the claim itself is not used as identity.
   const { data: verified, error: verifyErr } = await asUser.auth.getUser(accessToken);
-  if (verifyErr || !verified.user) return json({ error: "Unauthorized" }, 401);
+  if (verifyErr || !verified.user) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
 
   let tokenClaims: Record<string, unknown>;
   try {
     const parts = accessToken.split(".");
-    if (parts.length !== 3) return json({ error: "Unauthorized" }, 401);
+    if (parts.length !== 3) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
     const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     tokenClaims = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")));
   } catch {
-    return json({ error: "Unauthorized" }, 401);
+    return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
   }
   const userId = verified.user.id;
   const aal = tokenClaims.aal as string | undefined;
-  if (!userId || tokenClaims.sub !== userId) return json({ error: "Unauthorized" }, 401);
+  if (!userId || tokenClaims.sub !== userId) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
 
   const [{ data: isAdmin }, { data: isSuperAdmin }] = await Promise.all([
     asUser.rpc("has_role", { _user_id: userId, _role: "admin" }),
     asUser.rpc("has_role", { _user_id: userId, _role: "super_admin" }),
   ]);
-  if (!isAdmin && !isSuperAdmin) return json({ error: "Forbidden" }, 403);
-  if (aal !== "aal2") return json({ error: "MFA required" }, 403);
+  if (!isAdmin && !isSuperAdmin) return json({ error: "Forbidden", code: "FORBIDDEN" }, 403);
+  if (aal !== "aal2") return json({ error: "MFA required", code: "MFA_REQUIRED" }, 403);
 
   let body: { action?: string; spreadsheetId?: string };
   try {
@@ -163,13 +169,15 @@ Deno.serve(async (req) => {
       return json({
         state: data ?? null,
         configured: Boolean(LOVABLE_API_KEY && GOOGLE_SHEETS_API_KEY),
+        connectorLinked: Boolean(GOOGLE_SHEETS_API_KEY),
+        syncStateExists: Boolean(data),
       });
     }
 
     if (body.action !== "sync") return json({ error: "Unknown action" }, 400);
     if (!LOVABLE_API_KEY || !GOOGLE_SHEETS_API_KEY) {
       return json(
-        { error: "Google Sheets connection is not configured for this project." },
+        { error: "Google Sheets connection is not configured for this project.", code: "CONNECTOR_NOT_LINKED" },
         503,
       );
     }
@@ -948,6 +956,7 @@ Deno.serve(async (req) => {
       syncedAt: new Date().toISOString(),
     });
   } catch (err) {
+    const isProvider = err instanceof ProviderError;
     const message = err instanceof Error ? err.message : "Sync failed";
     // Log only a bounded internal diagnostic; never return or persist provider
     // error bodies because they can contain identifiers, URLs, or secrets.
@@ -955,7 +964,15 @@ Deno.serve(async (req) => {
     console.error("sheets-export failed:", diagnostic);
     await db
       .from("report_sync_state")
-      .upsert({ id: "google_sheets", last_error: "Report sync failed" });
-    return json({ error: "Report sync failed" }, 502);
+      .upsert({
+        id: "google_sheets",
+        last_error: isProvider ? "Google Sheets rejected the request" : "Report sync failed",
+      });
+    if (isProvider) {
+      const status = (err as ProviderError).status;
+      const code = status === 401 || status === 403 ? "PROVIDER_AUTH" : "PROVIDER_ERROR";
+      return json({ error: "Google Sheets request failed", code, providerStatus: status }, 502);
+    }
+    return json({ error: "Report sync failed", code: "SYNC_FAILED" }, 500);
   }
 });

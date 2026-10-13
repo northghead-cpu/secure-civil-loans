@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -829,144 +829,6 @@ export type Database = {
         }
         Relationships: []
       }
-      payroll_deduction_confirmations: {
-        Row: {
-          billing_period_start: string
-          confirmed_at: string
-          confirmed_by: string
-          created_at: string
-          evidence_confirmed: boolean
-          evidence_reference: string
-          id: string
-          payroll_reference: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          billing_period_start: string
-          confirmed_at?: string
-          confirmed_by: string
-          created_at?: string
-          evidence_confirmed: boolean
-          evidence_reference: string
-          id?: string
-          payroll_reference?: string | null
-          status: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          billing_period_start?: string
-          confirmed_at?: string
-          confirmed_by?: string
-          created_at?: string
-          evidence_confirmed?: boolean
-          evidence_reference?: string
-          id?: string
-          payroll_reference?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      support_case_events: {
-        Row: {
-          actor_id: string | null
-          case_id: string
-          created_at: string
-          details: Json
-          event_type: string
-          id: string
-        }
-        Insert: {
-          actor_id?: string | null
-          case_id: string
-          created_at?: string
-          details?: Json
-          event_type: string
-          id?: string
-        }
-        Update: {
-          actor_id?: string | null
-          case_id?: string
-          created_at?: string
-          details?: Json
-          event_type?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      support_cases: {
-        Row: {
-          case_number: string
-          category: string
-          closed_at: string | null
-          created_at: string
-          id: string
-          last_message_at: string
-          priority: string
-          status: string
-          subject: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          case_number?: string
-          category: string
-          closed_at?: string | null
-          created_at?: string
-          id?: string
-          last_message_at?: string
-          priority?: string
-          status?: string
-          subject: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          case_number?: string
-          category?: string
-          closed_at?: string | null
-          created_at?: string
-          id?: string
-          last_message_at?: string
-          priority?: string
-          status?: string
-          subject?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      support_messages: {
-        Row: {
-          body: string
-          case_id: string
-          created_at: string
-          id: string
-          is_staff_reply: boolean
-          sender_id: string
-        }
-        Insert: {
-          body: string
-          case_id: string
-          created_at?: string
-          id?: string
-          is_staff_reply?: boolean
-          sender_id: string
-        }
-        Update: {
-          body?: string
-          case_id?: string
-          created_at?: string
-          id?: string
-          is_staff_reply?: boolean
-          sender_id?: string
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           id: string
@@ -990,33 +852,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_support_case: {
-        Args: { p_category: string; p_message: string; p_subject: string }
-        Returns: string
-      }
-      get_riverbanc_email_config: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      reconcile_riverbanc_monthly_payroll_deduction: {
-        Args: {
-          _billing_date: string
-          _evidence_confirmed: boolean
-          _evidence_reference: string
-          _payroll_reference: string | null
-          _status: string
-          _user_id: string
-        }
-        Returns: Database["public"]["Tables"]["payroll_deduction_confirmations"]["Row"]
-      }
-      reply_support_case: {
-        Args: { p_case_id: string; p_message: string }
-        Returns: string
-      }
-      update_support_case: {
-        Args: { p_case_id: string; p_priority: string; p_status: string }
-        Returns: undefined
-      }
       calculate_zmw_underwriting: {
         Args: { p_debt: number; p_income: number }
         Returns: {

@@ -4,6 +4,7 @@ import { Headset, MessageCircle, Minus, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useRBAC } from "@/hooks/useRBAC";
+import { untypedDb } from "@/integrations/supabase/untyped";
 import { supabase } from "@/integrations/supabase/client";
 
 type SupportCase = {
@@ -48,7 +49,7 @@ export default function CustomerCareChat() {
 
   const loadCases = useCallback(async (quiet = false) => {
     if (!user) return;
-    const { data, error } = await supabase
+    const { data, error } = await untypedDb
       .from("support_cases")
       .select("id,case_number,subject,status,last_message_at")
       .eq("user_id", user.id)
@@ -65,7 +66,7 @@ export default function CustomerCareChat() {
 
   const loadMessages = useCallback(async (id: string, quiet = false) => {
     if (!quiet) setLoadingMessages(true);
-    const { data, error } = await supabase
+    const { data, error } = await untypedDb
       .from("support_messages")
       .select("id,case_id,sender_id,body,is_staff_reply,created_at")
       .eq("case_id", id)
@@ -103,7 +104,7 @@ export default function CustomerCareChat() {
     event.preventDefault();
     if (!subject.trim() || !message.trim() || sending) return;
     setSending(true);
-    const { data, error } = await supabase.rpc("create_support_case", {
+    const { data, error } = await untypedDb.rpc("create_support_case", {
       p_subject: subject.trim(),
       p_category: "other",
       p_message: message.trim(),
@@ -125,7 +126,7 @@ export default function CustomerCareChat() {
     event.preventDefault();
     if (!caseId || !reply.trim() || sending) return;
     setSending(true);
-    const { error } = await supabase.rpc("reply_support_case", {
+    const { error } = await untypedDb.rpc("reply_support_case", {
       p_case_id: caseId,
       p_message: reply.trim(),
     });

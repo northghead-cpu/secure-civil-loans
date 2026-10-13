@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { untypedDb } from "@/integrations/supabase/untyped";
 import { toast } from "sonner";
 
 interface BillingRun {
@@ -73,14 +74,14 @@ const BillingReconciliationPanel = () => {
     setLoading(true);
     try {
       const [runsResult, authResult, monthlyResult] = await Promise.all([
-        supabase.from("billing_runs")
+        untypedDb.from("billing_runs")
           .select("id,billing_date,period_start,period_end,status,eligible_count,confirmed_count,transaction_count,receipt_count,delivery_failure_count,completed_at")
           .order("billing_date", { ascending: false }).limit(12),
-        supabase.from("subscription_authorizations")
+        untypedDb.from("subscription_authorizations")
           .select("id,user_id,status,payroll_status,authorized_at,payroll_reference,amount,currency")
           .eq("status", "active")
           .order("authorized_at", { ascending: false }).limit(100),
-        supabase.from("payroll_deduction_confirmations")
+        untypedDb.from("payroll_deduction_confirmations")
           .select("user_id,billing_period_start,status,payroll_reference,evidence_reference,evidence_confirmed")
           .eq("billing_period_start", billingDate),
       ]);
@@ -91,7 +92,7 @@ const BillingReconciliationPanel = () => {
       const authRows = allAuthRows.filter((row) => row.payroll_status !== "confirmed");
       const userIds = [...new Set(allAuthRows.map((row) => row.user_id))];
       const profileResult = userIds.length
-        ? await supabase.from("profiles").select("user_id,full_name,employee_number").in("user_id", userIds)
+        ? await untypedDb.from("profiles").select("user_id,full_name,employee_number").in("user_id", userIds)
         : { data: [], error: null };
       if (profileResult.error) throw profileResult.error;
       const profiles = new Map((profileResult.data ?? []).map((row) => [row.user_id, row]));
@@ -136,7 +137,7 @@ const BillingReconciliationPanel = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase.rpc("reconcile_riverbanc_subscription_payroll", {
+      const { error } = await untypedDb.rpc("reconcile_riverbanc_subscription_payroll", {
         _authorization_id: selected.id,
         _status: status,
         _payroll_reference: reference || null,
@@ -183,7 +184,7 @@ const BillingReconciliationPanel = () => {
 
     setMonthlySaving(true);
     try {
-      const { error } = await supabase.rpc("reconcile_riverbanc_monthly_payroll_deduction", {
+      const { error } = await untypedDb.rpc("reconcile_riverbanc_monthly_payroll_deduction", {
         _user_id: selectedMonthly.user_id,
         _billing_date: billingDate,
         _status: status,
