@@ -11,9 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-// Support-case functions are not in the generated database types yet.
-const supportRpc = (fn: string, args: Record<string, unknown>) =>
-  (supabase.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>)(fn, args);
+import { untypedDb } from "@/integrations/supabase/untyped";
 import { Textarea } from "@/components/ui/textarea";
 
 type Status = "open" | "in_progress" | "waiting_on_customer" | "resolved" | "closed";
@@ -73,7 +71,7 @@ const SupportPage = ({ staffMode = false }: { staffMode?: boolean }) => {
       return;
     }
     setLoading(true);
-    let query = supabase.from("support_cases")
+    let query = untypedDb.from("support_cases")
       .select("id,case_number,user_id,subject,category,status,priority,created_at,last_message_at")
       .order("last_message_at", { ascending: false });
     if (!staffMode) query = query.eq("user_id", user.id);
@@ -91,7 +89,7 @@ const SupportPage = ({ staffMode = false }: { staffMode?: boolean }) => {
 
   const loadMessages = useCallback(async (caseId: string) => {
     setLoadingMessages(true);
-    const { data, error } = await supabase.from("support_messages")
+    const { data, error } = await untypedDb.from("support_messages")
       .select("id,case_id,sender_id,body,is_staff_reply,created_at")
       .eq("case_id", caseId)
       .order("created_at", { ascending: true });
@@ -131,7 +129,7 @@ const SupportPage = ({ staffMode = false }: { staffMode?: boolean }) => {
     event.preventDefault();
     if (!subject.trim() || !initialMessage.trim() || sending) return;
     setSending(true);
-    const { data, error } = await supportRpc("create_support_case", {
+    const { data, error } = await untypedDb.rpc("create_support_case", {
       p_subject: subject.trim(), p_category: category, p_message: initialMessage.trim(),
     });
     if (error) {
@@ -153,7 +151,7 @@ const SupportPage = ({ staffMode = false }: { staffMode?: boolean }) => {
     event.preventDefault();
     if (!selected || !reply.trim() || sending) return;
     setSending(true);
-    const { error } = await supportRpc("reply_support_case", { p_case_id: selected.id, p_message: reply.trim() });
+    const { error } = await untypedDb.rpc("reply_support_case", { p_case_id: selected.id, p_message: reply.trim() });
     if (error) {
       toast.error(error.message || "Could not send reply");
     } else {
@@ -167,7 +165,7 @@ const SupportPage = ({ staffMode = false }: { staffMode?: boolean }) => {
   const saveCase = async () => {
     if (!selected || !staffMode || sending) return;
     setSending(true);
-    const { error } = await supportRpc("update_support_case", { p_case_id: selected.id, p_status: status, p_priority: priority });
+    const { error } = await untypedDb.rpc("update_support_case", { p_case_id: selected.id, p_status: status, p_priority: priority });
     if (error) toast.error(error.message || "Could not update case");
     else { await loadCases(); toast.success("Case updated"); }
     setSending(false);
