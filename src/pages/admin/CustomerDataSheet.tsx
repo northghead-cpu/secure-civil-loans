@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { sanitizeError } from "@/lib/errors";
+import { readSheetsExportErrorCode, sheetsExportErrorMessage } from "@/lib/sheetsExportErrors";
 import { ExternalLink, RefreshCw, ShieldCheck, Table2 } from "lucide-react";
 
 const TABS = [
@@ -45,13 +45,15 @@ const CustomerDataSheet = () => {
       const { data, error } = await supabase.functions.invoke("sheets-export", {
         body: { action: "status" },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        setStatusLoadError(sheetsExportErrorMessage(await readSheetsExportErrorCode(error, data)));
+        return;
+      }
       setState((data?.state ?? null) as SyncState | null);
       setConnectionConfigured(data?.configured === true);
       setStatusLoadError(null);
-    } catch (err) {
-      setStatusLoadError(sanitizeError(err));
+    } catch {
+      setStatusLoadError(sheetsExportErrorMessage(undefined));
     }
   };
 
@@ -65,17 +67,23 @@ const CustomerDataSheet = () => {
       const { data, error } = await supabase.functions.invoke("sheets-export", {
         body: { action: "sync", ...(sheetId.trim() ? { spreadsheetId: sheetId.trim() } : {}) },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        toast({
+          title: "Sync failed",
+          description: sheetsExportErrorMessage(await readSheetsExportErrorCode(error, data)),
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: data?.created ? "Workbook created and synced" : "Workbook synced",
         description: "All 12 tabs were refreshed from the Riverbanc database.",
       });
       await load();
-    } catch (err) {
+    } catch {
       toast({
         title: "Sync failed",
-        description: sanitizeError(err),
+        description: sheetsExportErrorMessage(undefined),
         variant: "destructive",
       });
     } finally {
