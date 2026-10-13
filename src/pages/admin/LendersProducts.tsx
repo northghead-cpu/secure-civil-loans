@@ -57,11 +57,17 @@ const LendersProducts = () => {
 
   const toggleProductStatus = async (product: Product) => {
     if (!canManageProducts) return toast.error("You do not have permission to manage lender products");
-    const { error } = await supabase.from("bank_products").update({ active: !product.active }).eq("id", product.id);
+    const nextActive = !product.active;
+    const { data, error } = await supabase.from("bank_products").update({ active: nextActive }).eq("id", product.id).select("id, active").single();
     if (error) return toast.error(`Failed to update product status: ${error.message}`);
-    await logAction("toggle_product_status", product.id, "bank_products", { active: product.active }, { active: !product.active });
-    setProducts((prev) => prev.map((p) => p.id === product.id ? { ...p, active: !p.active } : p));
-    toast.success(`Product ${!product.active ? "activated" : "paused"}`);
+    if (!data) return toast.error("Product status could not be confirmed. Refresh and try again.");
+    try {
+      await logAction("toggle_product_status", product.id, "bank_products", { active: product.active }, { active: data.active });
+    } catch {
+      toast.warning("Product status changed, but the audit confirmation could not be recorded. Check audit logs.");
+    }
+    setProducts((prev) => prev.map((p) => p.id === product.id ? { ...p, active: data.active } : p));
+    toast.success(`Product ${data.active ? "activated" : "paused"}`);
   };
 
   const handleSave = async () => {
