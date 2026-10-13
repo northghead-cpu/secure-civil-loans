@@ -27,7 +27,7 @@ const LendersProducts = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const isSuperAdmin = hasRole("super_admin");
-  const canManageProducts = permissions.canEditLoanApplications || isSuperAdmin;
+  const canManageProducts = permissions.canManageLenderProducts;
 
   const loadProducts = async () => {
     setLoading(true);
@@ -43,21 +43,21 @@ const LendersProducts = () => {
   useEffect(() => { void loadProducts(); }, []);
 
   const openAddModal = () => {
-    if (!isSuperAdmin) return toast.error("Only Super Admins can add products");
+    if (!canManageProducts) return toast.error("You do not have permission to manage lender products");
     setEditingProduct(null);
     setFormData(EMPTY_FORM);
     setShowModal(true);
   };
 
   const openEditModal = (product: Product) => {
-    if (!isSuperAdmin) return toast.error("Only Super Admins can edit products");
+    if (!canManageProducts) return toast.error("You do not have permission to manage lender products");
     setEditingProduct(product);
     setFormData({ lender: product.bank_name, productType: product.product_type, rate: String(product.interest_rate), minAmount: String(product.min_amount), maxTerm: String(product.max_term_months), maxAmount: String(product.max_amount), processingDays: String(product.processing_days) });
     setShowModal(true);
   };
 
   const toggleProductStatus = async (product: Product) => {
-    if (!isSuperAdmin) return toast.error("Only Super Admins can toggle product status");
+    if (!canManageProducts) return toast.error("You do not have permission to manage lender products");
     const { error } = await supabase.from("bank_products").update({ active: !product.active }).eq("id", product.id);
     if (error) return toast.error(`Failed to update product status: ${error.message}`);
     await logAction("toggle_product_status", product.id, "bank_products", { active: product.active }, { active: !product.active });
@@ -66,22 +66,70 @@ const LendersProducts = () => {
   };
 
   const handleSave = async () => {
-    if (!canManageProducts) return toast.error("You do not have permission to manage loan products");
-    const rate = Number(formData.rate), minAmount = Number(formData.minAmount), maxAmount = Number(formData.maxAmount), maxTerm = Number(formData.maxTerm), processingDays = Number(formData.processingDays || 0);
-    if (!formData.lender.trim() || !Number.isFinite(rate) || rate <= 0 || !Number.isFinite(minAmount) || minAmount < 0 || !Number.isFinite(maxAmount) || maxAmount <= minAmount || !Number.isInteger(maxTerm) || maxTerm <= 0 || !Number.isInteger(processingDays) || processingDays < 0) return toast.error("Enter valid lender, rate, amount, term and processing values");
+    if (!canManageProducts) return toast.error("You do not have permission to manage lender products");
+    const rate = Number(formData.rate);
+    const minAmount = Number(formData.minAmount);
+    const maxAmount = Number(formData.maxAmount);
+    const maxTerm = Number(formData.maxTerm);
+    const processingDays = Number(formData.processingDays || 0);
+
+    if (!formData.lender.trim() ||
+      !Number.isFinite(rate) || rate <= 0 ||
+      !Number.isFinite(minAmount) || minAmount < 0 ||
+      !Number.isFinite(maxAmount) || maxAmount <= minAmount ||
+      !Number.isInteger(maxTerm) || maxTerm <= 0 ||
+      !Number.isInteger(processingDays) || processingDays < 0) {
+      toast.error("Enter valid lender, rate, amount, term and processing values");
+      return;
+    }
+
     setSaving(true);
-    const payload = { bank_name: formData.lender.trim(), product_type: formData.productType, interest_rate: rate, min_amount: minAmount, max_amount: maxAmount, max_term_months: maxTerm, processing_days: processingDays };
-    const result = editingProduct
-      ? await supabase.from("bank_products").update(payload).eq("id", editingProduct.id).select().single()
-      : await supabase.from("bank_products").insert({ ...payload, active: true }).select().single();
-    if (result.error) toast.error(`Failed to save loan product: ${result.error.message}`);
-    else { await logAction(editingProduct ? "update_product" : "add_product", result.data.id, "bank_products", editingProduct, result.data); toast.success(editingProduct ? "Product updated" : "Product added"); setShowModal(false); await loadProducts(); }
-    setSaving(false);
+    try {
+      const payload = {
+        bank_name: formData.lender.trim(),
+        product_type: formData.productType,
+        interest_rate: rate,
+        min_amount: minAmount,
+        max_amount: maxAmount,
+        max_term_months: maxTerm,
+        processing_days: processingDays,
+      };
+      const result = editingProduct
+        ? await supabase.from("bank_products").update(payload).eq("id", editingProduct.id).select().single()
+        : await supabase.from("bank_products").insert({ ...payload, active: true }).select().single();
+
+      if (result.error) {
+        toast.error(`Failed to save loan product: ${result.error.message}`);
+        return;
+      }
+
+      try {
+        await logAction(
+          editingProduct ? "update_product" : "add_product",
+          result.data.id,
+          "bank_products",
+          editingProduct,
+          result.data,
+        );
+      } catch {
+        // The product write has already succeeded. Do not misreport it as failed
+        // because a secondary audit-log request failed; database audit triggers remain authoritative.
+        toast.warning("Product saved, but the audit confirmation could not be recorded. Check audit logs.");
+      }
+
+      toast.success(editingProduct ? "Product updated" : "Product added");
+      setShowModal(false);
+      await loadProducts();
+    } catch {
+      toast.error("An unexpected error occurred while saving the product. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return <div className="space-y-6 max-w-7xl">
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><h1 className="text-2xl font-display font-bold text-foreground">Loan Products</h1><p className="text-sm text-muted-foreground">Manage verified bank, microfinance and salary advance products</p></div>{isSuperAdmin && <Button onClick={openAddModal}><Plus className="w-4 h-4 mr-1" /> Add Product</Button>}</div>
-    <Card><CardContent className="p-0 overflow-x-auto">{loading ? <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : <Table><TableHeader><TableRow><TableHead>Lender</TableHead><TableHead>Product Type</TableHead><TableHead>Rate</TableHead><TableHead className="hidden sm:table-cell">Min Amount</TableHead><TableHead className="hidden sm:table-cell">Max Term</TableHead><TableHead className="hidden md:table-cell">Max Amount</TableHead><TableHead>Status</TableHead>{isSuperAdmin && <TableHead className="text-right">Actions</TableHead>}</TableRow></TableHeader><TableBody>{products.map((p) => <TableRow key={p.id}><TableCell className="font-medium">{p.bank_name}</TableCell><TableCell><Badge variant="outline">{PRODUCT_TYPE_LABELS[p.product_type] ?? "Unclassified"}</Badge></TableCell><TableCell>{p.interest_rate}%</TableCell><TableCell className="hidden sm:table-cell">K{p.min_amount.toLocaleString()}</TableCell><TableCell className="hidden sm:table-cell">{p.max_term_months} months</TableCell><TableCell className="hidden md:table-cell">K{p.max_amount.toLocaleString()}</TableCell><TableCell><Badge className={p.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}>{p.active ? "active" : "paused"}</Badge></TableCell>{isSuperAdmin && <TableCell className="text-right"><div className="flex gap-1 justify-end"><Button size="sm" variant="ghost" onClick={() => openEditModal(p)}><Edit className="h-4 w-4" /></Button><Button size="sm" variant="ghost" onClick={() => toggleProductStatus(p)}>{p.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}</Button></div></TableCell>}</TableRow>)}{products.length === 0 && <TableRow><TableCell colSpan={isSuperAdmin ? 8 : 7} className="text-center py-10 text-muted-foreground">No verified loan products have been added yet.</TableCell></TableRow>}</TableBody></Table>}</CardContent></Card>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><h1 className="text-2xl font-display font-bold text-foreground">Loan Products</h1><p className="text-sm text-muted-foreground">Manage verified bank, microfinance and salary advance products</p></div>{canManageProducts && <Button onClick={openAddModal}><Plus className="w-4 h-4 mr-1" /> Add Product</Button>}</div>
+    <Card><CardContent className="p-0 overflow-x-auto">{loading ? <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : <Table><TableHeader><TableRow><TableHead>Lender</TableHead><TableHead>Product Type</TableHead><TableHead>Rate</TableHead><TableHead className="hidden sm:table-cell">Min Amount</TableHead><TableHead className="hidden sm:table-cell">Max Term</TableHead><TableHead className="hidden md:table-cell">Max Amount</TableHead><TableHead>Status</TableHead>{canManageProducts && <TableHead className="text-right">Actions</TableHead>}</TableRow></TableHeader><TableBody>{products.map((p) => <TableRow key={p.id}><TableCell className="font-medium">{p.bank_name}</TableCell><TableCell><Badge variant="outline">{PRODUCT_TYPE_LABELS[p.product_type] ?? "Unclassified"}</Badge></TableCell><TableCell>{p.interest_rate}%</TableCell><TableCell className="hidden sm:table-cell">K{p.min_amount.toLocaleString()}</TableCell><TableCell className="hidden sm:table-cell">{p.max_term_months} months</TableCell><TableCell className="hidden md:table-cell">K{p.max_amount.toLocaleString()}</TableCell><TableCell><Badge className={p.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}>{p.active ? "active" : "paused"}</Badge></TableCell>{canManageProducts && <TableCell className="text-right"><div className="flex gap-1 justify-end"><Button size="sm" variant="ghost" onClick={() => openEditModal(p)}><Edit className="h-4 w-4" /></Button><Button size="sm" variant="ghost" onClick={() => toggleProductStatus(p)}>{p.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}</Button></div></TableCell>}</TableRow>)}{products.length === 0 && <TableRow><TableCell colSpan={canManageProducts ? 8 : 7} className="text-center py-10 text-muted-foreground">No verified loan products have been added yet.</TableCell></TableRow>}</TableBody></Table>}</CardContent></Card>
     <Dialog open={showModal} onOpenChange={setShowModal}><DialogContent className="sm:max-w-[500px]"><DialogHeader><DialogTitle>{editingProduct ? "Edit Loan Product" : "Add New Loan Product"}</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="space-y-2"><Label htmlFor="productType">Product Type *</Label><Select value={formData.productType} onValueChange={(value: ProductType) => setFormData((p) => ({ ...p, productType: value }))}><SelectTrigger id="productType"><SelectValue placeholder="Select product type" /></SelectTrigger><SelectContent><SelectItem value="loan_bank">Loan — Bank</SelectItem><SelectItem value="loan_microfinance">Loan — Microfinance</SelectItem><SelectItem value="salary_advance_microfinance">Salary Advance — Microfinance</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label htmlFor="lender">Lender Name *</Label><Input id="lender" value={formData.lender} onChange={(e) => setFormData((p) => ({ ...p, lender: e.target.value }))} /></div><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="rate">Annual Interest Rate % *</Label><Input id="rate" type="number" min="0.01" step="0.01" value={formData.rate} onChange={(e) => setFormData((p) => ({ ...p, rate: e.target.value }))} /></div><div className="space-y-2"><Label htmlFor="processingDays">Processing Days</Label><Input id="processingDays" type="number" min="0" step="1" value={formData.processingDays} onChange={(e) => setFormData((p) => ({ ...p, processingDays: e.target.value }))} /></div></div><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="minAmount">Minimum Amount *</Label><Input id="minAmount" type="number" min="0" step="100" value={formData.minAmount} onChange={(e) => setFormData((p) => ({ ...p, minAmount: e.target.value }))} /></div><div className="space-y-2"><Label htmlFor="maxAmount">Maximum Amount *</Label><Input id="maxAmount" type="number" min="0" step="100" value={formData.maxAmount} onChange={(e) => setFormData((p) => ({ ...p, maxAmount: e.target.value }))} /></div></div><div className="space-y-2"><Label htmlFor="maxTerm">Maximum Term (months) *</Label><Input id="maxTerm" type="number" min="1" step="1" value={formData.maxTerm} onChange={(e) => setFormData((p) => ({ ...p, maxTerm: e.target.value }))} /></div><p className="text-xs text-muted-foreground">Select the classification carefully. Compare Loans uses this classification to place verified products in the correct borrower section.</p></div><DialogFooter><Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button><Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : editingProduct ? "Update Product" : "Add Product"}</Button></DialogFooter></DialogContent></Dialog>
   </div>;
 };
