@@ -35,16 +35,24 @@ interface SyncState {
 const CustomerDataSheet = () => {
   const { toast } = useToast();
   const [state, setState] = useState<SyncState | null>(null);
+  const [connectionConfigured, setConnectionConfigured] = useState<boolean | null>(null);
+  const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
   const [sheetId, setSheetId] = useState("");
   const [syncing, setSyncing] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("report_sync_state")
-      .select("spreadsheet_id,last_synced_at,row_counts,last_error")
-      .eq("id", "google_sheets")
-      .maybeSingle();
-    if (data) setState(data as unknown as SyncState);
+    try {
+      const { data, error } = await supabase.functions.invoke("sheets-export", {
+        body: { action: "status" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setState((data?.state ?? null) as SyncState | null);
+      setConnectionConfigured(data?.configured === true);
+      setStatusLoadError(null);
+    } catch (err) {
+      setStatusLoadError(sanitizeError(err));
+    }
   };
 
   useEffect(() => {
@@ -92,7 +100,13 @@ const CustomerDataSheet = () => {
             value: state?.last_synced_at
               ? new Date(state.last_synced_at).toLocaleString()
               : "Never",
-            meta: state?.spreadsheet_id ? "Workbook linked" : "No workbook yet",
+            meta: state?.spreadsheet_id
+              ? "Workbook linked"
+              : connectionConfigured === false
+                ? "Credentials not configured"
+                : connectionConfigured === true
+                  ? "Credentials present; sync not verified"
+                  : "Connection status unavailable",
           },
           {
             label: "Rows exported",
@@ -116,6 +130,21 @@ const CustomerDataSheet = () => {
               Leave the field empty to create a new workbook on the first run, or paste an
               existing spreadsheet ID to keep syncing into it.
             </p>
+            {statusLoadError && (
+              <p role="status" className="text-sm text-destructive">
+                Connection status could not be loaded: {statusLoadError}
+              </p>
+            )}
+            {!statusLoadError && connectionConfigured === false && (
+              <p role="status" className="text-sm text-destructive">
+                Google Sheets credentials are not configured on the server. No workbook has been verified.
+              </p>
+            )}
+            {!statusLoadError && connectionConfigured === true && !state?.spreadsheet_id && (
+              <p role="status" className="text-sm text-muted-foreground">
+                Server credentials are present, but a successful workbook sync has not yet been recorded.
+              </p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="sheet-id">Spreadsheet ID (optional)</Label>
               <Input
