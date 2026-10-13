@@ -16,7 +16,26 @@
  * POST { action: "status" }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeadersFor } from "../_shared/cors.ts";
+const ALLOWED_RIVERBANC_ORIGINS = new Set([
+  "https://riverbanc.co.zm",
+  "https://www.riverbanc.co.zm",
+  "https://riverbanc-tech-git-main-riverbank1.vercel.app",
+  "https://riverbanc-tech-riverbank1.vercel.app",
+  "https://secure-civil-loans.vercel.app",
+  "https://riverbanc-tech-l8vpknneo-riverbank1.vercel.app",
+]);
+
+function corsHeadersFor(req: Request, methods: string): Record<string, string> {
+  const origin = req.headers.get("origin");
+  return {
+    ...(origin && ALLOWED_RIVERBANC_ORIGINS.has(origin)
+      ? { "Access-Control-Allow-Origin": origin }
+      : {}),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id",
+    "Access-Control-Allow-Methods": methods,
+    "Vary": "Origin",
+  };
+}
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -92,12 +111,25 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } },
   );
-  const { data: claims, error: claimsErr } = await asUser.auth.getClaims(
-    authHeader.replace("Bearer ", ""),
-  );
-  const userId = claims?.claims?.sub as string | undefined;
-  const aal = claims?.claims?.aal as string | undefined;
-  if (claimsErr || !userId) return json({ error: "Unauthorized" }, 401);
+  const accessToken = authHeader.slice("Bearer ".length);
+  // getUser(token) asks Supabase Auth to validate the token, including tokens
+  // signed with the project's current signing keys. Only read aal after that
+  // server-side validation succeeds; the claim itself is not used as identity.
+  const { data: verified, error: verifyErr } = await asUser.auth.getUser(accessToken);
+  if (verifyErr || !verified.user) return json({ error: "Unauthorized" }, 401);
+
+  let tokenClaims: Record<string, unknown>;
+  try {
+    const parts = accessToken.split(".");
+    if (parts.length !== 3) return json({ error: "Unauthorized" }, 401);
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    tokenClaims = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")));
+  } catch {
+    return json({ error: "Unauthorized" }, 401);
+  }
+  const userId = verified.user.id;
+  const aal = tokenClaims.aal as string | undefined;
+  if (!userId || tokenClaims.sub !== userId) return json({ error: "Unauthorized" }, 401);
 
   const [{ data: isAdmin }, { data: isSuperAdmin }] = await Promise.all([
     asUser.rpc("has_role", { _user_id: userId, _role: "admin" }),
@@ -105,13 +137,6 @@ Deno.serve(async (req) => {
   ]);
   if (!isAdmin && !isSuperAdmin) return json({ error: "Forbidden" }, 403);
   if (aal !== "aal2") return json({ error: "MFA required" }, 403);
-
-  if (!LOVABLE_API_KEY || !GOOGLE_SHEETS_API_KEY) {
-    return json(
-      { error: "Google Sheets connection is not configured for this project." },
-      503,
-    );
-  }
 
   let body: { action?: string; spreadsheetId?: string };
   try {
@@ -129,15 +154,25 @@ Deno.serve(async (req) => {
 
   try {
     if (body.action === "status") {
-      const { data } = await db
+      const { data, error } = await db
         .from("report_sync_state")
         .select("*")
         .eq("id", "google_sheets")
         .maybeSingle();
-      return json({ state: data ?? null });
+      if (error) return json({ error: "Unable to read reporting status" }, 500);
+      return json({
+        state: data ?? null,
+        configured: Boolean(LOVABLE_API_KEY && GOOGLE_SHEETS_API_KEY),
+      });
     }
 
     if (body.action !== "sync") return json({ error: "Unknown action" }, 400);
+    if (!LOVABLE_API_KEY || !GOOGLE_SHEETS_API_KEY) {
+      return json(
+        { error: "Google Sheets connection is not configured for this project." },
+        503,
+      );
+    }
 
     // ------------------------------ Extract ------------------------------
     const [
@@ -180,6 +215,15 @@ Deno.serve(async (req) => {
           "id,user_id,loan_application_id,agreement_version,authorized_amount,authorized_term_months,signed_at,revoked_at,status,created_at",
         ),
     ]);
+
+    const queryResults = [
+      profiles, kyc, applications, offers, underwriting, creditChecks, riskFlags,
+      payouts, products, bankProducts, notifications, consentHistory, auditLogs, authorizations,
+    ];
+    if (queryResults.some((result) => result.error)) {
+      console.error("sheets-export database extraction failed: one or more source queries returned an error");
+      throw new Error("Database extraction failed");
+    }
 
     const rows = <T>(r: { data: T[] | null; error: unknown }) => r.data ?? [];
     const P = rows<Record<string, unknown>>(profiles);
@@ -868,7 +912,7 @@ Deno.serve(async (req) => {
       rowCounts[tab] = Math.max(0, padded.length - 1);
     }
 
-    await db.from("report_sync_state").upsert({
+    const { error: stateError } = await db.from("report_sync_state").upsert({
       id: "google_sheets",
       spreadsheet_id: spreadsheetId,
       last_synced_at: new Date().toISOString(),
@@ -876,8 +920,12 @@ Deno.serve(async (req) => {
       row_counts: rowCounts,
       last_error: null,
     });
+    if (stateError) {
+      console.error("sheets-export failed to persist sync state");
+      throw new Error("Sync completed but status persistence failed");
+    }
 
-    await db.rpc("log_audit", {
+    const { error: auditError } = await db.rpc("log_audit", {
       _user_id: userId,
       _role: isSuperAdmin ? "super_admin" : "admin",
       _action: "google_sheets_report_sync",
@@ -886,6 +934,10 @@ Deno.serve(async (req) => {
       _old_value: null,
       _new_value: { row_counts: rowCounts, created },
     });
+    if (auditError) {
+      console.error("sheets-export failed to write audit event");
+      throw new Error("Sync completed but audit logging failed");
+    }
 
     return json({
       ok: true,
