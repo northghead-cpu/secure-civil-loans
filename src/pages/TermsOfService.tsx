@@ -8,7 +8,7 @@ const TermsOfService = () => (
     <Helmet>
       <title>Terms of Service — Riverbanc</title>
       <meta name="description" content="Terms governing access to and use of the Riverbanc loan-comparison technology platform." />
-      <link rel="canonical" href="https://riverbanc.co.zm/terms" />
+      <link rel="canonical" href="https://www.riverbanc.co.zm/terms" />
     </Helmet>
     <Navbar />
     <main className="container mx-auto w-full max-w-4xl px-4 lg:px-8 pt-28 pb-16 flex-1">
