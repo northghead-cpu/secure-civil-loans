@@ -84,6 +84,7 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
         _requested_amount: requestedAmount,
         _term_months: offer.term,
         _signature_name: signatureName.trim(),
+        _authorization_accepted: accepted,
       });
 
       if (error) throw error;
