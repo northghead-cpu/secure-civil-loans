@@ -49,7 +49,7 @@ export default function CustomerCareChat() {
 
   const loadCases = useCallback(async (quiet = false) => {
     if (!user) return;
-    const { data, error } = await supabase
+    const { data, error } = await untypedDb
       .from("support_cases")
       .select("id,case_number,subject,status,last_message_at")
       .eq("user_id", user.id)
@@ -66,7 +66,7 @@ export default function CustomerCareChat() {
 
   const loadMessages = useCallback(async (id: string, quiet = false) => {
     if (!quiet) setLoadingMessages(true);
-    const { data, error } = await supabase
+    const { data, error } = await untypedDb
       .from("support_messages")
       .select("id,case_id,sender_id,body,is_staff_reply,created_at")
       .eq("case_id", id)
