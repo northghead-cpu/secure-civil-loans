@@ -19,14 +19,13 @@ interface Product { id: string; bank_name: string; product_type: ProductType; in
 const EMPTY_FORM = { lender: "", productType: "loan_bank" as ProductType, rate: "", minAmount: "", maxTerm: "", maxAmount: "", processingDays: "" };
 
 const LendersProducts = () => {
-  const { permissions, hasRole, logAction } = useRBAC();
+  const { permissions, logAction } = useRBAC();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const isSuperAdmin = hasRole("super_admin");
   const canManageProducts = permissions.canManageLenderProducts;
 
   const loadProducts = async () => {
