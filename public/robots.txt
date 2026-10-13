@@ -17,5 +17,12 @@ Disallow: /profile
 Disallow: /apply
 Disallow: /underwriting
 Disallow: /application-submitted
+Disallow: /application-status
+Disallow: /change-password
+Disallow: /support
+Disallow: /compare
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /reset-password
 
 Sitemap: https://riverbanc.co.zm/sitemap.xml
