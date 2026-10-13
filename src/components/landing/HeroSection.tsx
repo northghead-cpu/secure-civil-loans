@@ -46,7 +46,7 @@ const HeroSection = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            Compare loan options with clarity.{" "}
+            Compare loan options in Zambia with clarity.{" "}
             <span className="text-gradient">Choose with confidence.</span>
           </motion.h1>
 
@@ -56,8 +56,8 @@ const HeroSection = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            Riverbanc helps you understand eligible loan options from participating
-            financial institutions, so you can make a more informed choice.
+            Riverbanc helps Zambia’s salaried employees compare available loan options from participating
+            financial institutions and make a more informed choice. Lenders provide the products and make all lending decisions.
           </motion.p>
 
           <motion.div
