@@ -8,10 +8,10 @@ const RetentionPolicy = () => (
     <Helmet>
       <title>Data Retention Policy — Riverbanc</title>
       <meta name="description" content="How Riverbanc retains, reviews, deletes and anonymises personal information under Zambia's Data Protection Act and applicable record-keeping duties." />
-      <link rel="canonical" href="https://riverbanc.co.zm/retention-policy" />
+      <link rel="canonical" href="https://www.riverbanc.co.zm/retention-policy" />
       <meta property="og:title" content="Data Retention Policy — Riverbanc" />
       <meta property="og:description" content="The retention schedule, automatic deletion rules and exceptions that apply to personal information held by Riverbanc." />
-      <meta property="og:url" content="https://riverbanc.co.zm/retention-policy" />
+      <meta property="og:url" content="https://www.riverbanc.co.zm/retention-policy" />
     </Helmet>
     <Navbar />
     <main className="container mx-auto w-full max-w-4xl px-4 lg:px-8 pt-28 pb-16 flex-1">
