@@ -8,10 +8,10 @@ const PrivacyPolicy = () => (
     <Helmet>
       <title>Privacy Policy — Riverbanc</title>
       <meta name="description" content="How Riverbanc Technology Limited collects, uses, shares, protects and retains personal information under Zambia's Data Protection Act." />
-      <link rel="canonical" href="https://riverbanc.co.zm/privacy-policy" />
+      <link rel="canonical" href="https://www.riverbanc.co.zm/privacy-policy" />
       <meta property="og:title" content="Privacy Policy — Riverbanc" />
       <meta property="og:description" content="Understand how Riverbanc handles personal information and how you can exercise your data protection rights." />
-      <meta property="og:url" content="https://riverbanc.co.zm/privacy-policy" />
+      <meta property="og:url" content="https://www.riverbanc.co.zm/privacy-policy" />
     </Helmet>
     <Navbar />
     <main className="container mx-auto w-full max-w-4xl px-4 lg:px-8 pt-28 pb-16 flex-1">
