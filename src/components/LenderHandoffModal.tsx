@@ -170,7 +170,7 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
             <Button variant="outline" onClick={handleClose} disabled={submitting}>Cancel</Button>
             <Button onClick={handleAuthorize} disabled={submitting || !accepted || !signatureName.trim()}>
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Authorize & continue <ArrowRight className="ml-2 h-4 w-4" />
+              Authorize and apply <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
