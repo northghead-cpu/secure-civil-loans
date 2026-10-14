@@ -260,24 +260,44 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!user) {
       setRoles([]);
       setLoading(false);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
-    const fetchRoles = async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
+    // Clear the previous user's permissions immediately and keep all guards
+    // waiting until the current user's roles have been resolved.
+    setRoles([]);
+    setLoading(true);
 
-      const userRoles = (data?.map((r) => r.role) ?? []) as AppRole[];
-      setRoles(userRoles);
-      setLoading(false);
+    const fetchRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+        const userRoles = (data?.map((r) => r.role) ?? []) as AppRole[];
+        if (!cancelled) setRoles(userRoles);
+      } catch {
+        // Fail closed: a role lookup failure must never preserve stale roles
+        // or leave protected routes waiting indefinitely.
+        if (!cancelled) setRoles([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
-    fetchRoles();
+    void fetchRoles();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const permissions = mergePermissions(roles);
