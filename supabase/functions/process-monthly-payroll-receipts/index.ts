@@ -191,11 +191,11 @@ async function sendTestReceiptEmail(
   return { ok: true, messageId: responseBody.id, retryable: false };
 }
 
-async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array, attemptNumber: number): Promise<EmailResult> {
+async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array, attemptNumber: number, emailConfig: EmailConfig): Promise<EmailResult> {
   if (!receipt.customer_email) return { ok: false, code: 'missing_customer_email', retryable: false };
 
-  const apiKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('RESEND_FROM_EMAIL');
+  const apiKey = emailConfig.api_key;
+  const from = emailConfig.from_email;
   if (!apiKey || !from) return { ok: false, code: 'email_provider_not_configured', retryable: true };
 
   const binary = Array.from(pdfBytes, (byte) => String.fromCharCode(byte)).join('');
@@ -225,7 +225,7 @@ async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array, attemptN
   if (typeof responseBody.id !== 'string' || !responseBody.id) {
     return { ok: false, code: 'resend_message_id_missing', retryable: true };
   }
-  return { ok: true, messageId: responseBody.id, retryable: true };
+  return { ok: true, messageId: responseBody.id, retryable: false };
 }
 
 export default {
@@ -298,7 +298,7 @@ export default {
         return Response.json({
           ok: false,
           error: 'email_provider_not_configured',
-          billing_run_id: billingRun.id,
+          billing_run_id: result.billing_run_id,
           transactions: transactionIds.length,
           receipts: receipts.length,
           emails_sent: 0,
