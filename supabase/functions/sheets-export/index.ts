@@ -118,7 +118,14 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } },
   );
-  const authorization = await requirePrivilegedMfa(asUser, authHeader);
+  const authorization = await requirePrivilegedMfa({
+      auth: asUser.auth,
+      rolesForUser: async (id) => {
+        const { data, error } = await asUser.from("user_roles").select("role")
+          .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+        return { data: data as { role: string }[] | null, error };
+      },
+    }, authHeader);
   if (authorization.status) return json({ error: authorization.code, code: authorization.code }, authorization.status);
   const userId = authorization.userId;
 
@@ -913,7 +920,7 @@ Deno.serve(async (req) => {
 
     const { error: auditError } = await db.rpc("log_audit", {
       _user_id: userId,
-      _role: isSuperAdmin ? "super_admin" : "admin",
+      _role: authorization.role,
       _action: "google_sheets_report_sync",
       _record_id: spreadsheetId,
       _table_name: "report_sync_state",
