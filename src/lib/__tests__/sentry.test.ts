@@ -2,6 +2,20 @@ import { describe, it, expect } from "vitest";
 import { scrubDeep, scrubUrl } from "@/lib/sentry";
 
 describe("sentry redaction", () => {
+  it("truncates deep and cyclic objects instead of leaking unsanitized content", () => {
+    const input: Record<string, unknown> = { safe: "ok" };
+    let cursor = input;
+    for (let i = 0; i < 12; i++) {
+      const next = { safe: "ok" };
+      cursor.child = next;
+      cursor = next;
+    }
+    cursor.email = "deep@example.test";
+    input.cycle = input;
+    const output = JSON.stringify(scrubDeep(input));
+    expect(output).not.toContain("deep@example.test");
+    expect(output).toContain("[redacted]");
+  });
   it("redacts regulated keys", () => {
     const out = scrubDeep({
       nrc_number: "123456/78/1",

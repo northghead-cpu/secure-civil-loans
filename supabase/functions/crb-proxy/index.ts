@@ -1,3 +1,4 @@
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeadersFor } from "../_shared/cors.ts";
 import { z } from "https://esm.sh/zod@3.23.8";
@@ -82,26 +83,14 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+    const authorization = await requirePrivilegedMfa(supabase, authHeader);
+    if (authorization.status) {
+      return new Response(JSON.stringify({ error: authorization.code }), {
+        status: authorization.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const { data: roleRow } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .in("role", ["admin", "super_admin"])
-      .maybeSingle();
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const user = { id: authorization.userId };
 
     const nonce = req.headers.get("x-request-id") ?? "";
     if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {

@@ -1,3 +1,4 @@
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
  * reference-data — cached, non-sensitive read API.
  *
@@ -71,7 +72,6 @@ Deno.serve(async (req) => {
     authHeader.replace("Bearer ", ""),
   );
   if (claimsErr || !claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
-  const userId = claims.claims.sub as string;
 
   try {
     // ---------------- Cache invalidation (after writes) ----------------
@@ -79,13 +79,8 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       if (body?.action !== "invalidate") return json({ error: "Unsupported action" }, 400);
 
-      const { data: roleRow } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .in("role", ["admin", "super_admin"])
-        .maybeSingle();
-      if (!roleRow) return json({ error: "Forbidden" }, 403);
+      const authorization = await requirePrivilegedMfa(supabase, authHeader);
+      if (authorization.status) return json({ error: authorization.code }, authorization.status);
 
       const resource = typeof body.resource === "string" ? body.resource : null;
       if (resource && !RESOURCES.includes(resource as Resource)) {

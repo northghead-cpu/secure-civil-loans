@@ -78,7 +78,9 @@ export function scrubUrl(url: string): string {
  * pattern-scrubbed, so a stray NRC or JWT can't ride along.
  */
 export function scrubDeep<T>(input: T, depth = 0): T {
-  if (depth > 8 || input == null) return input;
+  if (input == null) return input;
+  // Truncate unknown deep/cyclic structures instead of returning unsanitized data.
+  if (depth > 8) return REDACTED as unknown as T;
   if (typeof input === "string") return scrubString(input) as unknown as T;
   if (typeof input !== "object") return input;
   if (Array.isArray(input)) {
