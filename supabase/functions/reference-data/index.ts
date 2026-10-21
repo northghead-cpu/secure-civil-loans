@@ -68,10 +68,10 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
+  const { data: identity, error: identityError } = await supabase.auth.getUser(
     authHeader.replace("Bearer ", ""),
   );
-  if (claimsErr || !claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
+  if (identityError || !identity.user) return json({ error: "Unauthorized" }, 401);
 
   try {
     // ---------------- Cache invalidation (after writes) ----------------
