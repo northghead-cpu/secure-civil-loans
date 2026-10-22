@@ -24,6 +24,13 @@ jobs:
         run: bun run lint
       - name: Production build
         run: bun run build
+      - name: Check privileged Edge Functions in Deno
+        run: >-
+          npx --yes --package=deno@2.9.6 deno check
+          supabase/functions/process-loan/index.ts
+          supabase/functions/crb-proxy/index.ts
+          supabase/functions/reference-data/index.ts
+          supabase/functions/sheets-export/index.ts
 
   audit:
     # Supply-chain gate: fail on high/critical runtime dependency advisories.

@@ -198,7 +198,7 @@ var check_affordability_default = defineTool4({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "amjbvphgwhtfcbbmmpzz";
+var projectRef = "zdpeaxkormwjrgllwalq";
 var mcp_default = defineMcp({
   name: "riverbanc-technology",
   title: "RIVERBANC TECHNOLOGY",

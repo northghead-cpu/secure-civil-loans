@@ -1,3 +1,4 @@
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
  * sheets-export — server-side Riverbanc -> Google Sheets reporting sync.
  *
@@ -117,32 +118,16 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } },
   );
-  const accessToken = authHeader.slice("Bearer ".length);
-  // getUser(token) asks Supabase Auth to validate the token, including tokens
-  // signed with the project's current signing keys. Only read aal after that
-  // server-side validation succeeds; the claim itself is not used as identity.
-  const { data: verified, error: verifyErr } = await asUser.auth.getUser(accessToken);
-  if (verifyErr || !verified.user) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
-
-  let tokenClaims: Record<string, unknown>;
-  try {
-    const parts = accessToken.split(".");
-    if (parts.length !== 3) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
-    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    tokenClaims = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")));
-  } catch {
-    return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
-  }
-  const userId = verified.user.id;
-  const aal = tokenClaims.aal as string | undefined;
-  if (!userId || tokenClaims.sub !== userId) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
-
-  const [{ data: isAdmin }, { data: isSuperAdmin }] = await Promise.all([
-    asUser.rpc("has_role", { _user_id: userId, _role: "admin" }),
-    asUser.rpc("has_role", { _user_id: userId, _role: "super_admin" }),
-  ]);
-  if (!isAdmin && !isSuperAdmin) return json({ error: "Forbidden", code: "FORBIDDEN" }, 403);
-  if (aal !== "aal2") return json({ error: "MFA required", code: "MFA_REQUIRED" }, 403);
+  const authorization = await requirePrivilegedMfa({
+      auth: asUser.auth,
+      rolesForUser: async (id) => {
+        const { data, error } = await asUser.from("user_roles").select("role")
+          .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+        return { data: data as { role: string }[] | null, error };
+      },
+    }, authHeader);
+  if (authorization.status) return json({ error: authorization.code, code: authorization.code }, authorization.status);
+  const userId = authorization.userId;
 
   let body: { action?: string; spreadsheetId?: string };
   try {
@@ -935,7 +920,7 @@ Deno.serve(async (req) => {
 
     const { error: auditError } = await db.rpc("log_audit", {
       _user_id: userId,
-      _role: isSuperAdmin ? "super_admin" : "admin",
+      _role: authorization.role,
       _action: "google_sheets_report_sync",
       _record_id: spreadsheetId,
       _table_name: "report_sync_state",

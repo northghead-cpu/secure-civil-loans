@@ -1,3 +1,4 @@
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
  * reference-data — cached, non-sensitive read API.
  *
@@ -67,11 +68,10 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
+  const { data: identity, error: identityError } = await supabase.auth.getUser(
     authHeader.replace("Bearer ", ""),
   );
-  if (claimsErr || !claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
-  const userId = claims.claims.sub as string;
+  if (identityError || !identity.user) return json({ error: "Unauthorized" }, 401);
 
   try {
     // ---------------- Cache invalidation (after writes) ----------------
@@ -79,13 +79,15 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       if (body?.action !== "invalidate") return json({ error: "Unsupported action" }, 400);
 
-      const { data: roleRow } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .in("role", ["admin", "super_admin"])
-        .maybeSingle();
-      if (!roleRow) return json({ error: "Forbidden" }, 403);
+      const authorization = await requirePrivilegedMfa({
+      auth: supabase.auth,
+      rolesForUser: async (id) => {
+        const { data, error } = await supabase.from("user_roles").select("role")
+          .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+        return { data: data as { role: string }[] | null, error };
+      },
+    }, authHeader);
+      if (authorization.status) return json({ error: authorization.code }, authorization.status);
 
       const resource = typeof body.resource === "string" ? body.resource : null;
       if (resource && !RESOURCES.includes(resource as Resource)) {
