@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
     return json(500, { error: "HANDOFF_LOOKUP_FAILED" }, cors);
   }
   if (!handoff) return json(404, { error: "HANDOFF_NOT_FOUND" }, cors);
-  if (handoff.status !== "authorized" || !handoff.authorized_at ||
+  if (!["authorized", "preparing"].includes(handoff.status) || !handoff.authorized_at ||
       !handoff.authorization_signature || !handoff.authorization_version) {
     return json(409, { error: "HANDOFF_NOT_AUTHORIZED" }, cors);
   }
@@ -166,6 +166,18 @@ Deno.serve(async (req: Request) => {
     }, cors);
   }
 
+  const acceptedAt = new Date().toISOString();
+  const { error: statusError } = await admin
+    .from("application_handoffs")
+    .update({ status: "preparing" })
+    .eq("id", handoff.id)
+    .eq("user_id", authData.user.id)
+    .in("status", ["authorized", "preparing"]);
+  if (statusError) {
+    // Handshake already accepted the idempotent referral; retries remain safe.
+    console.error("[send-handshake-referral] status update failed", statusError.code ?? "UNKNOWN");
+  }
+
   await admin.from("audit_logs").insert({
     user_id: authData.user.id,
     role: "borrower",
@@ -176,7 +188,8 @@ Deno.serve(async (req: Request) => {
       destination: "handshake",
       handshake_reference: reference,
       event_id: handoff.id,
-      accepted_at: new Date().toISOString(),
+      accepted_at: acceptedAt,
+      handoff_status: statusError ? "authorized" : "preparing",
     },
   }).then(({ error }) => {
     if (error) console.error("[send-handshake-referral] audit insert failed", error.code ?? "UNKNOWN");
@@ -187,5 +200,6 @@ Deno.serve(async (req: Request) => {
     handoff_id: handoff.id,
     handshake_reference: reference,
     handshake_status: responseBody.status ?? "queued",
+    riverbanc_status: statusError ? "status_update_pending" : "preparing",
   }, cors);
 });
