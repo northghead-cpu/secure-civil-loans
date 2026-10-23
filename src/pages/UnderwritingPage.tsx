@@ -4,12 +4,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Calculator, TrendingUp } from "lucide-react";
 
@@ -47,15 +60,23 @@ const UnderwritingPage = () => {
   const [processing, setProcessing] = useState(false);
   const [queue, setQueue] = useState<QueueRecord[]>([]);
   const [results, setResults] = useState<LoanResult[]>([]);
+  const [dataError, setDataError] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoadingData(true);
     const [qRes, lRes] = await Promise.all([
-      supabase.from("underwriting_queue").select("*").order("created_at", { ascending: false }),
-      supabase.from("loan_results").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("underwriting_queue")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("loan_results")
+        .select("*")
+        .order("created_at", { ascending: false }),
     ]);
+    setDataError(Boolean(qRes.error || lRes.error));
     if (qRes.data) setQueue(qRes.data as QueueRecord[]);
     if (lRes.data) setResults(lRes.data as LoanResult[]);
     setLoadingData(false);
@@ -74,7 +95,9 @@ const UnderwritingPage = () => {
         .eq("user_id", user.id)
         .then(({ data }) => {
           const roles = (data || []).map((r: { role: string }) => r.role);
-          const hasAdminRole = roles.some((r: string) => ["admin", "super_admin"].includes(r));
+          const hasAdminRole = roles.some((r: string) =>
+            ["admin", "super_admin"].includes(r),
+          );
           setIsAdmin(hasAdminRole);
           if (!hasAdminRole) {
             navigate("/");
@@ -103,16 +126,23 @@ const UnderwritingPage = () => {
 
     setProcessing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast({ title: "Not authenticated", variant: "destructive" });
         return;
       }
 
-      const requestId = (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.()
-        ?? `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+      const requestId =
+        (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.() ??
+        `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
       const res = await supabase.functions.invoke("process-loan", {
-        body: { zmw_client_id: clientId.trim(), income_zmw: incomeVal, debt_zmw: debtVal },
+        body: {
+          zmw_client_id: clientId.trim(),
+          income_zmw: incomeVal,
+          debt_zmw: debtVal,
+        },
         headers: { "x-request-id": requestId },
       });
 
@@ -131,8 +161,14 @@ const UnderwritingPage = () => {
     } catch (err: unknown) {
       const { logger } = await import("@/lib/logger");
       const { sanitizeError } = await import("@/lib/errors");
-      logger.error("underwriting scoring failed", { err: err instanceof Error ? err.name : typeof err });
-      toast({ title: "Error", description: sanitizeError(err, "Scoring failed. Please try again."), variant: "destructive" });
+      logger.error("underwriting scoring failed", {
+        err: err instanceof Error ? err.name : typeof err,
+      });
+      toast({
+        title: "Error",
+        description: sanitizeError(err, "Scoring failed. Please try again."),
+        variant: "destructive",
+      });
     } finally {
       setProcessing(false);
     }
@@ -152,32 +188,52 @@ const UnderwritingPage = () => {
 
   const getScoreBadge = (score: number | null) => {
     if (score == null) return <Badge variant="secondary">Pending</Badge>;
-    if (score >= 600) return <Badge className="bg-green-600 text-white">{score}</Badge>;
-    if (score >= 400) return <Badge className="bg-yellow-500 text-white">{score}</Badge>;
+    if (score >= 600)
+      return <Badge className="bg-green-600 text-white">{score}</Badge>;
+    if (score >= 400)
+      return <Badge className="bg-yellow-500 text-white">{score}</Badge>;
     return <Badge variant="destructive">{score}</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === "completed") return <Badge className="bg-green-600 text-white">Completed</Badge>;
-    if (status === "processing") return <Badge className="bg-blue-500 text-white">Processing</Badge>;
+    if (status === "completed")
+      return <Badge className="bg-green-600 text-white">Completed</Badge>;
+    if (status === "processing")
+      return <Badge className="bg-blue-500 text-white">Processing</Badge>;
     return <Badge variant="secondary">{status}</Badge>;
   };
 
   // Merge queue with results for the dashboard
   const mergedRecords = queue.map((q) => {
     const result = results.find((r) => r.zmw_client_id === q.zmw_client_id);
-    return { ...q, max_limit_zmw: result?.max_limit_zmw ?? null, interest_rate: result?.interest_rate ?? null };
+    return {
+      ...q,
+      max_limit_zmw: result?.max_limit_zmw ?? null,
+      interest_rate: result?.interest_rate ?? null,
+    };
   });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8 space-y-8">
+      <main className="flex-1 container mx-auto px-4 py-8 pt-24 space-y-8">
+        {dataError && (
+          <div role="alert">
+            Scoring history could not load.{" "}
+            <Button variant="outline" onClick={() => void fetchData()}>
+              Try again
+            </Button>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <Calculator className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">ZMW Underwriting</h1>
-            <p className="text-muted-foreground">Score clients and determine loan limits in Zambian Kwacha</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              ZMW Underwriting
+            </h1>
+            <p className="text-muted-foreground">
+              Score clients and determine loan limits in Zambian Kwacha
+            </p>
           </div>
         </div>
 
@@ -185,7 +241,9 @@ const UnderwritingPage = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">New Underwriting Request</CardTitle>
-            <CardDescription>Enter the anonymized client UUID and financial details</CardDescription>
+            <CardDescription>
+              Enter the anonymized client UUID and financial details
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -223,7 +281,11 @@ const UnderwritingPage = () => {
                 />
               </div>
             </div>
-            <Button onClick={handleSubmit} disabled={processing} className="mt-4">
+            <Button
+              onClick={handleSubmit}
+              disabled={processing}
+              className="mt-4"
+            >
               {processing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -243,7 +305,9 @@ const UnderwritingPage = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Underwriting Results</CardTitle>
-            <CardDescription>All scored clients with loan limits in ZMW</CardDescription>
+            <CardDescription>
+              All scored clients with loan limits in ZMW
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {loadingData ? (
@@ -251,7 +315,9 @@ const UnderwritingPage = () => {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : mergedRecords.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No underwriting records yet. Submit a request above.</p>
+              <p className="text-muted-foreground text-center py-8">
+                No underwriting records yet. Submit a request above.
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
@@ -269,13 +335,29 @@ const UnderwritingPage = () => {
                   <TableBody>
                     {mergedRecords.map((r) => (
                       <TableRow key={r.id}>
-                        <TableCell className="font-mono text-xs">{r.zmw_client_id.slice(0, 8)}…</TableCell>
-                        <TableCell className="text-right">{formatZMW(r.income_zmw)}</TableCell>
-                        <TableCell className="text-right">{formatZMW(r.debt_zmw)}</TableCell>
-                        <TableCell className="text-center">{getScoreBadge(r.score_result)}</TableCell>
-                        <TableCell className="text-right">{formatZMW(r.max_limit_zmw)}</TableCell>
-                        <TableCell className="text-right">{r.interest_rate != null ? `${r.interest_rate}%` : "—"}</TableCell>
-                        <TableCell className="text-center">{getStatusBadge(r.status)}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {r.zmw_client_id.slice(0, 8)}…
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatZMW(r.income_zmw)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatZMW(r.debt_zmw)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {getScoreBadge(r.score_result)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatZMW(r.max_limit_zmw)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {r.interest_rate != null
+                            ? `${r.interest_rate}%`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {getStatusBadge(r.status)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

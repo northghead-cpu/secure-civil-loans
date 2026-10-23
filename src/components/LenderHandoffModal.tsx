@@ -1,8 +1,15 @@
+import { useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +42,13 @@ interface Props {
   requestedAmount: number;
 }
 
-export default function LenderHandoffModal({ open, onClose, offer, requestedAmount }: Props) {
+export default function LenderHandoffModal({
+  open,
+  onClose,
+  offer,
+  requestedAmount,
+}: Props) {
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [accepted, setAccepted] = useState(false);
   const [signatureName, setSignatureName] = useState("");
@@ -65,11 +78,15 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
     const typedName = signatureName.trim().toLowerCase();
 
     if (!accepted) {
-      toast.error("Please authorize the information-sharing terms before continuing.");
+      toast.error(
+        "Please authorize the information-sharing terms before continuing.",
+      );
       return;
     }
     if (!signatureName.trim()) {
-      toast.error("Please enter your full legal name as your authorization signature.");
+      toast.error(
+        "Please enter your full legal name as your authorization signature.",
+      );
       return;
     }
     if (expectedName && typedName !== expectedName) {
@@ -79,25 +96,50 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.rpc("authorize_application_handoff", {
-        _lender_product_id: offer.id,
-        _requested_amount: requestedAmount,
-        _term_months: offer.term,
-        _signature_name: signatureName.trim(),
-        _authorization_accepted: accepted,
-      });
+      const { data, error } = await supabase.rpc(
+        "authorize_application_handoff",
+        {
+          _lender_product_id: offer.id,
+          _requested_amount: requestedAmount,
+          _term_months: offer.term,
+          _signature_name: signatureName.trim(),
+          _authorization_accepted: accepted,
+        },
+      );
 
       if (error) throw error;
 
       toast.success("Information sharing authorized", {
-        description: "Riverbanc will prepare your application for the selected financial institution.",
+        description:
+          "Riverbanc will prepare your application for the selected financial institution.",
       });
       reset();
       onClose();
+      const handoff = data as unknown as { id?: string } | null;
+      navigate(
+        handoff?.id
+          ? `/application-status?id=${encodeURIComponent(handoff.id)}`
+          : "/application-status",
+      );
     } catch (error) {
-      const details = error as { message?: string; details?: string; hint?: string; code?: string } | null;
-      const message = details?.message || (error instanceof Error ? error.message : "Unable to authorize the application handoff.");
-      const description = [details?.details, details?.hint, details?.code ? `Reference: ${details.code}` : null].filter(Boolean).join(" ");
+      const details = error as {
+        message?: string;
+        details?: string;
+        hint?: string;
+        code?: string;
+      } | null;
+      const message =
+        details?.message ||
+        (error instanceof Error
+          ? error.message
+          : "Unable to authorize the application handoff.");
+      const description = [
+        details?.details,
+        details?.hint,
+        details?.code ? `Reference: ${details.code}` : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
       toast.error(message, description ? { description } : undefined);
     } finally {
       setSubmitting(false);
@@ -110,30 +152,65 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
     <Dialog open={open} onOpenChange={(value) => !value && handleClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
         <DialogHeader>
-          <DialogTitle className="font-display">Review your selection</DialogTitle>
+          <DialogTitle className="font-display">
+            Review your selection
+          </DialogTitle>
           <DialogDescription>
-            You are selecting a financial institution, not accepting a loan. The financial institution makes the final lending decision.
+            You are selecting a financial institution, not accepting a loan. The
+            financial institution makes the final lending decision.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
           <div className="rounded-xl border border-border/60 bg-card p-4">
-            <p className="text-sm text-muted-foreground">Selected institution</p>
-            <p className="mt-1 font-display font-semibold text-foreground">{offer.lender}</p>
+            <p className="text-sm text-muted-foreground">
+              Selected institution
+            </p>
+            <p className="mt-1 font-display font-semibold text-foreground">
+              {offer.lender}
+            </p>
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-muted-foreground">Amount</p><p className="font-medium">K{requestedAmount.toLocaleString()}</p></div>
-              <div><p className="text-muted-foreground">Term</p><p className="font-medium">{offer.term} months</p></div>
-              <div><p className="text-muted-foreground">Annual rate</p><p className="font-medium">{offer.rate}%</p></div>
-              <div><p className="text-muted-foreground">Est. monthly</p><p className="font-medium">K{offer.monthlyPayment.toLocaleString()}</p></div>
-              <div className="col-span-2"><p className="text-muted-foreground">Estimated total repayment</p><p className="font-medium">K{offer.totalCost.toLocaleString()}</p></div>
+              <div>
+                <p className="text-muted-foreground">Amount</p>
+                <p className="font-medium">
+                  K{requestedAmount.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Term</p>
+                <p className="font-medium">{offer.term} months</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Annual rate</p>
+                <p className="font-medium">{offer.rate}%</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Est. monthly</p>
+                <p className="font-medium">
+                  K{offer.monthlyPayment.toLocaleString()}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-muted-foreground">
+                  Estimated total repayment
+                </p>
+                <p className="font-medium">
+                  K{offer.totalCost.toLocaleString()}
+                </p>
+              </div>
             </div>
           </div>
 
           <div>
-            <h3 className="font-display font-semibold text-foreground">Information to be shared</h3>
+            <h3 className="font-display font-semibold text-foreground">
+              Information to be shared
+            </h3>
             <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
               {INFORMATION_CATEGORIES.map((item) => (
-                <li key={item} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{item}</li>
+                <li key={item} className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  {item}
+                </li>
               ))}
             </ul>
           </div>
@@ -143,9 +220,18 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
           </div>
 
           <div className="flex items-start gap-2">
-            <Checkbox id="handoff-accept" checked={accepted} onCheckedChange={(checked) => setAccepted(checked === true)} />
-            <Label htmlFor="handoff-accept" className="cursor-pointer text-sm leading-relaxed text-muted-foreground">
-              I authorize Riverbanc to share the verified information listed above with the selected financial institution for my loan application.
+            <Checkbox
+              id="handoff-accept"
+              checked={accepted}
+              onCheckedChange={(checked) => setAccepted(checked === true)}
+            />
+            <Label
+              htmlFor="handoff-accept"
+              className="cursor-pointer text-sm leading-relaxed text-muted-foreground"
+            >
+              I authorize Riverbanc to share the verified information listed
+              above with the selected financial institution for my loan
+              application.
             </Label>
           </div>
 
@@ -158,17 +244,32 @@ export default function LenderHandoffModal({ open, onClose, offer, requestedAmou
               onChange={(event) => setSignatureName(event.target.value)}
               className="mt-1.5"
             />
-            {profile?.full_name && <p className="mt-1 text-xs text-muted-foreground">Must match your verified name: <strong>{profile.full_name}</strong></p>}
+            {profile?.full_name && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Must match your verified name:{" "}
+                <strong>{profile.full_name}</strong>
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            This authorization is validated and recorded by Riverbanc's secure server, separately from your K60/month subscription consent.
+            This authorization is validated and recorded by Riverbanc's secure
+            server, separately from your K60/month subscription consent.
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
-            <Button variant="outline" onClick={handleClose} disabled={submitting}>Cancel</Button>
-            <Button onClick={handleAuthorize} disabled={submitting || !accepted || !signatureName.trim()}>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAuthorize}
+              disabled={submitting || !accepted || !signatureName.trim()}
+            >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Authorize and apply <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

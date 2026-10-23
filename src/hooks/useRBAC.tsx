@@ -1,8 +1,21 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export type AppRole = "admin" | "super_admin" | "super_user" | "compliance_team" | "data_entry_team" | "user";
+export type AppRole =
+  | "admin"
+  | "super_admin"
+  | "super_user"
+  | "compliance_team"
+  | "data_entry_team"
+  | "user";
 
 export interface RBACPermissions {
   canViewProfiles: boolean;
@@ -77,20 +90,20 @@ export const ROLE_PERMISSIONS: Record<AppRole, RBACPermissions> = {
     canApproveChanges: true,
     canUploadDocuments: true,
     canManageLenderProducts: true,
-    canManageCommissions: true,
+    canManageCommissions: false,
     canViewFinancials: true,
     canManagePayouts: true,
-    canManageAutomations: true,
+    canManageAutomations: false,
     canManageRoles: true,
     canExportCustomerData: true,
     canPerformCreditChecks: true,
   },
   super_user: {
     canViewProfiles: true,
-    canEditProfiles: true,
-    canEditProfileIdentity: true,
-    canEditProfileEmployment: true,
-    canEditLoanApplications: true,
+    canEditProfiles: false,
+    canEditProfileIdentity: false,
+    canEditProfileEmployment: false,
+    canEditLoanApplications: false,
     canExportData: true,
     canViewAuditLogs: true,
     canViewLoanApplications: true,
@@ -107,7 +120,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, RBACPermissions> = {
     canManagePayouts: false,
     canManageAutomations: false,
     canManageRoles: false,
-    canExportCustomerData: true,
+    canExportCustomerData: false,
     canPerformCreditChecks: false,
   },
   compliance_team: {
@@ -137,8 +150,8 @@ export const ROLE_PERMISSIONS: Record<AppRole, RBACPermissions> = {
   },
   data_entry_team: {
     canViewProfiles: true,
-    canEditProfiles: true,
-    canEditProfileIdentity: true,
+    canEditProfiles: false,
+    canEditProfileIdentity: false,
     canEditProfileEmployment: false,
     canEditLoanApplications: false,
     canExportData: false,
@@ -150,7 +163,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, RBACPermissions> = {
     canDeactivateUsers: false,
     canDeleteRecords: false,
     canApproveChanges: false,
-    canUploadDocuments: true,
+    canUploadDocuments: false,
     canManageLenderProducts: false,
     canManageCommissions: false,
     canViewFinancials: false,
@@ -192,8 +205,13 @@ export const DATA_ENTRY_EDITABLE_FIELDS = ["full_name", "nrc_number"];
 
 // Fields that super_user can edit on profiles
 export const SUPER_USER_PROFILE_FIELDS = [
-  "full_name", "nrc_number", "phone", "email",
-  "employer", "employee_number", "salary",
+  "full_name",
+  "nrc_number",
+  "phone",
+  "email",
+  "employer",
+  "employee_number",
+  "salary",
 ];
 
 interface RBACContextType {
@@ -202,7 +220,13 @@ interface RBACContextType {
   loading: boolean;
   highestRole: AppRole | null;
   hasRole: (role: AppRole) => boolean;
-  logAction: (action: string, recordId?: string, tableName?: string, oldValue?: unknown, newValue?: unknown) => Promise<void>;
+  logAction: (
+    action: string,
+    recordId?: string,
+    tableName?: string,
+    oldValue?: unknown,
+    newValue?: unknown,
+  ) => Promise<void>;
 }
 
 const defaultPermissions: RBACPermissions = {
@@ -240,7 +264,14 @@ const RBACContext = createContext<RBACContextType>({
   logAction: async () => {},
 });
 
-const ROLE_PRIORITY: AppRole[] = ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team", "user"];
+const ROLE_PRIORITY: AppRole[] = [
+  "super_admin",
+  "admin",
+  "super_user",
+  "compliance_team",
+  "data_entry_team",
+  "user",
+];
 
 function mergePermissions(roles: AppRole[]): RBACPermissions {
   const merged = { ...defaultPermissions };
@@ -266,6 +297,9 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    let cancelled = false;
+    setRoles([]);
+    setLoading(true);
     const fetchRoles = async () => {
       const { data } = await supabase
         .from("user_roles")
@@ -273,11 +307,15 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
         .eq("user_id", user.id);
 
       const userRoles = (data?.map((r) => r.role) ?? []) as AppRole[];
+      if (cancelled) return;
       setRoles(userRoles);
       setLoading(false);
     };
 
-    fetchRoles();
+    void fetchRoles();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const permissions = mergePermissions(roles);
@@ -296,7 +334,13 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const logAction = useCallback(
-    async (action: string, recordId?: string, tableName?: string, oldValue?: unknown, newValue?: unknown) => {
+    async (
+      action: string,
+      recordId?: string,
+      tableName?: string,
+      oldValue?: unknown,
+      newValue?: unknown,
+    ) => {
       if (!user) return;
       const payload: AuditLogParams = {
         _user_id: user.id,
@@ -310,11 +354,13 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
 
       await supabase.rpc("log_audit", payload);
     },
-    [user, highestRole]
+    [user, highestRole],
   );
 
   return (
-    <RBACContext.Provider value={{ roles, permissions, loading, highestRole, hasRole, logAction }}>
+    <RBACContext.Provider
+      value={{ roles, permissions, loading, highestRole, hasRole, logAction }}
+    >
       {children}
     </RBACContext.Provider>
   );
@@ -333,9 +379,14 @@ export const ROLE_LABELS: Record<string, string> = {
 };
 
 export const ROLE_DESCRIPTIONS: Record<string, string> = {
-  super_admin: "Full platform access including system settings and configuration",
-  admin: "Full admin access except system settings",
-  super_user: "Can view and edit all data, export reports, view audit logs. Cannot change system settings or manage users.",
-  compliance_team: "Read-only access to all profiles, applications, and audit logs for regulatory monitoring.",
-  data_entry_team: "Can edit basic identity fields (name, NRC number) and upload ID documents only.",
+  super_admin:
+    "Full platform access including system settings and configuration",
+  admin:
+    "Operational administration; system settings, commission changes and workflow definitions require Super Admin",
+  super_user:
+    "Read-only operational data and audit access. Cannot change settings, edit records, manage users or export the customer workbook.",
+  compliance_team:
+    "Read-only access to all profiles, applications, and audit logs for regulatory monitoring.",
+  data_entry_team:
+    "Read-only profile and verification access. Changes require an authorised administrator.",
 };
