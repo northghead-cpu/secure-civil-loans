@@ -97,6 +97,10 @@ Deno.serve(async (req) => {
     });
     const authorization = await requirePrivilegedMfa({
       auth: asUser.auth,
+      accountForUser: async (id) => {
+        const { data, error } = await asUser.from("profiles").select("account_status").eq("user_id", id).maybeSingle();
+        return { data, error };
+      },
       rolesForUser: async (id) => {
         const { data, error } = await asUser.from("user_roles").select("role")
           .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);

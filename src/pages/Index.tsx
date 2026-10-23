@@ -11,11 +11,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRBAC, AppRole } from "@/hooks/useRBAC";
 import { Loader2 } from "lucide-react";
 
-const ADMIN_ROLES: AppRole[] = ["super_admin", "admin", "super_user", "compliance_team", "data_entry_team"];
+const ADMIN_ROLES: AppRole[] = [
+  "super_admin",
+  "admin",
+  "super_user",
+  "compliance_team",
+  "data_entry_team",
+];
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, profileLoading, isPasswordRecovery } = useAuth();
+  const {
+    user,
+    profile,
+    loading: authLoading,
+    profileLoading,
+    isPasswordRecovery,
+  } = useAuth();
   const { highestRole, loading: rbacLoading } = useRBAC();
 
   useEffect(() => {
@@ -33,11 +45,23 @@ const Index = () => {
       return;
     }
 
-    if (profile?.kyc_status === "VERIFIED" || profile?.kyc_status === "COMPLETED") {
+    if (
+      profile?.kyc_status === "VERIFIED" ||
+      profile?.kyc_status === "COMPLETED"
+    ) {
       navigate("/profile", { replace: true });
       return;
     }
-  }, [user, authLoading, rbacLoading, profileLoading, highestRole, profile, navigate, isPasswordRecovery]);
+  }, [
+    user,
+    authLoading,
+    rbacLoading,
+    profileLoading,
+    highestRole,
+    profile,
+    navigate,
+    isPasswordRecovery,
+  ]);
 
   if (authLoading || rbacLoading || profileLoading) {
     return (
@@ -54,6 +78,20 @@ const Index = () => {
         <HeroSection />
         <FeaturesSection />
         <HowItWorksSection />
+        <section
+          id="about"
+          className="scroll-mt-24 container mx-auto px-4 py-12"
+        >
+          <h2 className="text-2xl font-display font-semibold">
+            About Riverbanc
+          </h2>
+          <p className="mt-3 max-w-3xl text-muted-foreground">
+            Riverbanc Technology Limited helps Zambia’s salaried employees
+            compare products from participating financial institutions. We
+            provide the technology and application coordination; each
+            institution makes its own lending decisions.
+          </p>
+        </section>
         <TrustSection />
         <CTASection />
       </main>

@@ -1,3 +1,4 @@
+import BorrowerUpdates from "@/components/BorrowerUpdates";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,12 +34,18 @@ const Navbar = () => {
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           <Link to="/" className="flex items-center gap-2">
-            <img src={riverbancMark} alt="" aria-hidden="true" className="h-9 w-9 object-contain shrink-0" />
+            <img
+              src={riverbancMark}
+              alt=""
+              aria-hidden="true"
+              className="h-9 w-9 object-contain shrink-0"
+            />
             <span className="font-display text-xl font-bold text-foreground">
               Riverbanc
             </span>
           </Link>
 
+          <BorrowerUpdates />
           <div className="hidden md:flex items-center gap-8">
             {navLinks
               .filter((link) => link.show)
@@ -60,7 +67,10 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <Link to="/profile" className="flex items-center gap-2 text-sm text-foreground hover:text-accent transition-colors">
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 text-sm text-foreground hover:text-accent transition-colors"
+                >
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">{displayName}</span>
                 </Link>
@@ -109,7 +119,10 @@ const Navbar = () => {
             <div className="flex gap-3 pt-2">
               {user ? (
                 <>
-                  <Link to="/profile" className="text-sm font-medium text-foreground flex items-center gap-1">
+                  <Link
+                    to="/profile"
+                    className="text-sm font-medium text-foreground flex items-center gap-1"
+                  >
                     <User className="w-4 h-4" /> {displayName}
                   </Link>
                   <Button variant="ghost" size="sm" onClick={handleSignOut}>

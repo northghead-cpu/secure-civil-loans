@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { untypedDb } from "@/integrations/supabase/untyped";
+import { readAllRows } from "@/lib/readAllRows";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -38,28 +40,71 @@ const DataExportSection = () => {
     }
     setBusy(true);
     try {
-      const [profile, kyc, loans, payouts, payrollAuths] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("kyc").select("*").eq("user_id", user.id),
-        supabase.from("loan_applications").select("*").eq("user_id", user.id),
-        supabase.from("payouts").select("*, loan_applications!inner(user_id)").eq("loan_applications.user_id", user.id),
-        supabase.from("payroll_deduction_authorizations").select("*").eq("user_id", user.id),
-      ]);
-
+      const tables = [
+        "profiles",
+        "kyc",
+        "kyc_documents",
+        "loan_applications",
+        "application_handoffs",
+        "payroll_deduction_authorizations",
+        "subscription_authorizations",
+        "payment_receipts",
+        "support_cases",
+        "notifications",
+      ] as const;
+      const entries = await Promise.all(
+        tables.map(
+          async (table) =>
+            [
+              table,
+              await readAllRows<Record<string, unknown>>((from, to) =>
+                untypedDb
+                  .from(table)
+                  .select("*")
+                  .eq("user_id", user.id)
+                  .order("id")
+                  .range(from, to),
+              ),
+            ] as const,
+        ),
+      );
+      const cases =
+        entries.find(([table]) => table === "support_cases")?.[1] ?? [];
+      const messages = [];
+      for (const item of cases) {
+        messages.push(
+          ...(await readAllRows<Record<string, unknown>>((from, to) =>
+            untypedDb
+              .from("support_messages")
+              .select("*")
+              .eq("case_id", item.id)
+              .order("id")
+              .range(from, to),
+          )),
+        );
+      }
+      const payouts = await readAllRows<Record<string, unknown>>((from, to) =>
+        untypedDb
+          .from("payouts")
+          .select("*, loan_applications!inner(user_id)")
+          .eq("loan_applications.user_id", user.id)
+          .order("id")
+          .range(from, to),
+      );
       const bundle = {
         exported_at: new Date().toISOString(),
         subject: { user_id: user.id, email: user.email },
-        legal_basis: "Data Protection Act 2021, Section 38 — Right to data portability",
         records: {
-          profile: profile.data ?? null,
-          kyc: kyc.data ?? [],
-          loan_applications: loans.data ?? [],
-          payouts: payouts.data ?? [],
-          payroll_deduction_authorizations: payrollAuths.data ?? [],
+          ...Object.fromEntries(entries),
+          support_messages: messages,
+          payouts,
         },
+        note: "Includes recorded personal data and document references. Identity-document and receipt file bytes are not embedded.",
       };
 
-      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -104,7 +149,11 @@ const DataExportSection = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => setDialogOpen(true)} disabled={busy} className="w-full sm:w-auto">
+          <Button
+            onClick={() => setDialogOpen(true)}
+            disabled={busy}
+            className="w-full sm:w-auto"
+          >
             {busy ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -125,7 +174,11 @@ const DataExportSection = () => {
           <DialogHeader>
             <DialogTitle>Download your personal data</DialogTitle>
             <DialogDescription className="pt-2 text-foreground/80 leading-relaxed">
-              Under Section 38 of the Data Protection Act 2021, you can download a machine-readable JSON copy of the personal records Riverbanc holds about you. The export may include your profile, KYC submissions, loan applications, payouts, and payroll deduction authorizations. The file will be saved directly to this device.
+              Under Section 38 of the Data Protection Act 2021, you can download
+              a machine-readable JSON copy of the personal records Riverbanc
+              holds about you. The export may include your profile, KYC
+              submissions, loan applications, payouts, and payroll deduction
+              authorizations. The file will be saved directly to this device.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-start gap-3 py-2">
@@ -134,12 +187,19 @@ const DataExportSection = () => {
               checked={acknowledged}
               onCheckedChange={(checked) => setAcknowledged(checked === true)}
             />
-            <label htmlFor="data-export-acknowledgement" className="text-sm leading-relaxed cursor-pointer">
+            <label
+              htmlFor="data-export-acknowledgement"
+              className="text-sm leading-relaxed cursor-pointer"
+            >
               I acknowledge and understand.
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => handleDialogChange(false)} disabled={busy}>
+            <Button
+              variant="outline"
+              onClick={() => handleDialogChange(false)}
+              disabled={busy}
+            >
               Cancel
             </Button>
             <Button onClick={handleProceed} disabled={!acknowledged || busy}>

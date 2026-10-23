@@ -1,262 +1,308 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { untypedDb } from "@/integrations/supabase/untyped";
 import { useRBAC } from "@/hooks/useRBAC";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { readAllRows } from "@/lib/readAllRows";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Eye, CheckCircle2, XCircle, Loader2, FileText } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-interface KYCProfile {
-  id: string;
+type Profile = {
   user_id: string;
   full_name: string | null;
   nrc_number: string | null;
-  kyc_status: string;
-  created_at: string;
-}
-
-const statusBadge: Record<string, string> = {
-  PENDING: "bg-warning/10 text-warning border-warning/20",
-  IN_REVIEW: "bg-info/10 text-info border-info/20",
-  COMPLETED: "bg-success/10 text-success border-success/20",
-  REJECTED: "bg-destructive/10 text-destructive border-destructive/20",
+  kyc_status: string | null;
+  kyc_submitted_at: string | null;
+  gov_id_type: string | null;
+  gov_id_number: string | null;
+  kyc_signature: string | null;
 };
-
-const UsersKYC = () => {
-  const { permissions, logAction } = useRBAC();
-  const [profiles, setProfiles] = useState<KYCProfile[]>([]);
+type Document = {
+  id: string;
+  document_type: string;
+  storage_path: string;
+  validation_status: string;
+  pay_period: string | null;
+  rejection_reason: string | null;
+};
+export default function UsersKYC() {
+  const { hasRole } = useRBAC();
+  const canReview = hasRole("admin") || hasRole("super_admin");
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [selected, setSelected] = useState<Profile | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProfile, setSelectedProfile] = useState<KYCProfile | null>(null);
-  const [updating, setUpdating] = useState(false);
-
-  useEffect(() => {
-    const fetchKYC = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name, nrc_number, kyc_status, created_at")
-        .in("kyc_status", ["PENDING", "IN_REVIEW", "REJECTED"])
-        .order("created_at", { ascending: false });
-      setProfiles((data as unknown as KYCProfile[]) ?? []);
+  const [error, setError] = useState(false);
+  const [documentError, setDocumentError] = useState(false);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      setProfiles(
+        await readAllRows<Profile>((from, to) =>
+          untypedDb
+            .from("profiles")
+            .select(
+              "user_id,full_name,nrc_number,kyc_status,kyc_submitted_at,gov_id_type,gov_id_number,kyc_signature",
+            )
+            .order("user_id")
+            .range(from, to),
+        ),
+      );
+    } catch {
+      setError(true);
+    } finally {
       setLoading(false);
-    };
-    fetchKYC();
+    }
   }, []);
-
-  const statusCounts = {
-    pending: profiles.filter(p => p.kyc_status === "PENDING").length,
-    inReview: profiles.filter(p => p.kyc_status === "IN_REVIEW").length,
-    completed: profiles.filter(p => p.kyc_status === "COMPLETED").length,
-    rejected: profiles.filter(p => p.kyc_status === "REJECTED").length,
-  };
-
-  const updateKYCStatus = async (userId: string, status: "COMPLETED" | "REJECTED") => {
-    if (!permissions.canEditProfiles) {
-      toast.error("You don't have permission to update KYC status");
+  useEffect(() => {
+    void load();
+  }, [load]);
+  useEffect(() => {
+    if (!selected) return;
+    let active = true;
+    setDocuments([]);
+    setDocumentsLoading(true);
+    setDocumentError(false);
+    setReason("");
+    void readAllRows<Document>((from, to) =>
+      untypedDb
+        .from("kyc_documents")
+        .select(
+          "id,document_type,storage_path,validation_status,pay_period,rejection_reason",
+        )
+        .eq("user_id", selected.user_id)
+        .order("id")
+        .range(from, to),
+    )
+      .then((rows) => {
+        if (active) setDocuments(rows);
+      })
+      .catch(() => {
+        if (active) setDocumentError(true);
+      })
+      .finally(() => {
+        if (active) setDocumentsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selected]);
+  const openDocument = async (document: Document) => {
+    const popup = window.open("about:blank", "_blank");
+    if (!popup) {
+      toast.error("Allow pop-ups to view verification evidence.");
       return;
     }
-    setUpdating(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ kyc_status: status } as never)
-      .eq("user_id", userId);
-    if (error) {
-      toast.error("Failed to update KYC status");
-    } else {
-      await logAction("update_kyc_status", userId, "profiles", null, { kyc_status: status });
-      toast.success(`KYC ${status === "COMPLETED" ? "verified" : "rejected"}`);
-      setProfiles(prev => prev.map(p => p.user_id === userId ? { ...p, kyc_status: status } : p));
+    popup.opener = null;
+    popup.document.body.textContent = "Opening verification evidence…";
+    try {
+      const { data, error } = await supabase.storage
+        .from("kyc-documents")
+        .createSignedUrl(document.storage_path, 300);
+      if (error || !data?.signedUrl) throw error;
+      popup.location.href = data.signedUrl;
+    } catch {
+      popup.close();
+      toast.error(
+        "Document could not be opened. Retry or contact an administrator.",
+      );
     }
-    setUpdating(false);
-    setSelectedProfile(null);
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
+  const review = async (status: "COMPLETED" | "REJECTED") => {
+    if (!selected || saving) return;
+    setSaving(true);
+    try {
+      const { error } = await untypedDb.rpc("review_kyc_verification", {
+        _user_id: selected.user_id,
+        _status: status,
+        _reason: reason.trim() || null,
+      });
+      if (error) throw error;
+      toast.success(
+        status === "COMPLETED"
+          ? "Verification completed"
+          : "Verification returned for correction",
+      );
+      setSelected(null);
+      await load();
+    } catch (e) {
+      toast.error(
+        (e as { message?: string })?.message || "Review could not be saved",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+  const counts = {
+    review: profiles.filter((p) => p.kyc_status === "IN_REVIEW").length,
+    verified: profiles.filter((p) =>
+      ["COMPLETED", "VERIFIED"].includes(p.kyc_status || ""),
+    ).length,
+    rejected: profiles.filter((p) => p.kyc_status === "REJECTED").length,
+  };
   return (
-    <AdminPageShell>
-      <AdminHero
-        badge="Identity review"
-        title="KYC verification queue for civil servant applicants"
-        description="Keep document review moving, surface risk early, and push complete files into underwriting without losing the audit trail."
-        stats={[
-          { label: "Pending review", value: statusCounts.pending.toString(), meta: "Awaiting first operator pass" },
-          { label: "In review", value: statusCounts.inReview.toString(), meta: "Currently being verified" },
-          { label: "Rejected", value: statusCounts.rejected.toString(), meta: "Files sent back or declined" },
-        ]}
-      />
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-warning">{statusCounts.pending}</div>
-            <p className="text-sm text-muted-foreground">Pending</p>
+    <main className="space-y-5">
+      <h1 className="text-2xl font-semibold">
+        Identity and employment verification
+      </h1>
+      <p>
+        In review: {error ? "Unavailable" : counts.review} · Verified:{" "}
+        {error ? "Unavailable" : counts.verified} · Returned:{" "}
+        {error ? "Unavailable" : counts.rejected}
+      </p>
+      <Button variant="outline" disabled={loading} onClick={() => void load()}>
+        Refresh
+      </Button>
+      {error ? (
+        <p role="alert">
+          Verification records could not load. Use Refresh to retry.
+        </p>
+      ) : loading ? (
+        <p role="status">Loading verification records…</p>
+      ) : (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            {profiles
+              .filter(
+                (p) =>
+                  p.kyc_submitted_at ||
+                  ["PENDING", "IN_REVIEW", "REJECTED"].includes(
+                    p.kyc_status || "",
+                  ),
+              )
+              .map((p) => (
+                <div
+                  key={p.user_id}
+                  className="flex flex-wrap items-center justify-between gap-3 border-b py-3"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {p.full_name || "Unnamed customer"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {p.kyc_status} ·{" "}
+                      {p.kyc_submitted_at
+                        ? new Date(p.kyc_submitted_at).toLocaleString()
+                        : "No submission time recorded"}
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => setSelected(p)}>
+                    Review evidence
+                  </Button>
+                </div>
+              ))}
+            {profiles.length === 0 && <p>No verification records.</p>}
           </CardContent>
         </Card>
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-info">{statusCounts.inReview}</div>
-            <p className="text-sm text-muted-foreground">In Review</p>
-          </CardContent>
-        </Card>
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-success">{statusCounts.completed}</div>
-            <p className="text-sm text-muted-foreground">Verified</p>
-          </CardContent>
-        </Card>
-        <Card className={adminCardClass}>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-display font-bold text-destructive">{statusCounts.rejected}</div>
-            <p className="text-sm text-muted-foreground">Rejected</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className={`${adminCardClass} overflow-hidden`}>
-        <CardHeader>
-          <CardTitle className="text-base font-display">KYC Submissions</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden sm:table-cell">NRC Number</TableHead>
-                <TableHead className="hidden md:table-cell">User ID</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Submitted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {profiles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No KYC submissions found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                profiles.map((profile) => (
-                  <TableRow key={profile.id}>
-                    <TableCell className="font-medium">{profile.full_name ?? "—"}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">{profile.nrc_number ?? "—"}</TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground font-mono">
-                      {profile.user_id.slice(0, 8)}...
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusBadge[profile.kyc_status] ?? ""}>{profile.kyc_status}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground">
-                      {new Date(profile.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => setSelectedProfile(profile)}
-                          title="View details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {permissions.canEditProfiles && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="text-success"
-                              onClick={() => updateKYCStatus(profile.user_id, "COMPLETED")}
-                              title="Verify"
-                              disabled={updating}
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="text-destructive"
-                              onClick={() => updateKYCStatus(profile.user_id, "REJECTED")}
-                              title="Reject"
-                              disabled={updating}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Dialog open={!!selectedProfile} onOpenChange={() => setSelectedProfile(null)}>
-        <DialogContent className="sm:max-w-lg">
+      )}
+      <Dialog
+        open={!!selected}
+        onOpenChange={(open) => {
+          if (!open && !saving) setSelected(null);
+        }}
+      >
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">KYC Details</DialogTitle>
+            <DialogTitle>Verification evidence</DialogTitle>
           </DialogHeader>
-          {selectedProfile && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{selectedProfile.full_name ?? "—"}</p>
+          {selected && (
+            <>
+              <p>
+                {selected.full_name} · {selected.nrc_number}
+              </p>
+              <p className="text-sm">
+                Government ID: {selected.gov_id_type || "Not recorded"} ·{" "}
+                {selected.gov_id_number || "Not recorded"}
+              </p>
+              <p className="text-sm">
+                Submission signature: {selected.kyc_signature || "Not recorded"}
+              </p>
+              {documentsLoading ? (
+                <p>Loading evidence…</p>
+              ) : documentError ? (
+                <p role="alert">
+                  Evidence could not load. Close and reopen to retry.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((d) => (
+                    <div key={d.id} className="rounded border p-3">
+                      <p>
+                        {d.document_type} {d.pay_period} · {d.validation_status}
+                      </p>
+                      {d.rejection_reason && (
+                        <p className="text-sm">{d.rejection_reason}</p>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void openDocument(d)}
+                      >
+                        Open {d.document_type.toLowerCase().replace(/_/g, " ")}{" "}
+                        evidence
+                      </Button>
+                    </div>
+                  ))}
+                  {!documents.length && (
+                    <p>No submitted evidence is recorded.</p>
+                  )}
                 </div>
-                <div>
-                  <p className="text-muted-foreground">NRC Number</p>
-                  <p className="font-medium">{selectedProfile.nrc_number ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <Badge className={statusBadge[selectedProfile.kyc_status] ?? ""}>
-                    {selectedProfile.kyc_status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Submitted</p>
-                  <p className="font-medium">{new Date(selectedProfile.created_at).toLocaleString()}</p>
-                </div>
-              </div>
-              <div className="flex gap-2 border-t pt-4">
-                {permissions.canEditProfiles && (
-                  <>
-                    <Button 
-                      className="flex-1 bg-success hover:bg-success/90"
-                      onClick={() => updateKYCStatus(selectedProfile.user_id, "COMPLETED")}
-                      disabled={updating}
+              )}
+              {canReview && (
+                <>
+                  <label htmlFor="review-reason">
+                    Reason for correction (required when returning)
+                  </label>
+                  <textarea
+                    id="review-reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full border rounded p-2"
+                    maxLength={2000}
+                  />
+                  <div className="flex gap-3">
+                    <Button
+                      disabled={
+                        saving ||
+                        documentsLoading ||
+                        documentError ||
+                        !documents.length ||
+                        ["COMPLETED", "VERIFIED"].includes(
+                          selected.kyc_status || "",
+                        )
+                      }
+                      onClick={() => void review("COMPLETED")}
                     >
-                      <CheckCircle2 className="h-4 w-4 mr-2" /> Verify KYC
+                      Verify KYC
                     </Button>
-                    <Button 
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={() => updateKYCStatus(selectedProfile.user_id, "REJECTED")}
-                      disabled={updating}
+                    <Button
+                      variant="outline"
+                      disabled={
+                        saving ||
+                        documentsLoading ||
+                        documentError ||
+                        reason.trim().length < 5
+                      }
+                      onClick={() => void review("REJECTED")}
                     >
-                      <XCircle className="h-4 w-4 mr-2" /> Reject KYC
+                      Return for correction
                     </Button>
-                  </>
-                )}
-              </div>
-            </div>
+                  </div>
+                </>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
-    </AdminPageShell>
+    </main>
   );
-};
-
-export default UsersKYC;
+}
