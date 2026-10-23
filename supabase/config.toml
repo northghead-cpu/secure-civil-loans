@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.resend-receipt-webhook]
 verify_jwt = false
+
+[functions.send-handshake-referral]
+verify_jwt = true
