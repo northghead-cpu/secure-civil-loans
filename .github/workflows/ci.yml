@@ -20,6 +20,10 @@ jobs:
       - run: bun run vitest run
       - name: Isolated PostgreSQL workflow regression tests
         run: bun run test:db-ui
+      - name: Edge cache and receipt regressions
+        run: |
+          npm ci --prefix supabase/tests/edge --ignore-scripts --no-audit --no-fund
+          npx --yes --package=deno@2.9.6 deno test --config=supabase/tests/edge/deno.json --allow-env --no-prompt supabase/tests/edge/security.test.ts
       - name: Typecheck
         run: bun x tsc -b --noEmit
       - name: Lint

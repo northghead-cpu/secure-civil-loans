@@ -1,3 +1,4 @@
+import { aikidoEventKey } from "../_shared/aikido-event-key.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
   const data = payload.payload ?? {};
   const issueId = data.issue_id;
   const workspaceId = payload.workspace_id;
-  const externalEventId = `${text(workspaceId, "unknown")}:${text(issueId, "unknown")}:${eventType}:${text(payload.created_at, String(dispatchedAt))}`;
+  const externalEventId = await aikidoEventKey(payload as Record<string, unknown>);
   const operation = eventType.replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 80) || "aikido_event";
   const summary = clamp(`${eventType}${issueId !== undefined ? ` — issue ${String(issueId)}` : ""}${data.type ? ` (${String(data.type)})` : ""}`);
 

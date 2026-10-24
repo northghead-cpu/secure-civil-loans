@@ -32,7 +32,7 @@ const statusLabel: Record<SupportCase["status"], string> = {
  * Persistent customer-care entry point. Uses the same authenticated support RPCs
  * and tables as the full support desk; it does not create a separate messaging store.
  */
-export default function CustomerCareChat() {
+function AccountCustomerCareChat() {
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { roles, loading: rbacLoading } = useRBAC();
@@ -238,4 +238,10 @@ export default function CustomerCareChat() {
       </button>
     </div>
   );
+}
+
+/** Never carry drafts or in-flight state across account identities. */
+export default function CustomerCareChat() {
+  const { user } = useAuth();
+  return <AccountCustomerCareChat key={user?.id ?? "signed-out"} />;
 }
