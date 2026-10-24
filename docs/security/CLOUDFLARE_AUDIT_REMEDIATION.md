@@ -55,7 +55,9 @@ not an end-user OAuth token. Privileged first-party workflows now require MFA.
    existing own-HMAC authentication and existing gateway configuration.
 6. Deploy `process-monthly-payroll-receipts` with index/email/pdf/safety modules,
    retaining its existing secret-based authentication and gateway configuration.
-7. Verify the hosted flows below before declaring the rollout complete.
+7. Deploy the regenerated `mcp` function with its existing authentication and
+   gateway settings; its tool schemas now import patched Zod 4.6.6.
+8. Verify the hosted flows below before declaring the rollout complete.
 
 Do not revert only the frontend while leaving the new review contract unexplained.
 Any rollback must preserve the revision-bound approval invariant; do not regrant
@@ -64,7 +66,7 @@ migration or deployment through the approval previously given for PR61.
 
 ## Verification
 
-- Application suite: 31 files, 174 tests passed.
+- Application suite: 32 files, 176 tests passed.
 - Disposable PostgreSQL: original UI workflow tests and new security regressions
   passed. Coverage includes stale/fresh reviews, broad legacy-policy adversaries,
   notification forgery, OAuth read versus mutation, staff MFA on support/storage,
@@ -83,3 +85,18 @@ The isolated fixture is not a complete recreation of hosted Supabase internals.
 Real PDF generation is tested; the receipt secret-auth adapter and email provider
 are not exercised end-to-end. Existing platform advisor findings, including leaked
 password protection configuration, remain separate operational follow-up items.
+
+## Dependency gate follow-up
+
+GitHub CI additionally identified GHSA-27r3-jxmh-p828 (body-parser) and
+GHSA-mrhx-c7xc-m3w5 (Zod) in the existing dependency tree. Pin body-parser
+2.4.0 and Zod 4.6.6, including transitive overrides, rather than suppressing
+the advisories. The Zod upgrade passes the application suite and explicit
+marketplace MCP input/JSON-schema compatibility tests. Regenerate the MCP
+Edge entrypoint so it uses the same patched schema library.
+
+Bun's lock changes are targeted; the npm lockfile also reconciles older drift
+against the existing package.json (including prior Sentry, router and build-tool
+updates). CI uses the frozen Bun lockfile. The production dependency gate
+continues to retain only its existing dev-only braces exclusion; no new
+advisory is ignored. Local production audit exits successfully after the update.

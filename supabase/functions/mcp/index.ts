@@ -85,7 +85,7 @@ var get_my_kyc_status_default = defineTool({
 
 // src/lib/mcp/tools/list-my-loan-applications.ts
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.1";
-import { z } from "npm:zod@^3.25.76";
+import { z } from "npm:zod@4.6.6";
 var list_my_loan_applications_default = defineTool2({
   name: "list_my_loan_applications",
   title: "List my loan applications",
@@ -121,7 +121,7 @@ var list_my_loan_applications_default = defineTool2({
 
 // src/lib/mcp/tools/list-lender-products.ts
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.1";
-import { z as z2 } from "npm:zod@^3.25.76";
+import { z as z2 } from "npm:zod@4.6.6";
 var list_lender_products_default = defineTool3({
   name: "list_lender_products",
   title: "List lender products",
@@ -157,7 +157,7 @@ var list_lender_products_default = defineTool3({
 
 // src/lib/mcp/tools/check-affordability.ts
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.1";
-import { z as z3 } from "npm:zod@^3.25.76";
+import { z as z3 } from "npm:zod@4.6.6";
 var check_affordability_default = defineTool4({
   name: "check_affordability",
   title: "Check loan affordability",
