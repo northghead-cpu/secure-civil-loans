@@ -73,7 +73,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^7.0.0",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -117,7 +117,9 @@
     "qs": "6.16.0",
     "source-map-js": "1.2.2",
     "yaml": "2.8.3",
-    "postcss-selector-parser": "6.1.4"
+    "postcss-selector-parser": "6.1.4",
+    "zod": "4.6.6",
+    "body-parser": "2.4.0"
   },
   "description": "**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID",
   "main": "eslint.config.js",

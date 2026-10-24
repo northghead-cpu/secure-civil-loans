@@ -33,6 +33,13 @@ try {
     for (const row of result.rows ?? [])
       if (typeof row.result === "string" && row.result.startsWith("PASS:"))
         console.log(row.result);
+  await db.exec(await fs.readFile(new URL("../supabase/migrations/20261024064302_cloudflare_audit_remediation.sql", import.meta.url), "utf8"));
+  console.log("PASS: audit remediation migration applied");
+  const securityResults = await db.exec(await fs.readFile(new URL("../supabase/tests/security/audit_remediation.sql", import.meta.url), "utf8"));
+  for (const result of securityResults) for (const row of result.rows ?? []) if (typeof row.result === "string") console.log(row.result);
+} catch (error) {
+  console.error("Database regression failed:", error.message, error.internalQuery ?? "", error.where ?? "");
+  process.exitCode = 1;
 } finally {
   await db.close();
 }

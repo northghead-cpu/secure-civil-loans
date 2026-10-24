@@ -1,0 +1,7 @@
+{
+  "lock": false,
+  "nodeModulesDir": "manual",
+  "imports": {
+    "https://esm.sh/@supabase/supabase-js@2.49.1": "npm:@supabase/supabase-js@2.49.1"
+  }
+}

@@ -1,5 +1,6 @@
+import { createReceiptPdf, createTestReceiptPdf, type Receipt } from "./pdf.ts";
+import { runReceiptBatch } from "./safety.ts";
 import { withSupabase } from 'npm:@supabase/server';
-import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib';
 import { sendReceiptEmail, type EmailConfig, type EmailResult } from './email.ts';
 
 const BILLING_DAY = 23;
@@ -7,22 +8,6 @@ const BILLING_AMOUNT = 60;
 const BILLING_TIME_ZONE = 'Africa/Lusaka';
 const RECEIPT_BUCKET = 'payment-receipts';
 const MAX_EMAIL_ATTEMPTS = 5;
-
-interface Receipt {
-  id: string;
-  user_id: string;
-  receipt_number: string;
-  customer_name: string;
-  customer_email: string | null;
-  amount: number;
-  currency: string;
-  billing_period_start: string;
-  billing_period_end: string;
-  payment_method: string;
-  payroll_reference: string;
-  issued_at: string;
-  document_path: string | null;
-}
 
 interface Delivery {
   attempt_count: number;
@@ -65,84 +50,10 @@ function assertBillingDate(date: string): void {
   }
 }
 
-function escapePdfText(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-}
+
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-async function createReceiptPdf(receipt: Receipt): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595.28, 841.89]);
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-
-  page.drawText('RIVERBANC', { x: 48, y: 780, size: 22, font: bold, color: rgb(0.04, 0.24, 0.35) });
-  page.drawText('Technology Limited', { x: 48, y: 758, size: 10, font: regular, color: rgb(0.25, 0.30, 0.34) });
-  page.drawText('PAYMENT RECEIPT', { x: 48, y: 700, size: 18, font: bold, color: rgb(0.04, 0.24, 0.35) });
-
-  const rows = [
-    ['Receipt number', receipt.receipt_number],
-    ['Customer', receipt.customer_name],
-    ['Amount paid', `${receipt.currency} ${Number(receipt.amount).toFixed(2)}`],
-    ['Payment method', 'Payroll deduction'],
-    ['Payroll reference', receipt.payroll_reference],
-    ['Billing period', `${receipt.billing_period_start} to ${receipt.billing_period_end}`],
-    ['Issued', receipt.issued_at.slice(0, 10)],
-  ];
-
-  let y = 650;
-  for (const [label, value] of rows) {
-    page.drawText(label, { x: 48, y, size: 10, font: bold, color: rgb(0.30, 0.34, 0.38) });
-    page.drawText(escapePdfText(value), { x: 190, y, size: 10, font: regular, color: rgb(0.10, 0.12, 0.14) });
-    y -= 34;
-  }
-
-  page.drawLine({ start: { x: 48, y: 395 }, end: { x: 547, y: 395 }, thickness: 1, color: rgb(0.82, 0.84, 0.86) });
-  page.drawText('This receipt confirms a K60 Riverbanc platform subscription', { x: 48, y: 365, size: 10, font: regular });
-  page.drawText('payment through payroll deduction. It is not a lender loan repayment,', { x: 48, y: 347, size: 10, font: regular });
-  page.drawText('interest charge, lender fee, or other loan principal charge.', { x: 48, y: 329, size: 10, font: regular });
-  page.drawText('Riverbanc Technology Limited', { x: 48, y: 250, size: 10, font: bold });
-  page.drawText('288a sub 143, Falcon Street, Makeni, Lusaka, Zambia', { x: 48, y: 232, size: 9, font: regular });
-  page.drawText('business@riverbanc.co.zm', { x: 48, y: 216, size: 9, font: regular });
-  page.drawText('Generated automatically • Africa/Lusaka', { x: 48, y: 80, size: 8, font: regular, color: rgb(0.45, 0.48, 0.50) });
-
-  return pdf.save();
-}
-
-
-async function createTestReceiptPdf(customerName: string, testRunId: string): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595.28, 841.89]);
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  page.drawText('RIVERBANC', { x: 48, y: 780, size: 22, font: bold, color: rgb(0.04, 0.24, 0.35) });
-  page.drawText('Technology Limited', { x: 48, y: 758, size: 10, font: regular, color: rgb(0.25, 0.30, 0.34) });
-  page.drawRectangle({ x: 42, y: 670, width: 511, height: 52, borderColor: rgb(0.72, 0.11, 0.11), borderWidth: 2 });
-  page.drawText('TEST ONLY — NOT PROOF OF PAYMENT', { x: 70, y: 690, size: 16, font: bold, color: rgb(0.72, 0.11, 0.11) });
-  page.drawText('Receipt PDF and email delivery test', { x: 48, y: 625, size: 15, font: bold, color: rgb(0.04, 0.24, 0.35) });
-  const rows: [string, string][] = [
-    ['Subscriber', customerName],
-    ['Illustrative amount', 'ZMW 60.00 per month'],
-    ['Payment status', 'NOT PAID — no payroll deduction confirmed'],
-    ['Test run', testRunId],
-    ['Billing period', 'Not assigned — test only'],
-  ];
-  let y = 575;
-  for (const [label, value] of rows) {
-    page.drawText(label, { x: 48, y, size: 10, font: bold, color: rgb(0.30, 0.34, 0.38) });
-    page.drawText(escapePdfText(value), { x: 190, y, size: 10, font: regular, color: rgb(0.10, 0.12, 0.14) });
-    y -= 34;
-  }
-  page.drawLine({ start: { x: 48, y: 380 }, end: { x: 547, y: 380 }, thickness: 1, color: rgb(0.82, 0.84, 0.86) });
-  page.drawText('No payment was received. No billing transaction or payment receipt was created.', { x: 48, y: 348, size: 9, font: bold, color: rgb(0.72, 0.11, 0.11) });
-  page.drawText('This document is intentionally watermarked for testing and must not be used', { x: 48, y: 330, size: 9, font: regular });
-  page.drawText('as proof of payment.', { x: 48, y: 314, size: 9, font: regular });
-  page.drawText('Riverbanc Technology Limited', { x: 48, y: 250, size: 10, font: bold });
-  page.drawText('Generated automatically for a non-financial pipeline test.', { x: 48, y: 80, size: 8, font: regular, color: rgb(0.45, 0.48, 0.50) });
-  return pdf.save();
 }
 
 async function sendTestReceiptEmail(
@@ -273,11 +184,12 @@ export default {
       let emailed = 0;
       let emailFailed = 0;
 
-      for (const receipt of (receipts ?? []) as Receipt[]) {
+      await runReceiptBatch((receipts ?? []) as Receipt[], async (receipt) => {
         const delivery = deliveryMap.get(receipt.id);
         if (!delivery) throw new Error('Receipt email delivery ledger row is missing');
-        if (delivery.status === 'sent' || !delivery.retryable || delivery.attempt_count >= MAX_EMAIL_ATTEMPTS) continue;
+        if (delivery.status === 'sent' || !delivery.retryable || delivery.attempt_count >= MAX_EMAIL_ATTEMPTS) return;
 
+        const nextAttempt = delivery.attempt_count + 1;
         let pdfBytes: Uint8Array;
         if (receipt.document_path) {
           const { data: existingPdf, error: downloadError } = await ctx.supabaseAdmin.storage.from(RECEIPT_BUCKET).download(receipt.document_path);
@@ -292,7 +204,6 @@ export default {
           if (documentError) throw documentError;
         }
 
-        const nextAttempt = delivery.attempt_count + 1;
         const deliveryResult = await sendReceiptEmail(receipt, pdfBytes, nextAttempt, emailConfig);
         const now = new Date().toISOString();
         const deliveryUpdate = {
@@ -315,7 +226,18 @@ export default {
 
         processed += 1;
         if (deliveryResult.ok) emailed += 1; else emailFailed += 1;
-      }
+      }, async (receipt) => {
+        emailFailed += 1;
+        const delivery = deliveryMap.get(receipt.id);
+        if (!delivery) throw new Error('Receipt delivery ledger row missing');
+        const nextAttempt = delivery.attempt_count + 1;
+        const { error } = await ctx.supabaseAdmin.from('receipt_deliveries').update({
+          status: 'failed', attempt_count: nextAttempt, last_attempt_at: new Date().toISOString(),
+          retryable: nextAttempt < MAX_EMAIL_ATTEMPTS, error_code: 'receipt_processing_failed',
+          error_message: 'Receipt document or delivery processing failed', updated_at: new Date().toISOString(),
+        }).eq('receipt_id', receipt.id).eq('channel', 'email').eq('attempt_count', delivery.attempt_count);
+        if (error) throw new Error('Receipt failure could not be recorded');
+      });
 
       let unresolvedEmailFailures = 0;
       if (receiptIds.length) {
