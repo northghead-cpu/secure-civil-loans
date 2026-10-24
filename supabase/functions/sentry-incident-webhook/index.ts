@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 
 const MAX_BODY_BYTES = 256 * 1024;
 const corsHeaders = { "Content-Type": "application/json" };

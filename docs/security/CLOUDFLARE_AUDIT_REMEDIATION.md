@@ -50,13 +50,18 @@ not an end-user OAuth token. Privileged first-party workflows now require MFA.
    policy changes can briefly lock tables; schedule the migration accordingly.
 3. Release the frontend immediately after the migration. Refresh staff browser
    sessions, complete MFA and confirm fresh/stale KYC review behavior.
-4. Deploy `reference-data` with its existing JWT verification setting enabled.
-5. Deploy `aikido-incident-webhook`, including `_shared/aikido-event-key.ts`, retaining
-   existing own-HMAC authentication and existing gateway configuration.
+4. Deploy `reference-data`, `process-loan` and `sheets-export` with their existing
+   JWT verification setting enabled; deploy `crb-proxy` with its existing gateway
+   verification disabled and own checked authentication retained. These functions
+   now pin Supabase JS 2.50.0; loan/CRB validators also pin patched Zod 4.6.6.
+5. Deploy `aikido-incident-webhook`, including `_shared/aikido-event-key.ts`, and
+   `sentry-incident-webhook`, retaining their own signature authentication and
+   existing gateway verification disabled.
 6. Deploy `process-monthly-payroll-receipts` with index/email/pdf/safety modules,
    retaining its existing secret-based authentication and gateway configuration.
-7. Deploy the regenerated `mcp` function with its existing authentication and
-   gateway settings; its tool schemas now import patched Zod 4.6.6.
+7. The generated `mcp` integration is not currently deployed in this project.
+   Its schemas now use patched Zod 4.6.6. If enabling it, separately review its
+   OAuth/authentication setup and gateway configuration before first deployment.
 8. Verify the hosted flows below before declaring the rollout complete.
 
 Do not revert only the frontend while leaving the new review contract unexplained.
@@ -72,7 +77,8 @@ migration or deployment through the approval previously given for PR61.
   notification forgery, OAuth read versus mutation, staff MFA on support/storage,
   legitimate borrower support, and suspended role writers.
 - Native Deno: real pdf-lib Unicode receipt generation and reference-data handler
-  account/cache isolation tests passed (two tests). Runtime network access is denied;
+  account/cache isolation and real loan/CRB schema compatibility tests passed
+  (three tests). Runtime network access is denied;
   the handler test intercepts outbound fetches using synthetic responses.
 - TypeScript, lint and production build passed; lint retains existing warnings.
 - CI includes the database, application and new native Edge regressions. Test-only
@@ -97,6 +103,32 @@ Edge entrypoint so it uses the same patched schema library.
 
 Bun's lock changes are targeted; the npm lockfile also reconciles older drift
 against the existing package.json (including prior Sentry, router and build-tool
-updates). CI uses the frozen Bun lockfile. The production dependency gate
-continues to retain only its existing dev-only braces exclusion; no new
-advisory is ignored. Local production audit exits successfully after the update.
+updates). CI uses the frozen Bun lockfile. The final gate now blocks advisories at every severity in production, development
+and isolated Edge dependencies. All prior exclusions and non-blocking audit
+settings are removed. Both local root and isolated Edge scans report zero
+advisories after the final updates.
+
+## Final dependency and release check — 25 October 2026
+
+- Resolve the original eight development advisories with js-yaml 4.3.2,
+  form-data 4.0.6, flatted 3.4.2 and browserslist 4.28.7; Vitest 4.1.12 removes
+  the vulnerable tinypool dependency and patches its mocker issues.
+- Patch the additional lower-severity root findings in humanfs, once, esbuild,
+  fast-uri, Hono, ip-address and postcss-selector-parser. Explicit Node types
+  preserve file-reading test compilation after the Vitest upgrade.
+- The isolated Edge scan exposed the old auth-js path-routing advisory. Pin
+  Supabase JS 2.50.0 (auth-js 2.70.0) in the six affected functions and their
+  regression fixture. Loan and CRB code also upgrade their direct old Zod import.
+- Re-run all 176 application tests, original/new database regressions, three
+  native Edge tests, six Deno function checks, typecheck, lint and production
+  build. No customer data is used by these tests.
+- Hosted read-only inspection confirms the remediation migration is not yet
+  applied and existing functions still run their earlier versions. PR63 remains
+  open. No production mutation was performed for these release checks.
+- Supabase advisors still report seven intentionally exposed checked definer
+  RPCs and disabled leaked-password protection. The migration adds session/MFA
+  guards to the RPCs; disabling these business entry points would break workflows.
+  The password protection plan/configuration decision remains operational.
+
+Full OWASP validation remains pending the coordinated rollout and authenticated
+borrower/staff testing. A clean dependency scan is one control, not an OWASP pass.

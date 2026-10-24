@@ -9,7 +9,7 @@ import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
  * GET  ?resource=catalogue|comparison|underwriting-reference|crb-reference
  * POST { action: "invalidate", resource?: "..." }   (admin/super_admin only)
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { corsHeadersFor } from "../_shared/cors.ts";
 import {
   CACHE_TTL,

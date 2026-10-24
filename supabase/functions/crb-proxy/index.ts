@@ -1,9 +1,9 @@
 import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { corsHeadersFor } from "../_shared/cors.ts";
-import { z } from "https://esm.sh/zod@3.23.8";
+import { z } from "https://esm.sh/zod@4.6.6";
 
-const CRBRequestSchema = z.object({
+export const CRBRequestSchema = z.object({
   nrc_number: z.string().trim().min(8, "nrc_number too short").max(20, "nrc_number too long").regex(/^[0-9\/\s-]+$/, "nrc_number contains invalid characters"),
   full_name: z.string().trim().min(2, "full_name too short").max(120, "full_name too long").regex(/^[A-Za-z][A-Za-z\s'.\-]*$/, "full_name contains invalid characters"),
 }).strict();

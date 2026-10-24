@@ -32,3 +32,23 @@ Deno.test("reference GET denies suspended callers and never caches user-scoped c
   names.forEach((n,i)=>previous[i]===undefined?Deno.env.delete(n):Deno.env.set(n,previous[i]!));
  }
 });
+Deno.test("patched loan and CRB validators retain strict input validation", async () => {
+ const oldServe=Deno.serve;
+ try {
+  Deno.serve=(()=>({})) as unknown as typeof Deno.serve;
+  const {ProcessLoanSchema}=await import("../../functions/process-loan/index.ts");
+  const {CRBRequestSchema}=await import("../../functions/crb-proxy/index.ts");
+  const loan={zmw_client_id:"client_123",income_zmw:9000,debt_zmw:1000};
+  if(!ProcessLoanSchema.safeParse(loan).success)throw new Error("valid loan rejected");
+  for(const bad of [{...loan,income_zmw:-1},{...loan,debt_zmw:Infinity},{...loan,unexpected:true}]) {
+   const parsed=ProcessLoanSchema.safeParse(bad);
+   if(parsed.success||!parsed.error.flatten())throw new Error("invalid loan accepted");
+  }
+  const crb={nrc_number:"123456/78/1",full_name:"Brian Ngandu"};
+  if(!CRBRequestSchema.safeParse(crb).success)throw new Error("valid CRB request rejected");
+  for(const bad of [{...crb,nrc_number:"../private"},{...crb,full_name:"<script>"},{...crb,unexpected:true}]) {
+   const parsed=CRBRequestSchema.safeParse(bad);
+   if(parsed.success||!parsed.error.flatten())throw new Error("invalid CRB request accepted");
+  }
+ } finally {Deno.serve=oldServe;}
+});

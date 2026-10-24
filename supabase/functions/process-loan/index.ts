@@ -1,10 +1,10 @@
 import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { corsHeadersFor } from "../_shared/cors.ts";
-import { z } from "https://esm.sh/zod@3.23.8";
+import { z } from "https://esm.sh/zod@4.6.6";
 
 const MAX_AMOUNT_ZMW = 100_000_000; // 100M ZMW upper bound sanity cap
-const ProcessLoanSchema = z.object({
+export const ProcessLoanSchema = z.object({
   zmw_client_id: z
     .string()
     .trim()
