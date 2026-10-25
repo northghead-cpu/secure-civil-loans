@@ -33,10 +33,18 @@ describe("monthly receipt email delivery", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.resend.com/emails");
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer test-resend-key");
-    expect(new Headers(init.headers).get("Idempotency-Key")).toBe("riverbanc-receipt-receipt-123-attempt-2");
+    expect(new Headers(init.headers).get("Idempotency-Key")).toBe("riverbanc-receipt-receipt-123");
     const body = JSON.parse(String(init.body));
     expect(body.from).toBe("receipts@riverbanc.co.zm");
     expect(body.to).toEqual(["subscriber@example.test"]);
+  });
+
+  it("binds retries to the same logical receipt idempotency key", async () => {
+    const mock = vi.fn().mockImplementation(async()=>new Response(JSON.stringify({id:"msg_same"})));
+    vi.stubGlobal("fetch",mock);
+    await sendReceiptEmail(receipt,pdfBytes,1,emailConfig);
+    await sendReceiptEmail(receipt,pdfBytes,2,emailConfig);
+    expect(mock.mock.calls.map(([,init])=>new Headers(init.headers).get("Idempotency-Key"))).toEqual(["riverbanc-receipt-receipt-123","riverbanc-receipt-receipt-123"]);
   });
 
   it("does not call the provider when the customer email is missing", async () => {

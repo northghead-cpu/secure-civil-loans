@@ -1,3 +1,4 @@
+import { csvCell } from "@/lib/csv";
 import { readAllRows } from "@/lib/readAllRows";
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,10 +67,9 @@ type Report = (typeof reports)[number];
 const toCsv = (rows: Record<string, unknown>[]) => {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
-  const escape = (value: unknown) =>
-    `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const escape = csvCell;
   return [
-    headers.join(","),
+    headers.map(csvCell).join(","),
     ...rows.map((row) =>
       headers.map((header) => escape(row[header])).join(","),
     ),

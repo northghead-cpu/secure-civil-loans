@@ -16,7 +16,7 @@ import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
  * POST { action: "sync", spreadsheetId?: string }
  * POST { action: "status" }
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 const ALLOWED_RIVERBANC_ORIGINS = new Set([
   "https://riverbanc.co.zm",
   "https://www.riverbanc.co.zm",

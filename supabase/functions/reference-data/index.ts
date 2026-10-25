@@ -1,19 +1,15 @@
 import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
- * reference-data — cached, non-sensitive read API.
+ * reference-data — authenticated reference API.
  *
- * Serves the lender product catalogue, public comparison results and
- * underwriting / CRB *reference* tables through an optional Upstash Redis
- * cache (see ../_shared/cache.ts). When Upstash env vars are absent the
- * function behaves exactly as before: straight database reads.
- *
- * Nothing customer-specific is ever cached here — no PII, no KYC data,
- * no per-borrower CRB files, no session data.
+ * Catalogue and comparison queries always use the caller's RLS context and
+ * bypass shared caches. Only static underwriting and CRB reference tables
+ * use the optional Upstash cache; no customer records are cached.
  *
  * GET  ?resource=catalogue|comparison|underwriting-reference|crb-reference
  * POST { action: "invalidate", resource?: "..." }   (admin/super_admin only)
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { corsHeadersFor } from "../_shared/cors.ts";
 import {
   CACHE_TTL,
@@ -109,7 +105,13 @@ Deno.serve(async (req) => {
       return json({ error: "Method not allowed" }, 405, { Allow: "GET, POST" });
     }
 
-    // ---------------- Cached reads ----------------
+    const account = await supabase.from("profiles").select("account_status").eq("user_id", identity.user.id).maybeSingle();
+    if (account.error) return json({ error: "AUTHORIZATION_UNAVAILABLE" }, 503);
+    if (account.data?.account_status !== "active") return json({ error: "ACTIVE_ACCOUNT_REQUIRED" }, 403);
+
+    // Caller-scoped database results must never populate a shared cache.
+    const uncached = async <T>(_key: string, _ttl: number, load: () => Promise<T>) => ({ data: await load(), hit: false });
+    // ---------------- Reads ----------------
     const url = new URL(req.url);
     const resource = (url.searchParams.get("resource") ?? "catalogue") as Resource;
     if (!RESOURCES.includes(resource)) return json({ error: "Unknown resource" }, 400);
@@ -118,7 +120,7 @@ Deno.serve(async (req) => {
     let hit = false;
 
     if (resource === "catalogue") {
-      const res = await cached("catalogue:active", CACHE_TTL.catalogue, async () => {
+      const res = await uncached("catalogue:active", CACHE_TTL.catalogue, async () => {
         const { data, error } = await supabase
           .from("bank_products")
           .select("id, bank_name, interest_rate, min_amount, max_amount, max_term_months, processing_days")
@@ -138,7 +140,7 @@ Deno.serve(async (req) => {
         120,
         Math.max(1, Number.parseInt(url.searchParams.get("term") ?? "60", 10) || 60),
       );
-      const res = await cached(
+      const res = await uncached(
         `comparison:${amount}:${term}`,
         CACHE_TTL.comparison,
         async () => {
@@ -183,8 +185,8 @@ Deno.serve(async (req) => {
       { success: true, resource, data: payload },
       200,
       {
-        "X-Cache": cacheEnabled() ? (hit ? "HIT" : "MISS") : "DISABLED",
-        "Cache-Control": "private, max-age=30",
+        "X-Cache": !["catalogue", "comparison"].includes(resource) && cacheEnabled() ? (hit ? "HIT" : "MISS") : "DISABLED",
+        "Cache-Control": "private, no-store",
       },
     );
   } catch (e) {

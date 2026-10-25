@@ -37,7 +37,7 @@ export async function sendReceiptEmail(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'Idempotency-Key': `riverbanc-receipt-${receipt.id}-attempt-${attemptNumber}`,
+      'Idempotency-Key': `riverbanc-receipt-${receipt.id}`,
     },
     body: JSON.stringify({
       from,

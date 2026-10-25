@@ -1,3 +1,4 @@
+import { toCsvRows } from "@/lib/csv";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRBAC, ROLE_LABELS, AppRole } from "@/hooks/useRBAC";
@@ -268,9 +269,7 @@ const UserManagement = () => {
         .join("; "),
       new Date(user.created_at).toLocaleString(),
     ]);
-    const csv = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
-      .join("\n");
+    const csv = toCsvRows([headers, ...rows]);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");

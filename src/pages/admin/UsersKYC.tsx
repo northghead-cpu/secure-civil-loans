@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 type Profile = {
@@ -21,6 +22,7 @@ type Profile = {
   gov_id_type: string | null;
   gov_id_number: string | null;
   kyc_signature: string | null;
+  kyc_review_revision: string;
 };
 type Document = {
   id: string;
@@ -51,7 +53,7 @@ export default function UsersKYC() {
           untypedDb
             .from("profiles")
             .select(
-              "user_id,full_name,nrc_number,kyc_status,kyc_submitted_at,gov_id_type,gov_id_number,kyc_signature",
+              "user_id,full_name,nrc_number,kyc_status,kyc_submitted_at,gov_id_type,gov_id_number,kyc_signature,kyc_review_revision",
             )
             .order("user_id")
             .range(from, to),
@@ -118,13 +120,14 @@ export default function UsersKYC() {
     }
   };
   const review = async (status: "COMPLETED" | "REJECTED") => {
-    if (!selected || saving) return;
+    if (!selected || saving || !selected.kyc_review_revision) return;
     setSaving(true);
     try {
       const { error } = await untypedDb.rpc("review_kyc_verification", {
         _user_id: selected.user_id,
         _status: status,
         _reason: reason.trim() || null,
+        _expected_revision: selected.kyc_review_revision,
       });
       if (error) throw error;
       toast.success(
@@ -135,6 +138,10 @@ export default function UsersKYC() {
       setSelected(null);
       await load();
     } catch (e) {
+      if ((e as { message?: string })?.message?.includes("submission changed")) {
+        setSelected(null);
+        await load();
+      }
       toast.error(
         (e as { message?: string })?.message || "Review could not be saved",
       );
@@ -213,6 +220,7 @@ export default function UsersKYC() {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Verification evidence</DialogTitle>
+            <DialogDescription>Review the submitted evidence before recording a verification decision.</DialogDescription>
           </DialogHeader>
           {selected && (
             <>
@@ -257,7 +265,7 @@ export default function UsersKYC() {
                   )}
                 </div>
               )}
-              {canReview && (
+              {canReview && selected.kyc_status === "IN_REVIEW" && (
                 <>
                   <label htmlFor="review-reason">
                     Reason for correction (required when returning)
