@@ -1,5 +1,24 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeadersFor } from "../_shared/cors.ts";
+const ALLOWED_RIVERBANC_ORIGINS = new Set([
+  "https://riverbanc.co.zm",
+  "https://www.riverbanc.co.zm",
+  "https://riverbanc-tech-git-main-riverbank1.vercel.app",
+  "https://riverbanc-tech-riverbank1.vercel.app",
+  "https://secure-civil-loans.vercel.app",
+  "https://riverbanc-tech-l8vpknneo-riverbank1.vercel.app",
+]);
+
+function corsHeadersFor(req: Request, methods: string): Record<string, string> {
+  const origin = req.headers.get("origin");
+  return {
+    ...(origin && ALLOWED_RIVERBANC_ORIGINS.has(origin)
+      ? { "Access-Control-Allow-Origin": origin }
+      : {}),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id",
+    "Access-Control-Allow-Methods": methods,
+    "Vary": "Origin",
+  };
+}
 
 const MAX_CLOCK_SKEW_SECONDS = 300;
 
