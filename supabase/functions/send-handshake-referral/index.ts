@@ -158,9 +158,12 @@ Deno.serve(async (req: Request) => {
   }
 
   const responseBody = await response.json().catch(() => ({})) as Record<string, unknown>;
-  if (!response.ok) {
-    console.error("[send-handshake-referral] Handshake rejected request", response.status);
-    return json(response.status === 409 ? 409 : response.status >= 500 ? 502 : 400, {
+  if (!response.ok || responseBody.accepted !== true) {
+    console.error(
+      "[send-handshake-referral] Handshake did not confirm acceptance",
+      response.status,
+    );
+    return json(response.status === 409 ? 409 : response.status >= 500 ? 502 : 502, {
       error: "HANDSHAKE_REFERRAL_REJECTED",
       handoff_id: handoff.id,
     }, cors);
