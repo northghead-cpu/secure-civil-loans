@@ -109,16 +109,21 @@ export default function LenderHandoffModal({
 
       if (error) throw error;
 
-      const handoff = data as unknown as { id?: string } | null;
+      // The authorization RPC returns the handoff UUID as a string.
+      // Accept an object-shaped response as a compatibility fallback.
+      const handoffId =
+        typeof data === "string"
+          ? data
+          : (data as unknown as { id?: string } | null)?.id;
       let handshakeQueued = false;
 
       // Authorization is durable before the cross-system call. If Handshake is
       // temporarily unavailable, do not misreport the authorization as failed.
-      if (handoff?.id) {
+      if (handoffId) {
         try {
           const { data: transfer, error: transferError } =
             await supabase.functions.invoke("send-handshake-referral", {
-              body: { handoff_id: handoff.id },
+              body: { handoff_id: handoffId },
             });
           handshakeQueued = !transferError && transfer?.accepted === true;
           if (transferError) {
@@ -143,8 +148,8 @@ export default function LenderHandoffModal({
       reset();
       onClose();
       navigate(
-        handoff?.id
-          ? `/application-status?id=${encodeURIComponent(handoff.id)}`
+        handoffId
+          ? `/application-status?id=${encodeURIComponent(handoffId)}`
           : "/application-status",
       );
     } catch (error) {
