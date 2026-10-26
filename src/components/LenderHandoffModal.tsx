@@ -109,16 +109,47 @@ export default function LenderHandoffModal({
 
       if (error) throw error;
 
-      toast.success("Information sharing authorized", {
-        description:
-          "Riverbanc will prepare your application for the selected financial institution.",
-      });
+      // The authorization RPC returns the handoff UUID as a string.
+      // Accept an object-shaped response as a compatibility fallback.
+      const handoffId =
+        typeof data === "string"
+          ? data
+          : (data as unknown as { id?: string } | null)?.id;
+      let handshakeQueued = false;
+
+      // Authorization is durable before the cross-system call. If Handshake is
+      // temporarily unavailable, do not misreport the authorization as failed.
+      if (handoffId) {
+        try {
+          const { data: transfer, error: transferError } =
+            await supabase.functions.invoke("send-handshake-referral", {
+              body: { handoff_id: handoffId },
+            });
+          handshakeQueued = !transferError && transfer?.accepted === true;
+          if (transferError) {
+            console.error("Handshake transfer could not be confirmed.");
+          }
+        } catch {
+          console.error("Handshake transfer could not be confirmed.");
+        }
+      }
+
+      if (handshakeQueued) {
+        toast.success("Authorization recorded and referral queued", {
+          description:
+            "Handshake accepted your referral. The financial institution will make its own lending decision.",
+        });
+      } else {
+        toast.warning("Authorization recorded; transfer pending", {
+          description:
+            "Your authorization is saved, but Handshake has not confirmed receipt. The referral can be retried after the integration is configured.",
+        });
+      }
       reset();
       onClose();
-      const handoff = data as unknown as { id?: string } | null;
       navigate(
-        handoff?.id
-          ? `/application-status?id=${encodeURIComponent(handoff.id)}`
+        handoffId
+          ? `/application-status?id=${encodeURIComponent(handoffId)}`
           : "/application-status",
       );
     } catch (error) {
