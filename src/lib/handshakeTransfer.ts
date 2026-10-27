@@ -5,7 +5,7 @@ export function canRetryHandshakeTransfer(
   transferStatus: string | null | undefined,
 ): boolean {
   return (
-    ["authorized", "preparing"].includes(handoffStatus) &&
+    ["authorized", "preparing", "sent_to_lender"].includes(handoffStatus) &&
     transferStatus !== "accepted"
   );
 }
