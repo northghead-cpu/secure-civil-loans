@@ -115,36 +115,13 @@ export default function LenderHandoffModal({
         typeof data === "string"
           ? data
           : (data as unknown as { id?: string } | null)?.id;
-      let handshakeQueued = false;
-
-      // Authorization is durable before the cross-system call. If Handshake is
-      // temporarily unavailable, do not misreport the authorization as failed.
-      if (handoffId) {
-        try {
-          const { data: transfer, error: transferError } =
-            await supabase.functions.invoke("send-handshake-referral", {
-              body: { handoff_id: handoffId },
-            });
-          handshakeQueued = !transferError && transfer?.accepted === true;
-          if (transferError) {
-            console.error("Handshake transfer could not be confirmed.");
-          }
-        } catch {
-          console.error("Handshake transfer could not be confirmed.");
-        }
-      }
-
-      if (handshakeQueued) {
-        toast.success("Authorization recorded and referral queued", {
-          description:
-            "Handshake accepted your referral. The financial institution will make its own lending decision.",
-        });
-      } else {
-        toast.warning("Authorization recorded; transfer pending", {
-          description:
-            "Your authorization is saved, but Handshake has not confirmed receipt. The referral can be retried after the integration is configured.",
-        });
-      }
+      // Customer consent is recorded here only. Cross-system dispatch is a
+      // privileged staff action from the admin handoff queue; do not invoke the
+      // privileged transfer endpoint from a customer session.
+      toast.success("Authorization recorded", {
+        description:
+          "Your information-sharing authorization is saved. Riverbanc staff will review the handoff before the referral is sent.",
+      });
       reset();
       onClose();
       navigate(
