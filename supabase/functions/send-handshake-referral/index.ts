@@ -183,8 +183,7 @@ Deno.serve(async (req: Request) => {
     console.error("[send-handshake-referral] HANDSHAKE_API_URL must be a valid HTTPS URL");
     await admin.from("application_handoffs")
       .update({ handshake_transfer_last_error: "HANDSHAKE_INTEGRATION_NOT_CONFIGURED" })
-      .eq("id", handoff.id)
-      .eq("user_id", authData.user.id);
+      .eq("id", handoff.id);
     return json(503, { error: "HANDSHAKE_INTEGRATION_NOT_CONFIGURED" }, cors);
   }
 
@@ -208,8 +207,7 @@ Deno.serve(async (req: Request) => {
         handshake_transfer_status: "pending",
         handshake_transfer_last_error: errorCode,
       })
-      .eq("id", handoff.id)
-      .eq("user_id", authData.user.id);
+      .eq("id", handoff.id);
     if (error) {
       console.error("[send-handshake-referral] failed to record transfer failure", error.code ?? "UNKNOWN");
     }
@@ -262,8 +260,7 @@ Deno.serve(async (req: Request) => {
       handshake_transfer_last_error: null,
       handshake_accepted_at: acceptedAt,
     })
-    .eq("id", handoff.id)
-    .eq("user_id", authData.user.id);
+    .eq("id", handoff.id);
   if (transferStateError) {
     // Handshake already accepted; retrying remains safe because the event ID is stable.
     console.error("[send-handshake-referral] acceptance state update failed", transferStateError.code ?? "UNKNOWN");
@@ -273,7 +270,6 @@ Deno.serve(async (req: Request) => {
     .from("application_handoffs")
     .update({ status: "preparing" })
     .eq("id", handoff.id)
-    .eq("user_id", authData.user.id)
     .in("status", ["authorized", "preparing"]);
   if (statusError) {
     console.error("[send-handshake-referral] handoff status update failed", statusError.code ?? "UNKNOWN");
