@@ -144,6 +144,10 @@ Deno.serve(async (req: Request) => {
   const tenantShortName = tenantMap[handoff.lender_name];
   if (typeof tenantShortName !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(tenantShortName)) {
     console.error("[send-handshake-referral] no tenant mapping for selected lender");
+    await admin.from("application_handoffs")
+      .update({ handshake_transfer_last_error: "LENDER_TENANT_NOT_CONFIGURED" })
+      .eq("id", handoff.id)
+      .eq("user_id", authData.user.id);
     return json(409, { error: "LENDER_TENANT_NOT_CONFIGURED" }, cors);
   }
 
@@ -167,6 +171,10 @@ Deno.serve(async (req: Request) => {
     if (target.protocol !== "https:") throw new Error("HTTPS required");
   } catch {
     console.error("[send-handshake-referral] HANDSHAKE_API_URL must be a valid HTTPS URL");
+    await admin.from("application_handoffs")
+      .update({ handshake_transfer_last_error: "HANDSHAKE_INTEGRATION_NOT_CONFIGURED" })
+      .eq("id", handoff.id)
+      .eq("user_id", authData.user.id);
     return json(503, { error: "HANDSHAKE_INTEGRATION_NOT_CONFIGURED" }, cors);
   }
 
