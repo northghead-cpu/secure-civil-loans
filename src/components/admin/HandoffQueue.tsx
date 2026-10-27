@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Loader2, RefreshCw } from "lucide-react";
 type Handoff = {
   id: string;
   user_id: string;
@@ -18,6 +19,9 @@ type Handoff = {
   created_at: string;
   authorization_text: string;
   delivery_reference: string | null;
+  handshake_transfer_status: "pending" | "accepted" | null;
+  handshake_transfer_last_attempt_at: string | null;
+  handshake_transfer_last_error: string | null;
 };
 export default function HandoffQueue() {
   const { hasRole } = useRBAC();
@@ -29,6 +33,7 @@ export default function HandoffQueue() {
   const [saving, setSaving] = useState(false);
   const [reference, setReference] = useState("");
   const [attested, setAttested] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const current = rows.find((row) => row.id === params.get("id"));
   const load = useCallback(async () => {
     setError(false);
@@ -39,7 +44,7 @@ export default function HandoffQueue() {
           untypedDb
             .from("application_handoffs")
             .select(
-              "id,user_id,lender_name,status,requested_amount,created_at,authorization_text,delivery_reference",
+              "id,user_id,lender_name,status,requested_amount,created_at,authorization_text,delivery_reference,handshake_transfer_status,handshake_transfer_last_attempt_at,handshake_transfer_last_error",
             )
             .order("created_at", { ascending: false })
             .order("id")
@@ -70,6 +75,31 @@ export default function HandoffQueue() {
     setReference("");
     setAttested(false);
   }, [current?.id]);
+  const retryHandshake = async () => {
+    if (!current || !canManage || retrying ||
+        !["authorized", "preparing"].includes(current.status) ||
+        current.handshake_transfer_status === "accepted") return;
+    setRetrying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-handshake-referral", {
+        body: { handoff_id: current.id },
+      });
+      if (error || data?.accepted !== true) {
+        toast.error("Handshake receipt is not confirmed", {
+          description: "Check the integration status before retrying again.",
+        });
+      } else {
+        toast.success("Handshake referral accepted", {
+          description: "Handshake acceptance does not confirm full lender delivery or a lending decision.",
+        });
+      }
+      await load();
+    } catch {
+      toast.error("Handshake retry failed", { description: "The transfer outcome is unconfirmed." });
+    } finally {
+      setRetrying(false);
+    }
+  };
   const advance = async (status: "preparing" | "sent_to_lender") => {
     if (
       !current ||
@@ -150,6 +180,18 @@ export default function HandoffQueue() {
               {current.authorization_text.replace(/\\n/g, "\n")}
             </p>
             <p>Status: {handoffStatusLabel(current.status)}</p>
+            <div className="rounded-md border p-4 space-y-2">
+              <h3 className="font-semibold">Handshake referral transfer</h3>
+              <p>Transfer status: {current.handshake_transfer_status === "accepted" ? "Accepted by Handshake" : "Pending / unconfirmed"}</p>
+              {current.handshake_transfer_last_attempt_at && <p className="text-sm text-muted-foreground">Last attempt: {new Date(current.handshake_transfer_last_attempt_at).toLocaleString()}</p>}
+              {current.handshake_transfer_last_error && <p className="text-sm text-destructive">Last error: {current.handshake_transfer_last_error}</p>}
+              {canManage && ["authorized", "preparing"].includes(current.status) && current.handshake_transfer_status !== "accepted" && (
+                <Button disabled={retrying || saving} onClick={() => void retryHandshake()}>
+                  {retrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  {retrying ? "Retrying Handshake transfer…" : "Retry Handshake transfer"}
+                </Button>
+              )}
+            </div>
             {current.delivery_reference && (
               <p>Delivery reference: {current.delivery_reference}</p>
             )}

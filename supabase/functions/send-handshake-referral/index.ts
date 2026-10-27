@@ -109,11 +109,22 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Only explicitly privileged Riverbanc staff may initiate/retry transfers.
+  const { data: roleRows, error: roleError } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", authData.user.id)
+    .in("role", ["admin", "super_admin"]);
+  if (roleError) {
+    console.error("[send-handshake-referral] role lookup failed", roleError.code ?? "UNKNOWN");
+    return json(500, { error: "ROLE_LOOKUP_FAILED" }, cors);
+  }
+  if (!roleRows?.length) return json(403, { error: "PRIVILEGED_ROLE_REQUIRED" }, cors);
   const { data: handoff, error: handoffError } = await admin
     .from("application_handoffs")
     .select("id,user_id,lender_name,requested_amount,term_months,authorization_version,authorized_at,authorization_signature,status,handshake_transfer_status")
     .eq("id", handoffId)
-    .eq("user_id", authData.user.id)
     .maybeSingle();
 
   if (handoffError) {
@@ -146,8 +157,7 @@ Deno.serve(async (req: Request) => {
     console.error("[send-handshake-referral] no tenant mapping for selected lender");
     await admin.from("application_handoffs")
       .update({ handshake_transfer_last_error: "LENDER_TENANT_NOT_CONFIGURED" })
-      .eq("id", handoff.id)
-      .eq("user_id", authData.user.id);
+      .eq("id", handoff.id);
     return json(409, { error: "LENDER_TENANT_NOT_CONFIGURED" }, cors);
   }
 
@@ -185,8 +195,7 @@ Deno.serve(async (req: Request) => {
       handshake_transfer_last_attempt_at: new Date().toISOString(),
       handshake_transfer_last_error: null,
     })
-    .eq("id", handoff.id)
-    .eq("user_id", authData.user.id);
+    .eq("id", handoff.id);
   if (attemptUpdateError) {
     console.error("[send-handshake-referral] failed to record transfer attempt", attemptUpdateError.code ?? "UNKNOWN");
     return json(500, { error: "HANDSHAKE_ATTEMPT_RECORD_FAILED", handoff_id: handoff.id }, cors);
@@ -272,7 +281,7 @@ Deno.serve(async (req: Request) => {
 
   await admin.from("audit_logs").insert({
     user_id: authData.user.id,
-    role: "borrower",
+    role: roleRows.some((r: { role: string }) => r.role === "super_admin") ? "super_admin" : "admin",
     action_performed: "handshake_referral_accepted",
     record_id: handoff.id,
     table_name: "application_handoffs",
