@@ -77,7 +77,7 @@ export default function HandoffQueue() {
   }, [current?.id]);
   const retryHandshake = async () => {
     if (!current || !canManage || retrying ||
-        !["authorized", "preparing"].includes(current.status) ||
+        !["authorized", "preparing", "sent_to_lender"].includes(current.status) ||
         current.handshake_transfer_status === "accepted") return;
     setRetrying(true);
     try {
@@ -185,7 +185,7 @@ export default function HandoffQueue() {
               <p>Transfer status: {current.handshake_transfer_status === "accepted" ? "Accepted by Handshake" : "Pending / unconfirmed"}</p>
               {current.handshake_transfer_last_attempt_at && <p className="text-sm text-muted-foreground">Last attempt: {new Date(current.handshake_transfer_last_attempt_at).toLocaleString()}</p>}
               {current.handshake_transfer_last_error && <p className="text-sm text-destructive">Last error: {current.handshake_transfer_last_error}</p>}
-              {canManage && ["authorized", "preparing"].includes(current.status) && current.handshake_transfer_status !== "accepted" && (
+              {canManage && ["authorized", "preparing", "sent_to_lender"].includes(current.status) && current.handshake_transfer_status !== "accepted" && (
                 <Button disabled={retrying || saving} onClick={() => void retryHandshake()}>
                   {retrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                   {retrying ? "Retrying Handshake transfer…" : "Retry Handshake transfer"}
