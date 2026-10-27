@@ -10,10 +10,6 @@ import { untypedDb } from "@/integrations/supabase/untyped";
 import { supabase } from "@/integrations/supabase/client";
 import { readAllRows } from "@/lib/readAllRows";
 import { handoffProgress, handoffStatusLabel } from "@/lib/handoffProgress";
-import {
-  canRetryHandshakeTransfer,
-  handshakeTransferMessage,
-} from "@/lib/handshakeTransfer";
 import { toast } from "sonner";
 type Handoff = {
   id: string;
@@ -24,10 +20,6 @@ type Handoff = {
   status: string;
   information_request: string | null;
   delivery_reference: string | null;
-  handshake_transfer_status: "pending" | "accepted" | null;
-  handshake_transfer_last_attempt_at: string | null;
-  handshake_transfer_last_error: string | null;
-  handshake_accepted_at: string | null;
   updated_at: string;
 };
 export default function ApplicationStatusPage() {
@@ -37,7 +29,6 @@ export default function ApplicationStatusPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [retryingId, setRetryingId] = useState<string | null>(null);
   useEffect(() => {
     if (!user) return;
     let active = true;
@@ -47,7 +38,7 @@ export default function ApplicationStatusPage() {
           untypedDb
             .from("application_handoffs")
             .select(
-              "id,lender_name,requested_amount,term_months,estimated_monthly_repayment,status,information_request,delivery_reference,handshake_transfer_status,handshake_transfer_last_attempt_at,handshake_transfer_last_error,handshake_accepted_at,updated_at",
+              "id,lender_name,requested_amount,term_months,estimated_monthly_repayment,status,information_request,delivery_reference,updated_at",
             )
             .eq("user_id", user.id)
             .neq("status", "pending_authorization")
@@ -88,36 +79,6 @@ export default function ApplicationStatusPage() {
   const id = params.get("id");
   const current = id ? handoffs.find((h) => h.id === id) : handoffs[0];
   const progress = handoffProgress(current?.status || "");
-
-  const handleRetryHandshake = async (handoff: Handoff) => {
-    if (retryingId) return;
-    setRetryingId(handoff.id);
-    try {
-      const { data, error: transferError } = await supabase.functions.invoke(
-        "send-handshake-referral",
-        { body: { handoff_id: handoff.id } },
-      );
-      if (transferError || data?.accepted !== true) {
-        toast.error("Handshake receipt is not confirmed", {
-          description:
-            "The referral remains pending. Check the connection or contact Riverbanc support if the problem continues, then retry.",
-        });
-      } else {
-        toast.success("Handshake referral confirmed", {
-          description:
-            "Handshake accepted the referral. This does not mean the lender has received a full application or made a lending decision.",
-        });
-      }
-    } catch {
-      toast.error("Handshake receipt is not confirmed", {
-        description:
-          "The referral remains pending. You can retry this transfer without creating a new application.",
-      });
-    } finally {
-      setRetryingId(null);
-      setAttempt((value) => value + 1);
-    }
-  };
 
   return (
     <>
@@ -177,43 +138,6 @@ export default function ApplicationStatusPage() {
                     <p className="text-sm text-muted-foreground">
                       Updated {new Date(current.updated_at).toLocaleString()}
                     </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-5 space-y-3">
-                    <h3 className="font-semibold">Handshake referral transfer</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {handshakeTransferMessage(
-                        current.handshake_transfer_status,
-                        current.handshake_transfer_last_error,
-                      )}
-                    </p>
-                    {current.handshake_transfer_last_attempt_at && (
-                      <p className="text-xs text-muted-foreground">
-                        Last attempt:{" "}
-                        {new Date(
-                          current.handshake_transfer_last_attempt_at,
-                        ).toLocaleString()}
-                      </p>
-                    )}
-                    {canRetryHandshakeTransfer(
-                      current.status,
-                      current.handshake_transfer_status,
-                    ) && (
-                      <Button
-                        onClick={() => void handleRetryHandshake(current)}
-                        disabled={retryingId !== null}
-                      >
-                        {retryingId === current.id ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                        )}
-                        {retryingId === current.id
-                          ? "Retrying transfer…"
-                          : "Retry Handshake transfer"}
-                      </Button>
-                    )}
                   </CardContent>
                 </Card>
                 <ol className="space-y-3">
