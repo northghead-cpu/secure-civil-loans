@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
   });
   const { data: handoff, error: handoffError } = await admin
     .from("application_handoffs")
-    .select("id,user_id,lender_name,requested_amount,term_months,authorization_version,authorized_at,authorization_signature,status")
+    .select("id,user_id,lender_name,requested_amount,term_months,authorization_version,authorized_at,authorization_signature,status,handshake_transfer_status")
     .eq("id", handoffId)
     .eq("user_id", authData.user.id)
     .maybeSingle();
@@ -129,16 +129,31 @@ Deno.serve(async (req: Request) => {
     return json(409, { error: "HANDOFF_AMOUNT_INVALID" }, cors);
   }
 
+  const reference = `RBH-${handoff.id}`;
+  if (handoff.handshake_transfer_status === "accepted") {
+    return json(200, {
+      accepted: true,
+      already_accepted: true,
+      handoff_id: handoff.id,
+      handshake_reference: reference,
+      handshake_status: "queued",
+      riverbanc_status: handoff.status,
+    }, cors);
+  }
+
   const tenantShortName = tenantMap[handoff.lender_name];
   if (typeof tenantShortName !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(tenantShortName)) {
     console.error("[send-handshake-referral] no tenant mapping for selected lender");
+    await admin.from("application_handoffs")
+      .update({ handshake_transfer_last_error: "LENDER_TENANT_NOT_CONFIGURED" })
+      .eq("id", handoff.id)
+      .eq("user_id", authData.user.id);
     return json(409, { error: "LENDER_TENANT_NOT_CONFIGURED" }, cors);
   }
 
   // Transfer only a reference, the selected amount, and the employer name if the user
   // explicitly authorized the lender handoff. Do not transfer NRC, TPIN, salary,
   // bank details, KYC files, payslips, or underwriting documents through this endpoint.
-  const reference = `RBH-${handoff.id}`;
   const payload = {
     event_id: handoff.id,
     tenant_short_name: tenantShortName,
@@ -156,8 +171,40 @@ Deno.serve(async (req: Request) => {
     if (target.protocol !== "https:") throw new Error("HTTPS required");
   } catch {
     console.error("[send-handshake-referral] HANDSHAKE_API_URL must be a valid HTTPS URL");
+    await admin.from("application_handoffs")
+      .update({ handshake_transfer_last_error: "HANDSHAKE_INTEGRATION_NOT_CONFIGURED" })
+      .eq("id", handoff.id)
+      .eq("user_id", authData.user.id);
     return json(503, { error: "HANDSHAKE_INTEGRATION_NOT_CONFIGURED" }, cors);
   }
+
+  const { error: attemptUpdateError } = await admin
+    .from("application_handoffs")
+    .update({
+      handshake_transfer_status: "pending",
+      handshake_transfer_last_attempt_at: new Date().toISOString(),
+      handshake_transfer_last_error: null,
+    })
+    .eq("id", handoff.id)
+    .eq("user_id", authData.user.id);
+  if (attemptUpdateError) {
+    console.error("[send-handshake-referral] failed to record transfer attempt", attemptUpdateError.code ?? "UNKNOWN");
+    return json(500, { error: "HANDSHAKE_ATTEMPT_RECORD_FAILED", handoff_id: handoff.id }, cors);
+  }
+
+  const recordTransferFailure = async (errorCode: string) => {
+    const { error } = await admin
+      .from("application_handoffs")
+      .update({
+        handshake_transfer_status: "pending",
+        handshake_transfer_last_error: errorCode,
+      })
+      .eq("id", handoff.id)
+      .eq("user_id", authData.user.id);
+    if (error) {
+      console.error("[send-handshake-referral] failed to record transfer failure", error.code ?? "UNKNOWN");
+    }
+  };
 
   let response: Response;
   try {
@@ -173,12 +220,14 @@ Deno.serve(async (req: Request) => {
     });
   } catch {
     console.error("[send-handshake-referral] Handshake request failed at transport layer");
+    await recordTransferFailure("HANDSHAKE_UNREACHABLE");
     return json(502, { error: "HANDSHAKE_UNREACHABLE", handoff_id: handoff.id }, cors);
   }
 
   const responseBody = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) {
     console.error("[send-handshake-referral] Handshake rejected request", response.status);
+    await recordTransferFailure("HANDSHAKE_REFERRAL_REJECTED");
     return json(response.status === 409 ? 409 : response.status >= 500 ? 502 : 400, {
       error: "HANDSHAKE_REFERRAL_REJECTED",
       handoff_id: handoff.id,
@@ -189,6 +238,7 @@ Deno.serve(async (req: Request) => {
       "[send-handshake-referral] Handshake response did not confirm acceptance",
       response.status,
     );
+    await recordTransferFailure("HANDSHAKE_REFERRAL_UNCONFIRMED");
     return json(502, {
       error: "HANDSHAKE_REFERRAL_UNCONFIRMED",
       handoff_id: handoff.id,
@@ -196,6 +246,20 @@ Deno.serve(async (req: Request) => {
   }
 
   const acceptedAt = new Date().toISOString();
+  const { error: transferStateError } = await admin
+    .from("application_handoffs")
+    .update({
+      handshake_transfer_status: "accepted",
+      handshake_transfer_last_error: null,
+      handshake_accepted_at: acceptedAt,
+    })
+    .eq("id", handoff.id)
+    .eq("user_id", authData.user.id);
+  if (transferStateError) {
+    // Handshake already accepted; retrying remains safe because the event ID is stable.
+    console.error("[send-handshake-referral] acceptance state update failed", transferStateError.code ?? "UNKNOWN");
+  }
+
   const { error: statusError } = await admin
     .from("application_handoffs")
     .update({ status: "preparing" })
@@ -203,8 +267,7 @@ Deno.serve(async (req: Request) => {
     .eq("user_id", authData.user.id)
     .in("status", ["authorized", "preparing"]);
   if (statusError) {
-    // Handshake already accepted the idempotent referral; retries remain safe.
-    console.error("[send-handshake-referral] status update failed", statusError.code ?? "UNKNOWN");
+    console.error("[send-handshake-referral] handoff status update failed", statusError.code ?? "UNKNOWN");
   }
 
   await admin.from("audit_logs").insert({
@@ -218,7 +281,7 @@ Deno.serve(async (req: Request) => {
       handshake_reference: reference,
       event_id: handoff.id,
       accepted_at: acceptedAt,
-      handoff_status: statusError ? "authorized" : "preparing",
+      handoff_status: statusError ? handoff.status : "preparing",
     },
   }).then(({ error }) => {
     if (error) console.error("[send-handshake-referral] audit insert failed", error.code ?? "UNKNOWN");
@@ -229,6 +292,6 @@ Deno.serve(async (req: Request) => {
     handoff_id: handoff.id,
     handshake_reference: reference,
     handshake_status: responseBody.status ?? "queued",
-    riverbanc_status: statusError ? "status_update_pending" : "preparing",
+    riverbanc_status: statusError ? handoff.status : "preparing",
   }, cors);
 });
