@@ -132,7 +132,7 @@ Deno.serve(async (req: Request) => {
     return json(500, { error: "HANDOFF_LOOKUP_FAILED" }, cors);
   }
   if (!handoff) return json(404, { error: "HANDOFF_NOT_FOUND" }, cors);
-  if (!["authorized", "preparing"].includes(handoff.status) || !handoff.authorized_at ||
+  if (!["authorized", "preparing", "sent_to_lender"].includes(handoff.status) || !handoff.authorized_at ||
       !handoff.authorization_signature || !handoff.authorization_version) {
     return json(409, { error: "HANDOFF_NOT_AUTHORIZED" }, cors);
   }
