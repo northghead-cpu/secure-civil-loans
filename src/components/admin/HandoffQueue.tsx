@@ -188,7 +188,7 @@ export default function HandoffQueue() {
               {canManage && ["authorized", "preparing", "sent_to_lender"].includes(current.status) && current.handshake_transfer_status !== "accepted" && (
                 <Button disabled={retrying || saving} onClick={() => void retryHandshake()}>
                   {retrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                  {retrying ? "Retrying Handshake transfer…" : "Retry Handshake transfer"}
+                  {retrying ? "Sending Handshake referral…" : current.handshake_transfer_last_attempt_at ? "Retry Handshake transfer" : "Send Handshake referral"}
                 </Button>
               )}
             </div>

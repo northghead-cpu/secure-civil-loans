@@ -9,6 +9,7 @@ describe("Handshake referral retry", () => {
     expect(canRetryHandshakeTransfer("authorized", "pending")).toBe(true);
     expect(canRetryHandshakeTransfer("preparing", "pending")).toBe(true);
     expect(canRetryHandshakeTransfer("preparing", null)).toBe(true);
+    expect(canRetryHandshakeTransfer("sent_to_lender", "pending")).toBe(true);
   });
 
   it("does not allow retry after confirmed acceptance", () => {
@@ -16,7 +17,7 @@ describe("Handshake referral retry", () => {
   });
 
   it("does not allow retry after the handoff leaves the authorized states", () => {
-    expect(canRetryHandshakeTransfer("sent_to_lender", "pending")).toBe(false);
+    expect(canRetryHandshakeTransfer("sent_to_lender", "accepted")).toBe(false);
     expect(canRetryHandshakeTransfer("approved", "pending")).toBe(false);
   });
 
