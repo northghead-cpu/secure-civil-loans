@@ -291,25 +291,39 @@ export const RBACProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!user) {
       setRoles([]);
       setLoading(false);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
+    // Fail closed during session changes: never expose the previous user's
+    // permissions while the current user's role lookup is pending.
     setRoles([]);
     setLoading(true);
-    const fetchRoles = async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
 
-      const userRoles = (data?.map((r) => r.role) ?? []) as AppRole[];
-      if (cancelled) return;
-      setRoles(userRoles);
-      setLoading(false);
+    const fetchRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        const userRoles = (data?.map((r) => r.role) ?? []) as AppRole[];
+        if (!cancelled) setRoles(userRoles);
+      } catch {
+        // A failed lookup grants no permissions and must not strand guards
+        // in a permanent loading state.
+        if (!cancelled) setRoles([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     void fetchRoles();
