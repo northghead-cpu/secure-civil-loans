@@ -4,7 +4,7 @@ Permanent QR destination: https://www.riverbanc.co.zm/partnership-profile/
 
 The approved 27-page PDF is stored at `public/partnership-profile/riverbanc-company-profile.pdf`. It is an unchanged copy of the uploaded July 2026 company profile. SHA-256: `45f035b3bcb2681b83387bf13553330894b9a27aeeb79aa8e33cd3b867654578`.
 
-Vercel rewrites and Cloudflare `_redirects` serve PDF bytes for `/partnership-profile`, `/partnership-profile/` and `/partnership-profile/index.html`. The static HTML is a fallback that opens only this PDF on other hosts. The marketplace React app is not involved. No database changes are required.
+Vercel rewrites and Cloudflare `_redirects` serve PDF bytes for `/partnership-profile`, `/partnership-profile/` and `/partnership-profile/index.html`. There must be no static `index.html` in this directory: Vercel serves that file before applying rewrites, which would return HTML with PDF headers. The deployment host must apply the supplied routing rules. The marketplace React app is not involved. No database changes are required.
 
 `public/riverbanc-company-profile-qr.png` and `.svg` encode only the permanent address. They have a white background, Riverbanc navy modules and a four-module quiet zone. Keep this space clear. Recommended caption: "Scan to view our company profile"; include the permanent URL below it. Test a printed proof before printing in quantity.
 
