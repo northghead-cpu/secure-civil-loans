@@ -76,3 +76,25 @@
 /login
   Cache-Control: no-store, no-cache, must-revalidate, private
   Pragma: no-cache
+
+# Company profile: serve only the approved PDF, revalidating after updates.
+/partnership-profile
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+/partnership-profile/
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+/partnership-profile/index.html
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+/partnership-profile/riverbanc-company-profile.pdf
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive

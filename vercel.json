@@ -62,9 +62,97 @@
         { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, private" },
         { "key": "Pragma", "value": "no-cache" }
       ]
+    },
+    {
+      "source": "/partnership-profile",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/pdf"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "inline; filename=\"Riverbanc-Company-Profile.pdf\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/partnership-profile/",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/pdf"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "inline; filename=\"Riverbanc-Company-Profile.pdf\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/partnership-profile/index.html",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/pdf"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "inline; filename=\"Riverbanc-Company-Profile.pdf\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/partnership-profile/riverbanc-company-profile.pdf",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/pdf"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "inline; filename=\"Riverbanc-Company-Profile.pdf\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
     }
   ],
   "rewrites": [
+    {"source": "/partnership-profile", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
+    {"source": "/partnership-profile/", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
+    {"source": "/partnership-profile/index.html", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
+    {"source": "/partnership-profile/riverbanc-company-profile.pdf", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
