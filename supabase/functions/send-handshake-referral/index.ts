@@ -1,3 +1,4 @@
+import { RequestError, readBoundedText, requireJson, parseObject, handshakeTarget, enforceRateLimit } from "./security.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const ALLOWED_RIVERBANC_ORIGINS = new Set([
   "https://riverbanc.co.zm",
@@ -14,18 +15,18 @@ function corsHeadersFor(req: Request, methods: string): Record<string, string> {
     ...(origin && ALLOWED_RIVERBANC_ORIGINS.has(origin)
       ? { "Access-Control-Allow-Origin": origin }
       : {}),
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id, x-riverbanc-api-version",
     "Access-Control-Allow-Methods": methods,
     "Vary": "Origin",
   };
 }
 
-const MAX_CLOCK_SKEW_SECONDS = 300;
+
 
 function json(status: number, body: Record<string, unknown>, cors: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Riverbanc-API-Version": "1", ...(status === 429 ? { "Retry-After": "60" } : {}), ...(status === 405 ? { "Allow": "POST" } : {}) },
   });
 }
 
@@ -48,15 +49,12 @@ async function hmac(timestamp: string, body: string, secret: string) {
   ));
 }
 
-function safeEqual(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return mismatch === 0;
-}
-
 Deno.serve(async (req: Request) => {
-  const cors = corsHeadersFor(req, "POST");
+  const requestId = crypto.randomUUID();
+  const cors = { ...corsHeadersFor(req, "POST"), "X-Request-ID": requestId };
+  try {
+  const origin = req.headers.get("origin");
+  if (origin && !ALLOWED_RIVERBANC_ORIGINS.has(origin)) return json(403, { error: "ORIGIN_NOT_ALLOWED" }, cors);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json(405, { error: "METHOD_NOT_ALLOWED" }, cors);
 
@@ -86,13 +84,8 @@ Deno.serve(async (req: Request) => {
     return json(503, { error: "HANDSHAKE_INTEGRATION_NOT_CONFIGURED" }, cors);
   }
 
-  let input: unknown;
-  try { input = await req.json(); } catch {
-    return json(400, { error: "INVALID_JSON" }, cors);
-  }
-  if (!input || typeof input !== "object" || Array.isArray(input)) {
-    return json(400, { error: "INVALID_REQUEST" }, cors);
-  }
+  requireJson(req);
+  const input = parseObject(await readBoundedText(req, 4096), ["handoff_id"]);
   const handoffId = (input as Record<string, unknown>).handoff_id;
   if (typeof handoffId !== "string" ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(handoffId)) {
@@ -104,7 +97,10 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data: authData, error: authError } = await asUser.auth.getUser();
-  if (authError || !authData.user) return json(401, { error: "UNAUTHORIZED" }, cors);
+  if (authError || !authData.user) {
+    console.warn(JSON.stringify({ event: "referral.auth_failed", request_id: requestId }));
+    return json(401, { error: "UNAUTHORIZED" }, cors);
+  }
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -120,7 +116,12 @@ Deno.serve(async (req: Request) => {
     console.error("[send-handshake-referral] role lookup failed", roleError.code ?? "UNKNOWN");
     return json(500, { error: "ROLE_LOOKUP_FAILED" }, cors);
   }
-  if (!roleRows?.length) return json(403, { error: "PRIVILEGED_ROLE_REQUIRED" }, cors);
+  if (!roleRows?.length) {
+    console.warn(JSON.stringify({ event: "referral.access_denied", request_id: requestId, actor_id: authData.user.id }));
+    return json(403, { error: "PRIVILEGED_ROLE_REQUIRED" }, cors);
+  }
+  await enforceRateLimit(admin, "sender_user", authData.user.id);
+  await enforceRateLimit(admin, "sender_global", "all");
   const { data: handoff, error: handoffError } = await admin
     .from("application_handoffs")
     .select("id,user_id,lender_name,requested_amount,term_months,authorization_version,authorized_at,authorization_signature,status,handshake_transfer_status")
@@ -136,7 +137,7 @@ Deno.serve(async (req: Request) => {
       !handoff.authorization_signature || !handoff.authorization_version) {
     return json(409, { error: "HANDOFF_NOT_AUTHORIZED" }, cors);
   }
-  if (typeof handoff.requested_amount !== "number" || handoff.requested_amount <= 0) {
+  if (typeof handoff.requested_amount !== "number" || !Number.isFinite(handoff.requested_amount) || handoff.requested_amount <= 0 || handoff.requested_amount > 100000000) {
     return json(409, { error: "HANDOFF_AMOUNT_INVALID" }, cors);
   }
 
@@ -152,7 +153,7 @@ Deno.serve(async (req: Request) => {
     }, cors);
   }
 
-  const tenantShortName = tenantMap[handoff.lender_name];
+  const tenantShortName = Object.hasOwn(tenantMap, handoff.lender_name) ? tenantMap[handoff.lender_name] : undefined;
   if (typeof tenantShortName !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(tenantShortName)) {
     console.error("[send-handshake-referral] no tenant mapping for selected lender");
     await admin.from("application_handoffs")
@@ -177,8 +178,7 @@ Deno.serve(async (req: Request) => {
 
   let target: URL;
   try {
-    target = new URL(handshakeUrl);
-    if (target.protocol !== "https:") throw new Error("HTTPS required");
+    target = handshakeTarget(handshakeUrl);
   } catch {
     console.error("[send-handshake-referral] HANDSHAKE_API_URL must be a valid HTTPS URL");
     await admin.from("application_handoffs")
@@ -194,7 +194,8 @@ Deno.serve(async (req: Request) => {
       handshake_transfer_last_attempt_at: new Date().toISOString(),
       handshake_transfer_last_error: null,
     })
-    .eq("id", handoff.id);
+    .eq("id", handoff.id)
+    .or("handshake_transfer_status.is.null,handshake_transfer_status.neq.accepted");
   if (attemptUpdateError) {
     console.error("[send-handshake-referral] failed to record transfer attempt", attemptUpdateError.code ?? "UNKNOWN");
     return json(500, { error: "HANDSHAKE_ATTEMPT_RECORD_FAILED", handoff_id: handoff.id }, cors);
@@ -207,7 +208,8 @@ Deno.serve(async (req: Request) => {
         handshake_transfer_status: "pending",
         handshake_transfer_last_error: errorCode,
       })
-      .eq("id", handoff.id);
+      .eq("id", handoff.id)
+      .or("handshake_transfer_status.is.null,handshake_transfer_status.neq.accepted");
     if (error) {
       console.error("[send-handshake-referral] failed to record transfer failure", error.code ?? "UNKNOWN");
     }
@@ -219,9 +221,12 @@ Deno.serve(async (req: Request) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-riverbanc-api-version": "1",
+        "x-request-id": requestId,
         "x-riverbanc-timestamp": timestamp,
         "x-riverbanc-signature": signature,
       },
+      redirect: "error",
       body: rawBody,
       signal: AbortSignal.timeout(10000),
     });
@@ -231,7 +236,11 @@ Deno.serve(async (req: Request) => {
     return json(502, { error: "HANDSHAKE_UNREACHABLE", handoff_id: handoff.id }, cors);
   }
 
-  const responseBody = await response.json().catch(() => ({})) as Record<string, unknown>;
+  let responseBody: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(await readBoundedText(response, 16384));
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) responseBody = parsed as Record<string, unknown>;
+  } catch { /* A malformed upstream response cannot confirm acceptance. */ }
   if (!response.ok) {
     console.error("[send-handshake-referral] Handshake rejected request", response.status);
     await recordTransferFailure("HANDSHAKE_REFERRAL_REJECTED");
@@ -240,7 +249,7 @@ Deno.serve(async (req: Request) => {
       handoff_id: handoff.id,
     }, cors);
   }
-  if (responseBody.accepted !== true) {
+  if (responseBody.accepted !== true || responseBody.event_id !== handoff.id || responseBody.reference !== reference) {
     console.error(
       "[send-handshake-referral] Handshake response did not confirm acceptance",
       response.status,
@@ -296,7 +305,13 @@ Deno.serve(async (req: Request) => {
     accepted: true,
     handoff_id: handoff.id,
     handshake_reference: reference,
-    handshake_status: responseBody.status ?? "queued",
+    handshake_status: "queued",
     riverbanc_status: statusError ? handoff.status : "preparing",
   }, cors);
+  } catch (error) {
+    const status = error instanceof RequestError ? error.status : 500;
+    const code = error instanceof RequestError ? error.code : "INTERNAL_ERROR";
+    console.error(JSON.stringify({ event: "referral.request_rejected", request_id: requestId, status, code }));
+    return json(status, { error: code }, cors);
+  }
 });
