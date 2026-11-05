@@ -6,6 +6,12 @@ import { RequestError } from "../_shared/request-security.ts";
 
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 const MAX_PIXELS = 4_000_000;
+type PngImage = { width: number; height: number; data: Buffer };
+// pngjs exposes this runtime API on PNG; its external declarations omit the static member.
+const pngSync = (PNG as typeof PNG & { sync: {
+  read(bytes: Buffer, options: { checkCRC: boolean }): PngImage;
+  write(image: PngImage): Buffer;
+} }).sync;
 const FORBIDDEN_PDF_NAMES = new Set(["JS", "JavaScript", "Launch", "OpenAction", "AA", "EmbeddedFiles", "RichMedia", "XFA", "AcroForm", "URI", "GoToR", "SubmitForm", "ImportData"]);
 /** Structural validation and image normalization; not a malware-scan verdict. */
 export async function validateDocument(bytes: Uint8Array, mime: string) {
@@ -53,8 +59,8 @@ export async function validateDocument(bytes: Uint8Array, mime: string) {
         }
       }
       if(!ended||headers!==1||!dataChunks)throw new Error("Incomplete PNG");
-      const image=PNG.sync.read(Buffer.from(bytes),{checkCRC:true});
-      const clean=PNG.sync.write(image);
+      const image=pngSync.read(Buffer.from(bytes),{checkCRC:true});
+      const clean=pngSync.write(image);
       if (clean.byteLength>MAX_DOCUMENT_BYTES) throw new Error("Normalized size");
       return { bytes: new Uint8Array(clean), mime, extension: "png" };
     }
