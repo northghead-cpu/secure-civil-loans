@@ -376,16 +376,14 @@ const StrictKYCPage = () => {
       ];
       const uploadedDocuments = [];
       for (const document of files) {
-        const ext = document.file.name.split(".").pop()?.toLowerCase() || "pdf";
-        const path = `${user.id}/${document.field}-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage
-          .from("kyc-documents")
-          .upload(path, document.file, {
-            upsert: false,
-            contentType: document.file.type,
-          });
-        if (error) throw new Error(`Failed to upload ${document.field}`);
-        uploadedDocuments.push({ ...document, storagePath: path });
+        const { data, error } = await supabase.functions.invoke(
+          `upload-kyc-document?kind=${encodeURIComponent(document.field)}`,
+          { body: document.file, headers: { "Content-Type": document.file.type } },
+        );
+        if (error || typeof data?.path !== "string") {
+          throw new Error(`Could not validate ${document.field}. Use a flat PDF up to 100 pages, or a JPG/PNG up to 4 megapixels; files must be under 5 MB.`);
+        }
+        uploadedDocuments.push({ ...document, storagePath: data.path });
       }
       const documentRecords = buildKycDocumentRecords({
         userId: user.id,

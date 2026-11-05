@@ -5,6 +5,13 @@ create function auth.uid() returns uuid language sql stable as $$select nullif(a
 create function auth.role() returns text language sql stable as $$select auth.jwt()->>'role'$$;
 create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb);
 create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);
+-- These existing production tables are also touched by the pending repair.
+create table public.support_case_events(id uuid primary key default gen_random_uuid(),case_id uuid);
+alter table public.support_case_events enable row level security;
+create table public.edge_request_log(id uuid primary key default gen_random_uuid(),user_id uuid,function_name text,nonce text,created_at timestamptz default now(),unique(user_id,function_name,nonce));
+alter table public.edge_request_log enable row level security;
+create table public.payouts(id uuid primary key default gen_random_uuid(),status text);
+alter table public.payouts enable row level security;
 alter table storage.objects enable row level security;
 create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name,'/'))[1:array_length(string_to_array(name,'/'),1)-1] $$;
 create type public."app_role" as enum ('admin','user','super_admin','super_user','compliance_team','data_entry_team');
