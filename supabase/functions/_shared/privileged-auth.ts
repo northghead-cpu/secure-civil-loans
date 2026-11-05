@@ -46,6 +46,7 @@ export async function requirePrivilegedMfa(
     } catch {
       return { status: 401, code: "AUTH_REQUIRED" };
     }
+    if ("client_id" in claims) return { status: 403, code: "INTERACTIVE_SESSION_REQUIRED" };
     if (claims.aal !== "aal2") return { status: 403, code: "MFA_REQUIRED" };
     const account = await client.accountForUser(data.user.id);
     if (account.error)

@@ -1,3 +1,4 @@
+import { RequestError, readBoundedText, requireJson } from "../_shared/request-security.ts";
 import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
  * sheets-export — server-side Riverbanc -> Google Sheets reporting sync.
@@ -135,8 +136,11 @@ Deno.serve(async (req) => {
 
   let body: { action?: string; spreadsheetId?: string };
   try {
-    body = await req.json();
-  } catch {
+    requireJson(req);
+    body = JSON.parse(await readBoundedText(req, 4096));
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid JSON object" }, 400);
+  } catch (error) {
+    if (error instanceof RequestError) return json({ error: error.code }, error.status);
     return json({ error: "Invalid JSON body" }, 400);
   }
 
@@ -147,6 +151,12 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
+  const { data: quota, error: quotaError } = await db.rpc("consume_edge_request", {
+    p_user_id: userId, p_function_name: "sheets-export", p_nonce: req.headers.get("x-request-id") ?? crypto.randomUUID(),
+  });
+  if (quotaError || !quota || typeof quota.allowed !== "boolean") return json({ error: "Service unavailable" }, 503);
+  if (quota.replay) return json({ error: "Duplicate request" }, 409);
+  if (!quota.allowed) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } });
   try {
     if (body.action === "status") {
       const { data, error } = await db

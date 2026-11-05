@@ -11,7 +11,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Download, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { untypedDb } from "@/integrations/supabase/untyped";
 import { readAllRows } from "@/lib/readAllRows";
 import { useAuth } from "@/hooks/useAuth";
@@ -83,25 +82,22 @@ const DataExportSection = () => {
           )),
         );
       }
-      const payouts = await readAllRows<Record<string, unknown>>((from, to) =>
-        untypedDb
-          .from("payouts")
-          .select("*, loan_applications!inner(user_id)")
-          .eq("loan_applications.user_id", user.id)
-          .order("id")
-          .range(from, to),
-      );
+      // Payouts are lender commission aggregates, with no borrower relationship.
+      // Do not expose them or invent a join in a personal-data export.
       const bundle = {
         exported_at: new Date().toISOString(),
         subject: { user_id: user.id, email: user.email },
         records: {
           ...Object.fromEntries(entries),
           support_messages: messages,
-          payouts,
         },
         note: "Includes recorded personal data and document references. Identity-document and receipt file bytes are not embedded.",
       };
 
+      // Record preparation before offering a download; a browser cannot attest
+      // that the user saved a file. The RPC derives identity and action itself.
+      const { error: auditError } = await untypedDb.rpc("record_personal_export_prepared");
+      if (auditError) throw auditError;
       const blob = new Blob([JSON.stringify(bundle, null, 2)], {
         type: "application/json",
       });
@@ -113,16 +109,6 @@ const DataExportSection = () => {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-
-      await supabase.rpc("log_audit", {
-        _user_id: user.id,
-        _role: "user",
-        _action: "data_export_downloaded",
-        _record_id: user.id,
-        _table_name: "profiles",
-        _old_value: null,
-        _new_value: null,
-      });
 
       toast.success("Your data export has been downloaded.");
     } catch (err) {
@@ -177,7 +163,7 @@ const DataExportSection = () => {
               Under Section 38 of the Data Protection Act 2021, you can download
               a machine-readable JSON copy of the personal records Riverbanc
               holds about you. The export may include your profile, KYC
-              submissions, loan applications, payouts, and payroll deduction
+              submissions, loan applications, and payroll deduction
               authorizations. The file will be saved directly to this device.
             </DialogDescription>
           </DialogHeader>

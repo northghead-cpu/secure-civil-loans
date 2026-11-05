@@ -1,3 +1,4 @@
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 import { RequestError, readBoundedText, requireJson, parseObject, handshakeTarget, enforceRateLimit } from "./security.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const ALLOWED_RIVERBANC_ORIGINS = new Set([
@@ -96,11 +97,24 @@ Deno.serve(async (req: Request) => {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: authData, error: authError } = await asUser.auth.getUser();
-  if (authError || !authData.user) {
-    console.warn(JSON.stringify({ event: "referral.auth_failed", request_id: requestId }));
-    return json(401, { error: "UNAUTHORIZED" }, cors);
+  const authorization = await requirePrivilegedMfa({
+    auth: asUser.auth,
+    accountForUser: async (id) => {
+      const { data, error } = await asUser.from("profiles")
+        .select("account_status").eq("user_id", id).maybeSingle();
+      return { data, error };
+    },
+    rolesForUser: async (id) => {
+      const { data, error } = await asUser.from("user_roles").select("role")
+        .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+      return { data: data as { role: string }[] | null, error };
+    },
+  }, authHeader);
+  if (authorization.status) {
+    console.warn(JSON.stringify({ event: "referral.access_denied", request_id: requestId, code: authorization.code }));
+    return json(authorization.status, { error: authorization.code }, cors);
   }
+  const authData = { user: { id: authorization.userId } };
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },

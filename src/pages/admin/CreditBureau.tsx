@@ -198,8 +198,8 @@ const CreditBureau = () => {
   useEffect(() => {
     const nrcParam = searchParams.get("nrc");
     const nameParam = searchParams.get("name");
-    if (nrcParam) setNrcNumber(decodeURIComponent(nrcParam));
-    if (nameParam) setFullName(decodeURIComponent(nameParam));
+    if (nrcParam) setNrcNumber(nrcParam);
+    if (nameParam) setFullName(nameParam);
   }, [searchParams]);
 
   const runCRBCheck = async () => {

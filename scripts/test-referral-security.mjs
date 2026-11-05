@@ -15,11 +15,14 @@ async function signed(body, timestamp = String(Math.floor(Date.now()/1000))) {
   const signature = Buffer.from(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(timestamp+'.'+body))).toString('hex');
   return new Request('https://example.test',{method:'POST',headers:{'content-type':'application/json','x-riverbanc-timestamp':timestamp,'x-riverbanc-signature':signature},body});
 }
+const helperSource = stripTypeScriptTypes(await readFile(new URL('supabase/functions/_shared/privileged-auth.ts',root),'utf8'),{mode:'transform'}).replace(/^export /gm,'');
+const requirePrivilegedMfa = new Function(helperSource+';return requirePrivilegedMfa')();
+function staffToken(aal='aal2',extra={}) {return 'header.'+Buffer.from(JSON.stringify({sub:event,aal,...extra})).toString('base64url')+'.signature';}
 async function loadHandler(path, client, overrides = {}) {
   let handler;
   const source = stripTypeScriptTypes(await readFile(new URL(path,root),'utf8'),{mode:'transform'}).replace(/^import .*;\n/gm,'');
   const env = { SUPABASE_URL:'https://db.example.test', SUPABASE_SERVICE_ROLE_KEY:'test-only', SUPABASE_ANON_KEY:'test-only', RIVERBANC_MARKETPLACE_HMAC_SECRET:secret, RIVERBANC_HANDSHAKE_HMAC_SECRET:secret, HANDSHAKE_API_URL:'https://ueveurmphygyofwoyljj.supabase.co/functions/v1/marketplace-intake', RIVERBANC_HANDSHAKE_TENANT_MAP:JSON.stringify({Lender:'lender'}), ...overrides };
-  new Function('createClient','Deno',...Object.keys(security),source)(()=>client,{env:{get:key=>env[key]},serve:fn=>handler=fn},...Object.values(security));
+  new Function('createClient','Deno','requirePrivilegedMfa',...Object.keys(security),source)(()=>client,{env:{get:key=>env[key]},serve:fn=>handler=fn},requirePrivilegedMfa,...Object.values(security));
   return handler;
 }
 function intakeClient(accept) { return {rpc:async(name,args)=>name==='consume_referral_api_limit'?{data:{allowed:true},error:null}:accept(args)}; }
@@ -34,16 +37,21 @@ test('JSON content type and supported API version enforced',()=>{assert.throws((
 test('outbound destination rejects SSRF, URL credentials, query secrets and alternate routes',()=>{for(const url of ['http://ueveurmphygyofwoyljj.supabase.co/functions/v1/marketplace-intake','https://evil.test/functions/v1/marketplace-intake','https://user:pass@ueveurmphygyofwoyljj.supabase.co/functions/v1/marketplace-intake','https://ueveurmphygyofwoyljj.supabase.co/functions/v1/marketplace-intake?token=secret','https://ueveurmphygyofwoyljj.supabase.co/functions/v1/other'])assert.throws(()=>handshakeTarget(url));});
 test('rate limiter fails closed and returns 429 for exhaustion',async()=>{await assert.rejects(enforceRateLimit({rpc:async()=>({data:null,error:{}})},'sender_global','all'),e=>e.status===503);await assert.rejects(enforceRateLimit({rpc:async()=>({data:{allowed:false},error:null})},'sender_global','all'),e=>e.status===429);});
 test('sender rejects untrusted origins and absent user credentials',async()=>{const handler=await loadHandler(senderPath,{});assert.equal((await handler(new Request('https://example.test',{method:'POST',headers:{origin:'https://evil.test'}}))).status,403);assert.equal((await handler(new Request('https://example.test',{method:'POST'}))).status,401);});
-test('sender denies a valid user without a privileged role',async()=>{const client={auth:{getUser:async()=>({data:{user:{id:event}},error:null})},from:()=>({select(){return this},eq(){return this},in:async()=>({data:[],error:null})})};const handler=await loadHandler(senderPath,client);const res=await handler(new Request('https://example.test',{method:'POST',headers:{authorization:'Bearer test-only','content-type':'application/json'},body:JSON.stringify({handoff_id:event})}));assert.equal(res.status,403);});
-function staffClient(status = 'authorized') {
+test('sender denies a valid user without a privileged role',async()=>{const handler=await loadHandler(senderPath,staffClient('authorized',{roles:[]}));const response=await handler(senderRequest());assert.equal(response.status,403);assert.equal((await response.json()).error,'FORBIDDEN');});
+test('sender rejects AAL1, suspended staff and invalid identity before dispatch',async()=>{
+ for(const [options,token,code,status] of [[{},staffToken('aal1'),'MFA_REQUIRED',403],[{account:'suspended'},staffToken(),'ACCOUNT_SUSPENDED',403],[{invalid:true},staffToken(),'AUTH_REQUIRED',401],[{},staffToken('aal2',{client_id:'synthetic-read-client'}),'INTERACTIVE_SESSION_REQUIRED',403]]){
+  const client=staffClient('authorized',options);const handler=await loadHandler(senderPath,client);const response=await handler(senderRequest(token));assert.equal(response.status,status);assert.equal((await response.json()).error,code);assert.equal(client.updates.length,0);
+ }
+});
+function staffClient(status = 'authorized', options = {}) {
   const updates=[];
   const handoff={id:event,user_id:'borrower',lender_name:'Lender',requested_amount:1000,status,authorized_at:new Date().toISOString(),authorization_signature:'signed',authorization_version:'v1',handshake_transfer_status:'pending'};
-  return { updates, auth:{getUser:async()=>({data:{user:{id:event}},error:null})}, rpc:async()=>({data:{allowed:true},error:null}), from(table){
-    const builder={select(){return this},eq(){return this},in(){return this},or(){return this},update(data){updates.push(data);return this},insert(){return this},maybeSingle:async()=>({data:handoff,error:null}),then(resolve,reject){return Promise.resolve({data:table==='user_roles'?[{role:'admin'}]:null,error:null}).then(resolve,reject)}};
+  return { updates, auth:{getUser:async()=>({data:{user:options.invalid?null:{id:event}},error:options.invalid?{}:null})}, rpc:async()=>({data:{allowed:true},error:null}), from(table){
+    const builder={select(){return this},eq(){return this},in(){return this},limit(){return this},or(){return this},update(data){updates.push(data);return this},insert(){return this},maybeSingle:async()=>({data:table==='profiles'?{account_status:options.account??'active'}:handoff,error:null}),then(resolve,reject){return Promise.resolve({data:table==='user_roles'?(options.roles??[{role:'admin'}]):null,error:null}).then(resolve,reject)}};
     return builder;
   }};
 }
-function senderRequest() {return new Request('https://example.test',{method:'POST',headers:{authorization:'Bearer test-only','content-type':'application/json'},body:JSON.stringify({handoff_id:event})});}
+function senderRequest(token=staffToken()) {return new Request('https://example.test',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({handoff_id:event})});}
 test('sender blocks unauthorized workflow stages before making upstream calls',async()=>{for(const status of ['draft','cancelled','declined']){const handler=await loadHandler(senderPath,staffClient(status));assert.equal((await handler(senderRequest())).status,409);}});
 test('sender signs minimal payload and refuses to follow redirects',async()=>{const original=globalThis.fetch;let sent;try{globalThis.fetch=async(url,options)=>{sent=options;return Response.json({accepted:true,event_id:event,reference:payload.reference,status:'queued'});};const client=staffClient();const handler=await loadHandler(senderPath,client);const response=await handler(senderRequest());assert.equal(response.status,201);assert.equal(sent.redirect,'error');assert.equal(sent.headers['x-riverbanc-signature'].length,64);assert.deepEqual(Object.keys(JSON.parse(sent.body)).sort(),Object.keys(payload).sort());assert.equal(JSON.stringify(sent).includes('borrower'),false);assert.equal(client.updates.some(u=>u.handshake_transfer_status==='accepted'),true);}finally{globalThis.fetch=original;}});
 test('sender does not record acceptance for wrong event, null or malformed upstream responses',async()=>{const original=globalThis.fetch;try{for(const body of ['null','{',JSON.stringify({accepted:true,event_id:'wrong',reference:payload.reference})]){globalThis.fetch=async()=>new Response(body,{status:200});const client=staffClient();const handler=await loadHandler(senderPath,client);assert.equal((await handler(senderRequest())).status,502);assert.equal(client.updates.some(u=>u.handshake_transfer_status==='accepted'),false);}}finally{globalThis.fetch=original;}});
