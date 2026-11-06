@@ -4,8 +4,8 @@ import { renderHook } from "@testing-library/react";
 const signOut = vi.fn().mockResolvedValue({ error: null });
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: { signOut: (...a: unknown[]) => signOut(...a) } } }));
 
-import { clearSessionMetadata, useIdleTimeout } from "@/hooks/useIdleTimeout";
-import { LAST_ACTIVITY_KEY, SIGNOUT_BROADCAST_KEY } from "@/lib/sessionPolicy";
+import { beginSessionMetadata, clearSessionMetadata, useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { LAST_ACTIVITY_KEY, SESSION_START_KEY, SIGNOUT_BROADCAST_KEY } from "@/lib/sessionPolicy";
 
 const MIN = 60_000;
 const NOW = Date.UTC(2026, 9, 11, 12, 0, 0);
@@ -30,7 +30,33 @@ describe("useIdleTimeout", () => {
     localStorage.setItem(SIGNOUT_BROADCAST_KEY, String(NOW - MIN));
     clearSessionMetadata();
     expect(localStorage.getItem(LAST_ACTIVITY_KEY)).toBeNull();
+    expect(localStorage.getItem(SESSION_START_KEY)).toBeNull();
     expect(localStorage.getItem(SIGNOUT_BROADCAST_KEY)).toBeNull();
+  });
+
+  it("seeds a fresh explicit login before auth state listeners run", async () => {
+    beginSessionMetadata();
+    expect(localStorage.getItem(SESSION_START_KEY)).toBe(String(NOW));
+    expect(localStorage.getItem(LAST_ACTIVITY_KEY)).toBe(String(NOW));
+
+    renderHook(() => useIdleTimeout(user(60 * MIN)));
+    await flush();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("keeps a fresh login alive when last_sign_in_at is absent", async () => {
+    beginSessionMetadata();
+    renderHook(() => useIdleTimeout({}));
+    await flush();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("expires an explicit session after the absolute lifetime", async () => {
+    localStorage.setItem(SESSION_START_KEY, String(NOW - 13 * 60 * MIN));
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(NOW));
+    renderHook(() => useIdleTimeout(user(MIN)));
+    await flush();
+    expect(signOut).toHaveBeenCalledTimes(1);
   });
 
   it("does not reset last activity on mount and signs out a stale restored tab immediately", async () => {
