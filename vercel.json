@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' 'sha256-sYZrIxnAApiMUtmq2PZPylQfZoHL2Ge06qw5OkjZFbo=' 'sha256-N/Vj9/vBaj4j9ajwYNjIZ+Fas6TckNmRWBZMbcIts6k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://zdpeaxkormwjrgllwalq.supabase.co wss://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co wss://mioppvtzbaixeeuxkroo.supabase.co https://o4511870789943296.ingest.de.sentry.io; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-sYZrIxnAApiMUtmq2PZPylQfZoHL2Ge06qw5OkjZFbo=' 'sha256-N/Vj9/vBaj4j9ajwYNjIZ+Fas6TckNmRWBZMbcIts6k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://zdpeaxkormwjrgllwalq.supabase.co wss://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co wss://mioppvtzbaixeeuxkroo.supabase.co https://o4511870789943296.ingest.de.sentry.io; upgrade-insecure-requests"
         },
         {
           "key": "Strict-Transport-Security",

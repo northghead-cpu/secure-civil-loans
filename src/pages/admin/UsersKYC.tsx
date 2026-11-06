@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { untypedDb } from "@/integrations/supabase/untyped";
 import { useRBAC } from "@/hooks/useRBAC";
@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import type { PayslipReviewFlag } from "@/services/smartZambiaPayslip";
 type Profile = {
   user_id: string;
   full_name: string | null;
@@ -44,6 +45,31 @@ export default function UsersKYC() {
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [payrollChecks, setPayrollChecks] = useState<Record<string, { busy: boolean; flags?: PayslipReviewFlag[]; error?: boolean }>>({});
+  const selectionGeneration = useRef(0);
+  const checkPayslip = async (document: Document) => {
+    if (!selected) return;
+    const expected = selected;
+    const generation = selectionGeneration.current;
+    setPayrollChecks(current => ({ ...current, [document.id]: { busy: true } }));
+    try {
+      // Storage enforces the staff session/MFA rules; do not use a service key.
+      const [{ data, error }, { parsePayslip }, { reviewPayslip }] = await Promise.all([
+        supabase.storage.from("kyc-documents").download(document.storage_path),
+        import("@/services/payrollParsingService"),
+        import("@/services/payslipReviewService"),
+      ]);
+      if (error || !data || data.size > 5 * 1024 * 1024 || !["image/png", "image/jpeg"].includes(data.type)) throw new Error("Unreadable evidence");
+      if (generation !== selectionGeneration.current) return;
+      const parsed = await parsePayslip(new File([data], "payslip", { type: data.type }));
+      if (generation !== selectionGeneration.current) return;
+      const flags = reviewPayslip(parsed, { name: expected.full_name, nrc: expected.nrc_number, period: document.pay_period });
+      setPayrollChecks(current => ({ ...current, [document.id]: { busy: false, flags } }));
+    } catch {
+      if (generation !== selectionGeneration.current) return;
+      setPayrollChecks(current => ({ ...current, [document.id]: { busy: false, error: true } }));
+    }
+  };
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
@@ -69,6 +95,8 @@ export default function UsersKYC() {
     void load();
   }, [load]);
   useEffect(() => {
+    const generation = ++selectionGeneration.current;
+    setPayrollChecks({});
     if (!selected) return;
     let active = true;
     setDocuments([]);
@@ -96,6 +124,7 @@ export default function UsersKYC() {
       });
     return () => {
       active = false;
+      selectionGeneration.current = generation + 1;
     };
   }, [selected]);
   const openDocument = async (document: Document) => {
@@ -258,6 +287,19 @@ export default function UsersKYC() {
                         Open {d.document_type.toLowerCase().replace(/_/g, " ")}{" "}
                         evidence
                       </Button>
+                      {d.document_type === "PAYSLIP" && canReview && (
+                        <div className="mt-3 space-y-2">
+                          <Button size="sm" variant="outline" disabled={payrollChecks[d.id]?.busy} onClick={() => void checkPayslip(d)}>
+                            {payrollChecks[d.id]?.busy ? "Checking payslip…" : "Check payslip consistency"}
+                          </Button>
+                          <p className="text-xs text-muted-foreground">Advisory OCR checks only. Inspect the original and verify with the issuer; these checks do not authenticate a payslip or make a lending decision.</p>
+                          {payrollChecks[d.id]?.error && <p role="alert">The check could not complete. Review the original evidence or retry.</p>}
+                          {payrollChecks[d.id]?.flags && (
+                            payrollChecks[d.id].flags!.length ? <ul className="list-disc pl-5 text-sm">{payrollChecks[d.id].flags!.map(flag => <li key={flag.code}>{flag.message}</li>)}</ul>
+                              : <p className="text-sm">No inconsistencies detected by these checks. Authenticity remains unverified.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {!documents.length && (

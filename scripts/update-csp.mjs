@@ -9,7 +9,7 @@ const config=JSON.parse(fs.readFileSync(path,'utf8'));
 const header=config.headers[0].headers.find(h=>h.key==='Content-Security-Policy');
 const sentryOrigin=process.env.VITE_SENTRY_ORIGIN??header.value.match(/https:\/\/o\d+\.ingest(?:\.de)?\.sentry\.io/)?.[0];
 if(!sentryOrigin||!/^https:\/\/o\d+\.ingest(?:\.de)?\.sentry\.io$/.test(sentryOrigin))throw new Error('Set VITE_SENTRY_ORIGIN to the reviewed project ingestion origin');
-header.value=header.value.replace(/script-src [^;]+/,`script-src 'self' ${hashes.join(' ')}`)
+header.value=header.value.replace(/script-src [^;]+/,`script-src 'self' 'wasm-unsafe-eval' ${hashes.join(' ')}`)
  .replace(/img-src [^;]+/,"img-src 'self' data: blob: https://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co")
  .replace(/style-src [^;]+/,"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com")
  .replace(/font-src [^;]+/,"font-src 'self' data: https://fonts.gstatic.com")
@@ -17,3 +17,5 @@ header.value=header.value.replace(/script-src [^;]+/,`script-src 'self' ${hashes
  .replace(/https:\/\/(?:\*|o\d+)\.ingest(?:\.de)?\.sentry\.io/g,sentryOrigin)
  .replace(`${sentryOrigin} ${sentryOrigin}`,sentryOrigin);
 fs.writeFileSync(path,JSON.stringify(config,null,2)+'\n');
+const staticHeaders=new URL('../public/_headers',import.meta.url);
+fs.writeFileSync(staticHeaders,fs.readFileSync(staticHeaders,'utf8').replace(/Content-Security-Policy: [^\r\n]+/,`Content-Security-Policy: ${header.value}`));
