@@ -106,6 +106,14 @@ describe("useIdleTimeout", () => {
     expect(signOut).toHaveBeenCalledTimes(1);
   });
 
+  it("fails closed on a future session-start marker", async () => {
+    localStorage.setItem(SESSION_START_KEY, String(NOW + 10 * MIN));
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(NOW));
+    renderHook(() => useIdleTimeout(user(MIN)));
+    await flush();
+    expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
   it("does not redirect when already on /login", async () => {
     (window.location as { pathname: string }).pathname = "/login";
     renderHook(() => useIdleTimeout(user(13 * 60 * MIN)));
