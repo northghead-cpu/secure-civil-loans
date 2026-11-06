@@ -16,8 +16,11 @@ const INTERACTION_EVENTS = ["mousedown", "keydown", "scroll", "touchstart", "mou
 const CHECK_INTERVAL_MS = 30 * 1000;
 
 export function clearSessionMetadata() {
+  // A fresh explicit login must not inherit idle/tamper metadata or a stale
+  // cross-tab sign-out marker from a previous browser session.
   localStorage.removeItem(LAST_ACTIVITY_KEY);
   localStorage.removeItem(LEGACY_SESSION_START_KEY);
+  localStorage.removeItem(SIGNOUT_BROADCAST_KEY);
 }
 
 export function useIdleTimeout(user: { last_sign_in_at?: string | null } | null) {
