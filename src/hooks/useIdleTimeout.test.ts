@@ -4,7 +4,7 @@ import { renderHook } from "@testing-library/react";
 const signOut = vi.fn().mockResolvedValue({ error: null });
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: { signOut: (...a: unknown[]) => signOut(...a) } } }));
 
-import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { clearSessionMetadata, useIdleTimeout } from "@/hooks/useIdleTimeout";
 import { LAST_ACTIVITY_KEY, SIGNOUT_BROADCAST_KEY } from "@/lib/sessionPolicy";
 
 const MIN = 60_000;
@@ -25,6 +25,14 @@ const user = (signedInAgoMs: number) => ({ last_sign_in_at: new Date(NOW - signe
 const flush = () => vi.advanceTimersByTimeAsync(0);
 
 describe("useIdleTimeout", () => {
+  it("clears stale activity and sign-out markers before a fresh login", () => {
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(NOW + 10 * MIN));
+    localStorage.setItem(SIGNOUT_BROADCAST_KEY, String(NOW - MIN));
+    clearSessionMetadata();
+    expect(localStorage.getItem(LAST_ACTIVITY_KEY)).toBeNull();
+    expect(localStorage.getItem(SIGNOUT_BROADCAST_KEY)).toBeNull();
+  });
+
   it("does not reset last activity on mount and signs out a stale restored tab immediately", async () => {
     localStorage.setItem(LAST_ACTIVITY_KEY, String(NOW - 8 * 60 * MIN));
     renderHook(() => useIdleTimeout(user(9 * 60 * MIN)));
