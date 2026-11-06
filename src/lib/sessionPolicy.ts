@@ -15,7 +15,7 @@ export const CLOCK_SKEW_MS = 60 * 1000;
 export const LAST_ACTIVITY_KEY = "rb.lastActivity";
 export const SIGNOUT_BROADCAST_KEY = "rb.signoutAt";
 /** Legacy key from the previous implementation; cleared on sign-out. */
-export const LEGACY_SESSION_START_KEY = "rb.sessionStart";
+export const SESSION_START_KEY = "rb.sessionStart";
 
 export type SessionDecision =
   | { action: "ok" }
@@ -26,10 +26,21 @@ export function evaluateSession(input: {
   now: number;
   lastSignInAt: string | null | undefined;
   lastActivityRaw: string | null;
+  sessionStartRaw?: string | null;
 }): SessionDecision {
-  const { now, lastSignInAt, lastActivityRaw } = input;
-  const signIn = lastSignInAt ? Date.parse(lastSignInAt) : NaN;
-  if (!Number.isFinite(signIn) || signIn > now + CLOCK_SKEW_MS) return { action: "expire", reason: "missing" };
+  const { now, lastSignInAt, lastActivityRaw, sessionStartRaw = null } = input;
+  const hasSessionStart = sessionStartRaw !== null;
+  const sessionStart = hasSessionStart && /^\d+$/.test(sessionStartRaw) ? Number(sessionStartRaw) : NaN;
+  if (hasSessionStart && !Number.isFinite(sessionStart)) return { action: "expire", reason: "tampered" };
+  if (Number.isFinite(sessionStart) && sessionStart > now + CLOCK_SKEW_MS) return { action: "expire", reason: "tampered" };
+
+  // An explicit login writes this local anchor before Supabase emits SIGNED_IN.
+  // It avoids expiring a fresh session against a stale user snapshot or clock skew.
+  const serverSignIn = lastSignInAt ? Date.parse(lastSignInAt) : NaN;
+  if (!Number.isFinite(sessionStart) && (!Number.isFinite(serverSignIn) || serverSignIn > now + CLOCK_SKEW_MS)) {
+    return { action: "expire", reason: "missing" };
+  }
+  const signIn = Number.isFinite(sessionStart) ? sessionStart : serverSignIn;
   if (now - signIn > ABSOLUTE_MS) return { action: "expire", reason: "absolute" };
 
   const isFreshLogin = now - signIn <= FRESH_LOGIN_MS;
