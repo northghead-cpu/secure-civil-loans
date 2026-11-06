@@ -1,4 +1,5 @@
 import { safeReturnPath } from "@/lib/safeReturnPath";
+import { clearSessionMetadata } from "@/hooks/useIdleTimeout";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -130,6 +131,10 @@ const AuthPage = () => {
 
     try {
       if (mode === "login") {
+        // Start a new authentication lifecycle with clean client-side session
+        // metadata. Old/future activity timestamps can otherwise force the
+        // idle-session guard to sign out immediately after password success.
+        clearSessionMetadata();
         const { data, error: signInError } =
           await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
