@@ -14,7 +14,7 @@ export const FRESH_LOGIN_MS = 5 * 60 * 1000;
 export const CLOCK_SKEW_MS = 60 * 1000;
 export const LAST_ACTIVITY_KEY = "rb.lastActivity";
 export const SIGNOUT_BROADCAST_KEY = "rb.signoutAt";
-/** Legacy key from the previous implementation; cleared on sign-out. */
+/** Explicit session-start marker; cleared when the local session ends. */
 export const SESSION_START_KEY = "rb.sessionStart";
 
 export type SessionDecision =
