@@ -25,7 +25,7 @@ it("shows consistency warnings from authorized evidence without making a decisio
  render(<UsersKYC/>);fireEvent.click(await screen.findByRole("button",{name:"Review evidence"}));
  fireEvent.click(await screen.findByRole("button",{name:"Check payslip consistency"}));
  await screen.findByText("Gross earnings minus deductions does not match net pay.");
- expect(mocks.download).toHaveBeenCalledWith("borrower/test.png");expect(mocks.rpc).not.toHaveBeenCalled();
+ expect(mocks.download).toHaveBeenCalledWith("borrower/test.png",{}, {cache:"no-store"});expect(mocks.rpc).not.toHaveBeenCalled();
 });
 it("reports denied evidence access without calling OCR or approving KYC",async()=>{
  mocks.read.mockResolvedValueOnce([{user_id:"borrower",kyc_status:"IN_REVIEW",kyc_submitted_at:"2026-11-01",kyc_review_revision:"revision-a"}]).mockResolvedValueOnce([{id:"pay-a",document_type:"PAYSLIP",storage_path:"borrower/test.png",pay_period:"2026-10-01",validation_status:"PENDING"}]);
