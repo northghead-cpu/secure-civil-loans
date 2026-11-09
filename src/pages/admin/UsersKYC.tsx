@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { untypedDb } from "@/integrations/supabase/untyped";
 import { useRBAC } from "@/hooks/useRBAC";
 import { readAllRows } from "@/lib/readAllRows";
+import { openPrivateStorageDocument } from "@/lib/privateStorageDocuments";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -55,7 +56,7 @@ export default function UsersKYC() {
     try {
       // Storage enforces the staff session/MFA rules; do not use a service key.
       const [{ data, error }, { parsePayslip }, { reviewPayslip }] = await Promise.all([
-        supabase.storage.from("kyc-documents").download(document.storage_path),
+        supabase.storage.from("kyc-documents").download(document.storage_path, {}, { cache: "no-store" }),
         import("@/services/payrollParsingService"),
         import("@/services/payslipReviewService"),
       ]);
@@ -128,21 +129,9 @@ export default function UsersKYC() {
     };
   }, [selected]);
   const openDocument = async (document: Document) => {
-    const popup = window.open("about:blank", "_blank");
-    if (!popup) {
-      toast.error("Allow pop-ups to view verification evidence.");
-      return;
-    }
-    popup.opener = null;
-    popup.document.body.textContent = "Opening verification evidence…";
     try {
-      const { data, error } = await supabase.storage
-        .from("kyc-documents")
-        .createSignedUrl(document.storage_path, 300);
-      if (error || !data?.signedUrl) throw error;
-      popup.location.href = data.signedUrl;
+      await openPrivateStorageDocument("kyc-documents", document.storage_path);
     } catch {
-      popup.close();
       toast.error(
         "Document could not be opened. Retry or contact an administrator.",
       );

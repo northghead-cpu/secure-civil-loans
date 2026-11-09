@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:db-ui": "node scripts/test-ui-database.mjs",
+    "test:storage-security": "node scripts/test-marketplace-storage.mjs",
     "test:security": "node scripts/test-assessment-remediation.mjs"
   },
   "dependencies": {
