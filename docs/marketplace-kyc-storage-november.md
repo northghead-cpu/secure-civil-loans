@@ -43,6 +43,30 @@ them. The old legacy UI used one-hour URLs; other callers may have requested
 different lifetimes. Do not assume every old URL expires within one hour.
 For urgent URL revocation, use Supabase support rather than deleting files.
 
+## Current pilot decision — 9 November 2026
+
+The owner has selected free plans only and no VPS for the current pilot.
+Supabase remains the primary document store. Cloudflare R2 bucket
+`riverbanc-marketplace-kyc-backup` has been created in Western Europe with its
+public r2.dev endpoint disabled and no custom domains. It is not an active
+backup: no document-byte backup, scheduled copy or real restore verification
+has been completed. R2 activation includes usage-based billing above its free
+allowance; no workload is scheduled against it.
+
+PR #80 is merged. Live verification on 9 November retained 75 sensitive objects,
+all three buckets private, five restrictive storage policies, no anonymous or
+borrower execution of the worker listing RPC, zero recorded scans and strict
+clean-scan mode false. Never enable strict scanning until a working scanner is
+available; doing so now would block access to existing pilot documents.
+
+The host-based implementation in `ops/kyc-security` is deferred under this
+decision. No paid scanner, paid container, VPS, new data processor or public
+file-scanning service is authorized. Synthetic test success does not constitute
+live malware scanning or document recovery. The outstanding backup and scanning
+gaps are not closed by the free-plan decision. A future free-tier managed backup
+must still establish protected recovery-key custody, enforced usage bounds and
+a real restore before being described as operational.
+
 ## Remaining operational work
 
 The existing PDF/image validator performs structural checks and image
@@ -62,9 +86,11 @@ Slack, Sheets or repository files.
 ## November handover
 
 The current Supabase project region is `eu-central-2`, outside Zambia.
-The intended temporary period is November 2026. Before 30 November, reconcile
-the retained files and their hashes, prepare the Lusaka VPS and its encrypted
-backup, verify restore and access controls, then switch the storage adapter.
+The intended temporary period is November 2026. No VPS migration is currently
+scheduled or required. Before changing providers, reconcile retained files and
+hashes, verify encrypted backup recovery and access controls, then switch the
+storage adapter. Continuing after November requires an explicit storage and
+retention review; protections do not expire automatically.
 This patch schedules no deletions and does not automatically disable the pilot
 or remove protections at month end. Retention/decommissioning follows verified
 handover, not an unverified calendar-based deletion.
