@@ -17,7 +17,7 @@ afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 it("fetches with the session-bound Storage API and displays a temporary local URL", async () => {
   await openPrivateStorageDocument("kyc-documents", "owner/file.pdf");
   expect(mocks.from).toHaveBeenCalledWith("kyc-documents");
-  expect(mocks.download).toHaveBeenCalledWith("owner/file.pdf");
+  expect(mocks.download).toHaveBeenCalledWith("owner/file.pdf", {}, { cache: "no-store" });
   expect(popup.opener).toBeNull();
   expect(popup.location.href).toBe("blob:local-only");
   await vi.advanceTimersByTimeAsync(60_000);
