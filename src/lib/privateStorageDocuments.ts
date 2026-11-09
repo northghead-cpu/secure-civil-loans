@@ -18,7 +18,7 @@ export async function openPrivateStorageDocument(
   }
   let objectUrl: string | undefined;
   try {
-    const { data, error } = await supabase.storage.from(bucket).download(path);
+    const { data, error } = await supabase.storage.from(bucket).download(path, {}, { cache: "no-store" });
     if (error || !data || !data.size || data.size > 10 * 1024 * 1024 ||
       !["application/pdf", "image/png", "image/jpeg"].includes(data.type)) {
       throw new Error("Document access is unavailable. Check your session or contact an administrator.");
