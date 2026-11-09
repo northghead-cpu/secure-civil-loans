@@ -25,7 +25,7 @@ is rewritten or deleted.
 ## Frontend transition and rollout order
 
 KYC review, legacy application evidence and payment receipts fetch documents
-through authenticated Storage requests. They no longer create shared signed
+through authenticated, no-store Storage requests. They no longer create shared signed
 URLs. The browser displays/downloads a temporary local Blob URL, which is
 revoked after one minute. Each new fetch is subject to the live RLS/session
 checks. A document already fetched or saved cannot be retracted by logging out.
