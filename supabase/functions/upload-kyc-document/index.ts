@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
     const {error:changedAccess}=await client.rpc("require_document_upload_session");
     if(changedAccess)return json(403,{error:"UPLOAD_NOT_AUTHORIZED"});
     const path=`${user.id}/${kind}-${Date.now()}.${document.extension}`;
-    const {error:uploadError}=await admin.storage.from("kyc-documents").upload(path,document.bytes,{contentType:document.mime,upsert:false});
+    const {error:uploadError}=await admin.storage.from("kyc-documents").upload(path,document.bytes,{contentType:document.mime,upsert:false,cacheControl:"0"});
     if(uploadError)return json(503,{error:"UPLOAD_UNAVAILABLE"});
     return json(201,{path,mime:document.mime,size:document.bytes.byteLength});
   } catch(error) {
