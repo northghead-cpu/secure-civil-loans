@@ -23,6 +23,8 @@ jobs:
       - run: bun run vitest run
       - name: Isolated PostgreSQL workflow regression tests
         run: bun run test:db-ui
+      - name: Marketplace private storage authorization regressions
+        run: bun run test:storage-security
       - name: Assessment authorization and request-security regressions
         run: |
           node scripts/test-assessment-remediation.mjs
