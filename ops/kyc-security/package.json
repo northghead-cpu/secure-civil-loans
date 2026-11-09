@@ -1,0 +1,16 @@
+{
+  "name": "riverbanc-marketplace-storage-security",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test *.test.mjs",
+    "backup": "node cli.mjs backup",
+    "verify-restore": "node cli.mjs verify-restore"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1164.0"
+  }
+}
