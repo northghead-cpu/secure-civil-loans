@@ -25,6 +25,8 @@ jobs:
         run: bun run test:db-ui
       - name: Marketplace private storage authorization regressions
         run: bun run test:storage-security
+      - name: Synthetic encrypted backup and recovery regressions
+        run: node --test ops/kyc-security/*.test.mjs
       - name: Assessment authorization and request-security regressions
         run: |
           node scripts/test-assessment-remediation.mjs
@@ -53,6 +55,7 @@ jobs:
           supabase/functions/sentry-incident-webhook/index.ts
           supabase/functions/send-handshake-referral/index.ts
           supabase/functions/upload-kyc-document/index.ts
+          supabase/functions/marketplace-storage-worker/index.ts
 
   audit:
     # Fail on advisories in production and development dependencies; no exceptions.
@@ -71,6 +74,10 @@ jobs:
         run: |
           npm ci --prefix supabase/tests/edge --ignore-scripts --no-audit --no-fund
           npm audit --prefix supabase/tests/edge --audit-level=low
+      - name: Audit isolated storage backup dependencies
+        run: |
+          npm ci --prefix ops/kyc-security --ignore-scripts --no-audit --no-fund
+          npm audit --prefix ops/kyc-security --audit-level=low
 
   secret-scan:
     # Cheap regex sweep for accidental key commits. Blocks obvious leaks

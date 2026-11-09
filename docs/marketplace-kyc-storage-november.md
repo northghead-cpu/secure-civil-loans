@@ -30,14 +30,13 @@ URLs. The browser displays/downloads a temporary local Blob URL, which is
 revoked after one minute. Each new fetch is subject to the live RLS/session
 checks. A document already fetched or saved cannot be retracted by logging out.
 
-Apply the session-protection migration first. Merge and deploy the updated
-Marketplace frontend and verify staff viewing, borrower receipts and KYC
-uploads. Only then apply
-`supabase/operations/marketplace_authenticated_document_reads.sql` to deny new
-client signed URL creation, image signing, S3 reads and direct object-table
-reads. It preserves authenticated get/info and folder listing operations.
-Do not apply that final operation policy to a deployment still using signed
-links; the old review screens would fail closed.
+The session-protection migration is deployed. PR #79 is merged and its exact
+commit is serving Marketplace production. The authenticated-document operation
+policy was applied on 9 November 2026 after verifying the new production asset.
+It denies new client signed URL creation, image signing, S3 reads and direct
+object-table reads while preserving authenticated get/info and folder listing.
+If rolling back the frontend to signed-link code, review this policy first;
+old signed-link review screens intentionally fail closed under the new rule.
 
 Existing signed URLs are bearer credentials and an RLS change does not revoke
 them. The old legacy UI used one-hour URLs; other callers may have requested
@@ -47,11 +46,13 @@ For urgent URL revocation, use Supabase support rather than deleting files.
 ## Remaining operational work
 
 The existing PDF/image validator performs structural checks and image
-normalization. It is not an antivirus engine. A trusted malware scanner and an
-independently encrypted backup of object bytes, with a verified restore, still
-need to be configured. Database-only backups and isolated PGlite restores do
-not verify document-byte recovery. Supabase platform storage encryption is not
-application-level encryption with independently held keys.
+normalization. It is not an antivirus engine. The private ClamAV worker,
+exact-version quarantine, encrypted S3-compatible backup, and separate recovery
+verification are implemented in `ops/kyc-security`. Their real deployment still
+requires an approved scanner host, private backup destination credentials and
+independent recovery-key custody. No real-file scan or backup restore is claimed
+until that configuration and first-run evidence exist. Database-only backups
+and isolated PGlite restores do not verify document-byte recovery.
 
 Storage API access logging is separate from a lender release audit. This patch
 does not claim new, tamper-proof server-side document-download audit receipts.
@@ -70,8 +71,9 @@ handover, not an unverified calendar-based deletion.
 
 ## Evidence
 
-`npm run test:storage-security` runs 24 isolated PostgreSQL authorization checks,
-including a hypothetical broad SELECT policy and the staged operation filter.
+`npm run test:storage-security` runs 38 isolated PostgreSQL authorization checks,
+including a hypothetical broad SELECT policy, the operation filter, exact-version
+quarantine, and out-of-order scan evidence.
 Frontend tests cover authenticated document access, denied access, MIME
 restrictions, blocked/closed popups and local URL cleanup. These tests do not
 impersonate real borrowers or establish hosted backup recovery.
