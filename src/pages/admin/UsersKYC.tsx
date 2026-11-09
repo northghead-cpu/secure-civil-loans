@@ -56,7 +56,7 @@ export default function UsersKYC() {
     try {
       // Storage enforces the staff session/MFA rules; do not use a service key.
       const [{ data, error }, { parsePayslip }, { reviewPayslip }] = await Promise.all([
-        supabase.storage.from("kyc-documents").download(document.storage_path),
+        supabase.storage.from("kyc-documents").download(document.storage_path, {}, { cache: "no-store" }),
         import("@/services/payrollParsingService"),
         import("@/services/payslipReviewService"),
       ]);
