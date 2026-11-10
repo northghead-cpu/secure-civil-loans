@@ -3,10 +3,6 @@ project_id = "zdpeaxkormwjrgllwalq"
 [auth]
 minimum_password_length = 8
 
-[auth.sessions]
-timebox = "12h"
-inactivity_timeout = "30m"
-
 [auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true
@@ -28,3 +24,11 @@ verify_jwt = false
 
 [functions.send-handshake-referral]
 verify_jwt = true
+
+# Keep production session policy separate from free ephemeral preview configuration.
+[remotes.main]
+project_id = "zdpeaxkormwjrgllwalq"
+
+[remotes.main.auth.sessions]
+timebox = "12h"
+inactivity_timeout = "30m"
