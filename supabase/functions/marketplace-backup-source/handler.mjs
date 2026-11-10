@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { timingSafeEqual } from 'node:crypto';
 import { seal, digest, publicKeyId } from './envelope.mjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
