@@ -1,11 +1,27 @@
 import { motion } from "framer-motion";
-import { Shield, Lock, Award, Building2 } from "lucide-react";
+import { Building2, FileCheck2, LockKeyhole, Scale } from "lucide-react";
 
 const trustItems = [
-  { icon: Shield, title: "Bank of Zambia Regulated", desc: "All partner lenders are BOZ licensed" },
-  { icon: Lock, title: "256-bit Encryption", desc: "Your data is encrypted at rest and in transit" },
-  { icon: Award, title: "ISO 27001 Certified", desc: "International security standard compliance" },
-  { icon: Building2, title: "20+ Licensed Lenders", desc: "Only vetted, regulated financial institutions" },
+  {
+    icon: Scale,
+    title: "Transparent comparison",
+    desc: "Clear information to help you compare available loan options.",
+  },
+  {
+    icon: LockKeyhole,
+    title: "Privacy-focused",
+    desc: "Your information is handled with security and privacy in mind.",
+  },
+  {
+    icon: Building2,
+    title: "Participating institutions",
+    desc: "Loan products come from participating financial institutions.",
+  },
+  {
+    icon: FileCheck2,
+    title: "Clear data controls",
+    desc: "Understand and manage how your information is used and shared.",
+  },
 ];
 
 const TrustSection = () => {

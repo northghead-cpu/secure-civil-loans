@@ -1,12 +1,12 @@
 # Riverbanc
 
-> Riverbanc helps salaried employees in Zambia compare loan offers from banks and microfinance institutions in one secure platform.
+> Riverbanc Technology Limited is a Zambia-based technology platform that helps salaried employees compare available loan options from participating financial institutions.
 
-Riverbanc helps Zambian civil servants compare loan offers from regulated lenders, enforces the statutory 1/3 net-salary affordability rule, and supports NRC-based identity verification.
+Riverbanc provides a comparison and application-handoff experience. It does not issue loans or make lending decisions. Product availability, rates, fees, eligibility and approval decisions are determined by the relevant financial institution and must be confirmed with that institution.
 
-## Pages
+## Public pages
 
-- [Home](/): Platform overview, trust signals, and how the service works.
-- [Compare Loans](/compare): Side-by-side loan offers from licensed Zambian lenders with rates, terms, and monthly payments.
-- [Privacy Policy](/privacy-policy): Compliance with Zambia's Data Protection Act No. 3 of 2021.
-- [Data Retention Policy](/retention-policy): Retention windows aligned with the Banking and Financial Services Act and FIC Act.
+- [Home](https://www.riverbanc.co.zm/): Platform overview and how Riverbanc works.
+- [Privacy Policy](https://www.riverbanc.co.zm/privacy-policy): How Riverbanc handles personal information.
+- [Data Retention Policy](https://www.riverbanc.co.zm/retention-policy): Information retention and deletion practices.
+- [Terms of Service](https://www.riverbanc.co.zm/terms): Terms governing use of the platform.

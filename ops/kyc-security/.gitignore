@@ -1,0 +1,5 @@
+node_modules/
+worker.env
+*.pem
+*.key
+receipts.jsonl

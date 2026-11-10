@@ -11,39 +11,39 @@ import {
 const features = [
   {
     icon: BarChart3,
-    title: "Compare Multiple Lenders",
+    title: "Compare Available Loan Options",
     description:
-      "Side-by-side comparison of rates, terms, and total cost from 20+ licensed lenders across Zambia.",
+      "Review available rates, terms, and estimated repayment costs for products listed by participating financial institutions.",
   },
   {
     icon: FileCheck,
-    title: "Instant KYC Verification",
+    title: "Identity Verification",
     description:
-      "Upload your NRC and Government ID for instant identity verification with automated document processing.",
+      "Complete the identity and document checks required to access the platform’s protected comparison and application features.",
   },
   {
     icon: Calculator,
-    title: "Net Salary Calculator",
+    title: "Affordability Information",
     description:
-      "Automated payroll parsing to calculate your exact take-home pay and maximum affordable repayment.",
+      "Use your salary and deduction information to understand estimated repayment affordability before approaching a lender.",
   },
   {
     icon: ShieldCheck,
-    title: "CRB Pre-Check",
+    title: "Lender Assessment",
     description:
-      "Check your credit standing before applying so you know exactly which offers you qualify for.",
+      "Where required and separately authorised, credit-reference checks and lending assessments are handled as part of the lender’s process.",
   },
   {
     icon: CreditCard,
-    title: "Payroll Deduction Consent",
+    title: "Clear Consent Controls",
     description:
-      "Secure e-signature for payroll deduction authorization — no paperwork, no queues.",
+      "Review relevant permissions and authorisations before your information is shared with a participating financial institution.",
   },
   {
     icon: Zap,
-    title: "Fast Refinancing",
+    title: "Application Handoff",
     description:
-      "Switch to a better rate in days, not weeks. Our digital-first process eliminates unnecessary delays.",
+      "Choose an available product and follow the application or handoff process supported by the participating financial institution.",
   },
 ];
 
@@ -62,11 +62,10 @@ const FeaturesSection = () => {
             Features
           </span>
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mt-3 mb-4">
-            Everything You Need to Get the Best Loan
+            Tools to Compare Loan Options More Clearly
           </h2>
           <p className="text-muted-foreground text-lg">
-            From identity verification to loan disbursement — we handle every
-            step digitally so you don't have to visit a single branch.
+            From comparing available product information to understanding the next steps, Riverbanc helps you make an informed choice. Each lender manages its own application and lending decision.
           </p>
         </motion.div>
 

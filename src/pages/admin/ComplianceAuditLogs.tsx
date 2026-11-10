@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { AdminHero, AdminPageShell, adminCardClass } from "@/components/admin/AdminPageShell";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { untypedDb } from "@/integrations/supabase/untyped";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Loader2, ScrollText } from "lucide-react";
-import { useRBAC } from "@/hooks/useRBAC";
-
-interface AuditLog {
+import { Card, CardContent } from "@/components/ui/card";
+type AuditLog = {
   id: string;
   user_id: string;
   role: string;
@@ -19,161 +13,139 @@ interface AuditLog {
   old_value: unknown;
   new_value: unknown;
   created_at: string;
-}
-
-const ComplianceAuditLogs = () => {
-  const { permissions } = useRBAC();
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [actionFilter, setActionFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("");
-
-  useEffect(() => {
-    const fetchLogs = async () => {
-      const { data, error } = await supabase
-        .from("audit_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (!error && data) setLogs(data as unknown as AuditLog[]);
-      setLoading(false);
-    };
-    fetchLogs();
-  }, []);
-
-  const actions = useMemo(() => [...new Set(logs.map((log) => log.action_performed))], [logs]);
-
-  const filtered = useMemo(() => {
-    let result = logs;
-    if (search) {
-      const query = search.toLowerCase();
-      result = result.filter(
-        (log) =>
-          log.user_id.toLowerCase().includes(query) ||
-          log.action_performed.toLowerCase().includes(query) ||
-          log.record_id?.toLowerCase().includes(query) ||
-          log.role.toLowerCase().includes(query)
-      );
-    }
-    if (actionFilter !== "all") result = result.filter((log) => log.action_performed === actionFilter);
-    if (dateFilter) result = result.filter((log) => log.created_at.startsWith(dateFilter));
-    return result;
-  }, [logs, search, actionFilter, dateFilter]);
-
-  if (!permissions.canViewAuditLogs) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        You don&apos;t have permission to view audit logs.
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  return (
-    <AdminPageShell>
-      <AdminHero
-        badge="Compliance trail"
-        title="Audit logs for role actions, record changes, and approvals"
-        description="Search the full action trail when you need to understand who changed what, which role executed it, and when it happened."
-        stats={[
-          { label: "Entries loaded", value: logs.length.toString(), meta: "Latest audit records fetched" },
-          { label: "Action types", value: actions.length.toString(), meta: "Distinct logged operations" },
-          { label: "Visible results", value: filtered.length.toString(), meta: "Rows matching the current filters" },
-        ]}
-      />
-
-      <Card className={adminCardClass}>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by user, action, record ID, or role..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="All Actions" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Actions</SelectItem>
-                {actions.map((action) => (
-                  <SelectItem key={action} value={action}>
-                    {action}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(event) => setDateFilter(event.target.value)}
-              className="w-full sm:w-[180px]"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className={`${adminCardClass} overflow-hidden`}>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Record ID</TableHead>
-                <TableHead className="hidden md:table-cell">Old Value</TableHead>
-                <TableHead className="hidden md:table-cell">New Value</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
-                    <ScrollText className="mx-auto mb-2 h-8 w-8 opacity-40" />
-                    No audit log entries found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {new Date(log.created_at).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {log.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm font-medium">{log.action_performed}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{log.record_id ?? "-"}</TableCell>
-                    <TableCell className="hidden max-w-[200px] truncate text-xs text-muted-foreground md:table-cell">
-                      {log.old_value ? JSON.stringify(log.old_value) : "-"}
-                    </TableCell>
-                    <TableCell className="hidden max-w-[200px] truncate text-xs text-muted-foreground md:table-cell">
-                      {log.new_value ? JSON.stringify(log.new_value) : "-"}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </AdminPageShell>
-  );
 };
-
-export default ComplianceAuditLogs;
+export default function ComplianceAuditLogs() {
+  const [rows, setRows] = useState<AuditLog[]>([]);
+  const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [date, setDate] = useState("");
+  const [page, setPage] = useState(0);
+  const [next, setNext] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(false);
+    void Promise.resolve(
+      untypedDb.rpc("search_audit_logs", {
+        _search: search,
+        _action: "all",
+        _date: date || null,
+        _offset: page * 100,
+      }),
+    )
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          setError(true);
+          return;
+        }
+        const records = (data || []) as AuditLog[];
+        setNext(records.length > 100);
+        setRows(records.slice(0, 100));
+      })
+      .catch(() => {
+        if (active) setError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [search, date, page, attempt]);
+  return (
+    <main className="space-y-5">
+      <h1 className="text-2xl font-semibold">Audit trail</h1>
+      <p>
+        Search across all retained records. Dates use UTC. Results are
+        paginated, newest first.
+      </p>
+      <form
+        className="flex flex-wrap gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSearch(query.trim());
+          setPage(0);
+        }}
+      >
+        <Input
+          aria-label="Search audit records"
+          className="max-w-lg"
+          placeholder="User, action, record ID or role"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <label>
+          Date (UTC)
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setPage(0);
+            }}
+          />
+        </label>
+        <Button type="submit">Search</Button>
+      </form>
+      {loading ? (
+        <p role="status">Loading audit records…</p>
+      ) : error ? (
+        <div role="alert">
+          <p>Audit records could not load.</p>
+          <Button onClick={() => setAttempt((v) => v + 1)}>Try again</Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <Card key={row.id}>
+              <CardContent className="p-4 space-y-2">
+                <p className="font-medium">
+                  {row.action_performed} · {row.role}
+                </p>
+                <p className="text-sm break-all">
+                  {new Date(row.created_at).toLocaleString()} · User{" "}
+                  {row.user_id} · {row.table_name} · Record{" "}
+                  {row.record_id || "—"}
+                </p>
+                <details>
+                  <summary className="cursor-pointer">
+                    View change details
+                  </summary>
+                  <pre className="overflow-x-auto whitespace-pre-wrap break-all text-xs">
+                    {JSON.stringify(
+                      { old: row.old_value, new: row.new_value },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </details>
+              </CardContent>
+            </Card>
+          ))}
+          {!rows.length && <p>No matching audit records.</p>}
+        </div>
+      )}
+      <nav aria-label="Audit result pages" className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          disabled={page === 0 || loading}
+          onClick={() => setPage((v) => v - 1)}
+        >
+          Previous
+        </Button>
+        <span>Page {page + 1}</span>
+        <Button
+          variant="outline"
+          disabled={!next || loading || error}
+          onClick={() => setPage((v) => v + 1)}
+        >
+          Next
+        </Button>
+      </nav>
+    </main>
+  );
+}
