@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, FileCheck, ClipboardList, History, Package, BarChart3, Percent,
   DollarSign, Wallet, FileBarChart, Sheet, ShieldAlert, ScrollText, Link2, Zap, Settings,
-  Shield, LogOut, CreditCard, LucideIcon,
+  Shield, LogOut, CreditCard, AlertOctagon, MessageCircle, LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -35,6 +35,10 @@ const menuGroups: MenuGroup[] = [
     { title: "Payouts", url: "/admin/financials/payouts", icon: Wallet, requiredPermission: "canManagePayouts" },
     { title: "Reports", url: "/admin/financials/reports", icon: FileBarChart, requiredPermission: "canExportCustomerData" },
     { title: "Customer Data Sheet", url: "/admin/financials/customer-data-sheet", icon: Sheet, requiredPermission: "canExportCustomerData" },
+  ] },
+  { label: "Operations", items: [
+    { title: "Support Desk", url: "/admin/support", icon: MessageCircle, requiredPermission: "canManageUsers" },
+    { title: "Incident Center", url: "/admin/incidents", icon: AlertOctagon, requiredPermission: "canManageUsers" },
   ] },
   { label: "Compliance", items: [
     { title: "Risk Flags", url: "/admin/compliance/risk-flags", icon: ShieldAlert, requiredPermission: "canViewLoanApplications" },

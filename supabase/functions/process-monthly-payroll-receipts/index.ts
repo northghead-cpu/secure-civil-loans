@@ -1,5 +1,7 @@
+import { createReceiptPdf, createTestReceiptPdf, type Receipt } from "./pdf.ts";
+import { runReceiptBatch } from "./safety.ts";
 import { withSupabase } from 'npm:@supabase/server';
-import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib';
+import { sendReceiptEmail, type EmailConfig, type EmailResult } from './email.ts';
 
 const BILLING_DAY = 23;
 const BILLING_AMOUNT = 60;
@@ -7,26 +9,30 @@ const BILLING_TIME_ZONE = 'Africa/Lusaka';
 const RECEIPT_BUCKET = 'payment-receipts';
 const MAX_EMAIL_ATTEMPTS = 5;
 
-interface Receipt {
-  id: string;
-  user_id: string;
-  receipt_number: string;
-  customer_name: string;
-  customer_email: string | null;
-  amount: number;
-  currency: string;
-  billing_period_start: string;
-  billing_period_end: string;
-  payment_method: string;
-  payroll_reference: string;
-  issued_at: string;
-  document_path: string | null;
-}
-
 interface Delivery {
   attempt_count: number;
   status: string;
+  retryable: boolean;
+  provider_message_id: string | null;
 }
+
+
+
+async function getEmailConfig(supabaseAdmin: unknown): Promise<EmailConfig | null> {
+  const client = supabaseAdmin as {
+    rpc: (functionName: string) => Promise<{ data: unknown; error: { message?: string } | null }>;
+  };
+  const { data, error } = await client.rpc('get_riverbanc_email_config');
+  if (error) throw error;
+  const config = data as { configured?: boolean; api_key?: string; from_email?: string } | null;
+  if (config?.configured === true && typeof config.api_key === 'string' && typeof config.from_email === 'string') {
+    return { api_key: config.api_key, from_email: config.from_email };
+  }
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL');
+  return apiKey && fromEmail ? { api_key: apiKey, from_email: fromEmail } : null;
+}
+
 
 function currentLusakaDate(): string {
   return new Intl.DateTimeFormat('en-CA', {
@@ -44,82 +50,95 @@ function assertBillingDate(date: string): void {
   }
 }
 
-function escapePdfText(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-}
+
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-async function createReceiptPdf(receipt: Receipt): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595.28, 841.89]);
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-
-  page.drawText('RIVERBANC', { x: 48, y: 780, size: 22, font: bold, color: rgb(0.04, 0.24, 0.35) });
-  page.drawText('Technology Limited', { x: 48, y: 758, size: 10, font: regular, color: rgb(0.25, 0.30, 0.34) });
-  page.drawText('PAYMENT RECEIPT', { x: 48, y: 700, size: 18, font: bold, color: rgb(0.04, 0.24, 0.35) });
-
-  const rows = [
-    ['Receipt number', receipt.receipt_number],
-    ['Customer', receipt.customer_name],
-    ['Amount paid', `${receipt.currency} ${Number(receipt.amount).toFixed(2)}`],
-    ['Payment method', 'Payroll deduction'],
-    ['Payroll reference', receipt.payroll_reference],
-    ['Billing period', `${receipt.billing_period_start} to ${receipt.billing_period_end}`],
-    ['Issued', receipt.issued_at.slice(0, 10)],
-  ];
-
-  let y = 650;
-  for (const [label, value] of rows) {
-    page.drawText(label, { x: 48, y, size: 10, font: bold, color: rgb(0.30, 0.34, 0.38) });
-    page.drawText(escapePdfText(value), { x: 190, y, size: 10, font: regular, color: rgb(0.10, 0.12, 0.14) });
-    y -= 34;
-  }
-
-  page.drawLine({ start: { x: 48, y: 395 }, end: { x: 547, y: 395 }, thickness: 1, color: rgb(0.82, 0.84, 0.86) });
-  page.drawText('This receipt confirms a K60 Riverbanc platform subscription', { x: 48, y: 365, size: 10, font: regular });
-  page.drawText('payment through payroll deduction. It is not a lender loan repayment,', { x: 48, y: 347, size: 10, font: regular });
-  page.drawText('interest charge, lender fee, or other loan principal charge.', { x: 48, y: 329, size: 10, font: regular });
-  page.drawText('Riverbanc Technology Limited', { x: 48, y: 250, size: 10, font: bold });
-  page.drawText('288a sub 143, Falcon Street, Makeni, Lusaka, Zambia', { x: 48, y: 232, size: 9, font: regular });
-  page.drawText('business@riverbanc.co.zm', { x: 48, y: 216, size: 9, font: regular });
-  page.drawText('Generated automatically • Africa/Lusaka', { x: 48, y: 80, size: 8, font: regular, color: rgb(0.45, 0.48, 0.50) });
-
-  return pdf.save();
-}
-
-async function sendReceiptEmail(receipt: Receipt, pdfBytes: Uint8Array): Promise<{ ok: boolean; code?: string }> {
-  if (!receipt.customer_email) return { ok: false, code: 'missing_customer_email' };
-
-  const apiKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('RESEND_FROM_EMAIL');
-  if (!apiKey || !from) return { ok: false, code: 'email_provider_not_configured' };
-
+async function sendTestReceiptEmail(
+  recipient: string,
+  customerName: string,
+  pdfBytes: Uint8Array,
+  userId: string,
+  testRunId: string,
+  emailConfig: EmailConfig,
+): Promise<EmailResult> {
+  const apiKey = emailConfig.api_key;
+  const from = emailConfig.from_email;
   const binary = Array.from(pdfBytes, (byte) => String.fromCharCode(byte)).join('');
   const encoded = btoa(binary);
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': `riverbanc-test-receipt-${userId}-${testRunId}`,
+    },
     body: JSON.stringify({
       from,
-      to: [receipt.customer_email],
-      subject: `Riverbanc payment receipt ${receipt.receipt_number}`,
-      html: `<p>Hello ${escapeHtml(receipt.customer_name)},</p><p>Your Riverbanc subscription payment of ZMW ${Number(receipt.amount).toFixed(2)} has been recorded through payroll deduction.</p><p>Receipt number: <strong>${escapeHtml(receipt.receipt_number)}</strong></p><p>The receipt is attached to this email and is also available in your Riverbanc dashboard.</p><p>Riverbanc Technology Limited</p>`,
-      attachments: [{ filename: `${receipt.receipt_number}.pdf`, content: encoded }],
+      to: [recipient],
+      subject: 'TEST ONLY — Riverbanc receipt PDF pipeline (not proof of payment)',
+      tags: [{ name: 'purpose', value: 'riverbanc-receipt-test' }],
+      html: `<p style="color:#b91c1c;font-weight:bold">TEST ONLY — NOT PROOF OF PAYMENT</p><p>Hello ${escapeHtml(customerName)},</p><p>This tests Riverbanc's production PDF generator and email delivery path. No payment was received, and no billing transaction or payment receipt was created.</p>`,
+      text: 'TEST ONLY — NOT PROOF OF PAYMENT. This tests Riverbanc\'s production PDF generator and email delivery path. No payment was received, and no billing transaction or payment receipt was created.',
+      attachments: [{ filename: `TEST-ONLY-${testRunId}.pdf`, content: encoded }],
     }),
   });
-
-  if (!response.ok) return { ok: false, code: `resend_http_${response.status}` };
-  return { ok: true };
+  if (!response.ok) {
+    const retryable = response.status === 408 || response.status === 409 || response.status === 429 || response.status >= 500;
+    return { ok: false, code: `resend_http_${response.status}`, retryable };
+  }
+  const responseBody = await response.json().catch(() => ({}));
+  if (typeof responseBody.id !== 'string' || !responseBody.id) {
+    return { ok: false, code: 'resend_message_id_missing', retryable: true };
+  }
+  return { ok: true, messageId: responseBody.id, retryable: false };
 }
 
 export default {
   fetch: withSupabase({ auth: 'secret' }, async (req, ctx) => {
     try {
       const body = await req.json().catch(() => ({}));
+      if (body.mode === 'test_email') {
+        const userId = typeof body.test_user_id === 'string' ? body.test_user_id : '';
+        const testRunId = typeof body.test_run_id === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(body.test_run_id) ? body.test_run_id : '';
+        if (!userId || !testRunId) {
+          return Response.json({ ok: false, error: 'Test mode requires test_user_id and a unique test_run_id' }, { status: 400 });
+        }
+        const { data: authorization, error: authorizationError } = await ctx.supabaseAdmin
+          .from('subscription_authorizations')
+          .select('user_id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (authorizationError) throw authorizationError;
+        if (!authorization) return Response.json({ ok: false, error: 'Active subscription authorization not found' }, { status: 404 });
+        const { data: profile, error: profileError } = await ctx.supabaseAdmin
+          .from('profiles')
+          .select('full_name,email')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        if (!profile?.email) return Response.json({ ok: false, error: 'Registered email is unavailable' }, { status: 400 });
+        const customerName = profile.full_name || 'Riverbanc Subscriber';
+        const emailConfig = await getEmailConfig(ctx.supabaseAdmin);
+        if (!emailConfig) {
+          return Response.json({ ok: false, error: 'email_provider_not_configured', test_only: true, payment_record_created: false }, { status: 503 });
+        }
+        const pdfBytes = await createTestReceiptPdf(customerName, testRunId);
+        const emailResult = await sendTestReceiptEmail(profile.email, customerName, pdfBytes, userId, testRunId, emailConfig);
+        return Response.json({
+          ok: emailResult.ok,
+          test_only: true,
+          payment_record_created: false,
+          billing_transaction_created: false,
+          payment_receipt_created: false,
+          email_status: emailResult.ok ? 'sent' : 'failed',
+          provider_message_id: emailResult.messageId ?? null,
+          error_code: emailResult.code ?? null,
+        }, { status: emailResult.ok ? 200 : 502 });
+      }
       const billingDate = typeof body.billing_date === 'string' ? body.billing_date : currentLusakaDate();
       assertBillingDate(billingDate);
 
@@ -142,9 +161,20 @@ export default {
       if (receiptError) throw receiptError;
 
       const receiptIds = (receipts ?? []).map((receipt) => receipt.id);
+      const emailConfig = await getEmailConfig(ctx.supabaseAdmin);
+      if (!emailConfig) {
+        return Response.json({
+          ok: false,
+          error: 'email_provider_not_configured',
+          billing_run_id: result.billing_run_id,
+          transactions: transactionIds.length,
+          receipts: receipts.length,
+          emails_sent: 0,
+        }, { status: 503 });
+      }
       const { data: deliveries, error: deliveryLookupError } = await ctx.supabaseAdmin
         .from('receipt_deliveries')
-        .select('receipt_id,attempt_count,status')
+        .select('receipt_id,attempt_count,status,retryable,provider_message_id')
         .in('receipt_id', receiptIds)
         .eq('channel', 'email');
       if (deliveryLookupError) throw deliveryLookupError;
@@ -154,10 +184,12 @@ export default {
       let emailed = 0;
       let emailFailed = 0;
 
-      for (const receipt of (receipts ?? []) as Receipt[]) {
+      await runReceiptBatch((receipts ?? []) as Receipt[], async (receipt) => {
         const delivery = deliveryMap.get(receipt.id);
-        if (delivery?.status === 'sent' || (delivery?.attempt_count ?? 0) >= MAX_EMAIL_ATTEMPTS) continue;
+        if (!delivery) throw new Error('Receipt email delivery ledger row is missing');
+        if (delivery.status === 'sent' || !delivery.retryable || delivery.attempt_count >= MAX_EMAIL_ATTEMPTS) return;
 
+        const nextAttempt = delivery.attempt_count + 1;
         let pdfBytes: Uint8Array;
         if (receipt.document_path) {
           const { data: existingPdf, error: downloadError } = await ctx.supabaseAdmin.storage.from(RECEIPT_BUCKET).download(receipt.document_path);
@@ -172,14 +204,15 @@ export default {
           if (documentError) throw documentError;
         }
 
-        const deliveryResult = await sendReceiptEmail(receipt, pdfBytes);
-        const nextAttempt = (delivery?.attempt_count ?? 0) + 1;
+        const deliveryResult = await sendReceiptEmail(receipt, pdfBytes, nextAttempt, emailConfig);
         const now = new Date().toISOString();
         const deliveryUpdate = {
           status: deliveryResult.ok ? 'sent' : 'failed',
           attempt_count: nextAttempt,
           last_attempt_at: now,
-          delivered_at: deliveryResult.ok ? now : null,
+          delivered_at: null,
+          provider_message_id: deliveryResult.messageId ?? delivery.provider_message_id,
+          retryable: deliveryResult.retryable,
           error_code: deliveryResult.ok ? null : deliveryResult.code,
           error_message: deliveryResult.ok ? null : deliveryResult.code,
           updated_at: now,
@@ -193,7 +226,35 @@ export default {
 
         processed += 1;
         if (deliveryResult.ok) emailed += 1; else emailFailed += 1;
+      }, async (receipt) => {
+        emailFailed += 1;
+        const delivery = deliveryMap.get(receipt.id);
+        if (!delivery) throw new Error('Receipt delivery ledger row missing');
+        const nextAttempt = delivery.attempt_count + 1;
+        const { error } = await ctx.supabaseAdmin.from('receipt_deliveries').update({
+          status: 'failed', attempt_count: nextAttempt, last_attempt_at: new Date().toISOString(),
+          retryable: nextAttempt < MAX_EMAIL_ATTEMPTS, error_code: 'receipt_processing_failed',
+          error_message: 'Receipt document or delivery processing failed', updated_at: new Date().toISOString(),
+        }).eq('receipt_id', receipt.id).eq('channel', 'email').eq('attempt_count', delivery.attempt_count);
+        if (error) throw new Error('Receipt failure could not be recorded');
+      });
+
+      let unresolvedEmailFailures = 0;
+      if (receiptIds.length) {
+        const { data: failedDeliveries, error: failedDeliveryError } = await ctx.supabaseAdmin
+          .from('receipt_deliveries')
+          .select('id')
+          .in('receipt_id', receiptIds)
+          .eq('channel', 'email')
+          .eq('status', 'failed');
+        if (failedDeliveryError) throw failedDeliveryError;
+        unresolvedEmailFailures = failedDeliveries?.length ?? 0;
       }
+      const { error: runUpdateError } = await ctx.supabaseAdmin
+        .from('billing_runs')
+        .update({ delivery_failure_count: unresolvedEmailFailures, updated_at: new Date().toISOString() })
+        .eq('id', result.billing_run_id);
+      if (runUpdateError) throw runUpdateError;
 
       return Response.json({ ok: true, billing_date: billingDate, amount_zmw: BILLING_AMOUNT, timezone: BILLING_TIME_ZONE, billing: result, receipts_processed: processed, emails_sent: emailed, emails_failed: emailFailed });
     } catch (error) {

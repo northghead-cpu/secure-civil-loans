@@ -1,0 +1,28 @@
+[Unit]
+Description=Riverbanc Marketplace private KYC scan and encrypted backup
+After=network-online.target clamav-freshclam.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=riverbanc-kyc
+Group=riverbanc-kyc
+WorkingDirectory=/opt/riverbanc-kyc
+EnvironmentFile=/etc/riverbanc-kyc/worker.env
+ExecStart=/usr/bin/node /opt/riverbanc-kyc/cli.mjs backup
+StateDirectory=riverbanc-kyc
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=3G
+TimeoutStartSec=1h
+StandardOutput=append:/var/lib/riverbanc-kyc/receipts.jsonl
+StandardError=journal

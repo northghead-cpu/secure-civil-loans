@@ -16,7 +16,14 @@ interface ProtectedRouteProps {
  */
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const location = useLocation();
-  const { user, loading: authLoading, isPasswordRecovery } = useAuth();
+  const {
+    user,
+    profile,
+    profileLoading,
+    loading: authLoading,
+    isPasswordRecovery,
+    signOut,
+  } = useAuth();
   const { highestRole, loading: rbacLoading } = useRBAC();
 
   // A recovery session must never unlock authenticated areas. Always bounce
@@ -26,7 +33,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/reset-password" replace />;
   }
 
-  if (authLoading || (allowedRoles && rbacLoading)) {
+  if (authLoading || profileLoading || (allowedRoles && rbacLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -35,8 +42,27 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location.pathname + location.search }}
+      />
+    );
   }
+
+  if (profile?.account_status && profile.account_status !== "active")
+    return (
+      <main className="max-w-lg mx-auto p-8 pt-24">
+        <h1 className="text-2xl font-semibold">Account access paused</h1>
+        <p className="my-4">
+          Contact support@riverbanc.co.zm for help with your account.
+        </p>
+        <button className="underline" onClick={() => void signOut()}>
+          Sign out
+        </button>
+      </main>
+    );
 
   if (allowedRoles && (!highestRole || !allowedRoles.includes(highestRole))) {
     return <Navigate to="/" replace />;
