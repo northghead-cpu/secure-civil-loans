@@ -1,4 +1,1 @@
--- Compatibility alias for migration 20260816090542 (revoke_audit_log_insert_privilege).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+revoke insert on table public.audit_logs from authenticated;

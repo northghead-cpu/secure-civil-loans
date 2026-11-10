@@ -1,4 +1,2 @@
--- Compatibility alias for migration 20260815085302 (lock_subscription_signature_protection_rpc).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+revoke execute on function public.protect_subscription_authorization_record() from anon, authenticated;
+revoke execute on function public.authorize_riverbanc_subscription(text) from anon, authenticated;

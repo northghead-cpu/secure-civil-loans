@@ -5,10 +5,10 @@ const db = new PGlite();
 const read = path => fs.readFile(new URL('../'+path,import.meta.url),'utf8');
 try {
  await db.exec(await read('supabase/tests/fixtures/ui_bootstrap.sql'));
- await db.exec(await read('supabase/migrations/20261022205917_marketplace_ui_workflows.sql'));
+ await db.exec(await read('supabase/migrations/20261023081750_marketplace_ui_workflows.sql'));
  // Simulate production overlap: the revision already exists before the repair.
  await db.exec(`alter table public.profiles add column kyc_review_revision uuid not null default gen_random_uuid();`);
- const migration=await read('supabase/migrations/20261024064302_cloudflare_audit_remediation.sql');
+ const migration=await read('supabase/migrations/20261105082522_assessment_authorization_and_intake_repairs.sql');
  await db.exec(migration);await db.exec(migration);
  console.log('PASS: repair applies with existing revision column and can be reapplied');
  const checks=await db.exec(await read('supabase/tests/security/audit_remediation.sql'));

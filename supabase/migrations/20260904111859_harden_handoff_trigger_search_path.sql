@@ -1,2 +1,2 @@
--- Compatibility alias for already recorded production migration 20260904111859.
--- Canonical migrations retain the implementation; no SQL or customer-data mutation.
+ALTER FUNCTION public.prevent_manual_lender_handoff_status_change()
+SET search_path = public, pg_temp;

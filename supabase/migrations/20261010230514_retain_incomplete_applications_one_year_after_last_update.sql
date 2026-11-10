@@ -1,5 +1,3 @@
--- Keep incomplete applications for 12 months after their latest recorded update.
--- This avoids purging an application less than one year after it was last active.
 CREATE OR REPLACE FUNCTION public.run_data_retention_purge()
 RETURNS public.retention_runs
 LANGUAGE plpgsql
@@ -12,6 +10,8 @@ DECLARE
   v_edge int := 0;
   v_row public.retention_runs;
 BEGIN
+  -- Keep incomplete applications for 12 months after their latest recorded update.
+  -- This avoids purging an application less than one year after it was last active.
   WITH del AS (
     DELETE FROM public.loan_applications
     WHERE COALESCE(updated_at, created_at) < now() - interval '12 months'
@@ -21,6 +21,7 @@ BEGIN
   )
   SELECT count(*) INTO v_loans FROM del;
 
+  -- Notifications older than 24 months.
   WITH del AS (
     DELETE FROM public.notifications
     WHERE created_at < now() - interval '24 months'
@@ -28,6 +29,7 @@ BEGIN
   )
   SELECT count(*) INTO v_notes FROM del;
 
+  -- Edge request logs older than 90 days.
   WITH del AS (
     DELETE FROM public.edge_request_log
     WHERE created_at < now() - interval '90 days'
@@ -36,7 +38,10 @@ BEGIN
   SELECT count(*) INTO v_edge FROM del;
 
   INSERT INTO public.retention_runs(
-    loan_apps_deleted, notifications_deleted, edge_logs_deleted, notes
+    loan_apps_deleted,
+    notifications_deleted,
+    edge_logs_deleted,
+    notes
   )
   VALUES (v_loans, v_notes, v_edge, 'scheduled purge')
   RETURNING * INTO v_row;

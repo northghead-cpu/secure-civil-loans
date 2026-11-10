@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260815085255 (harden_subscription_e_signature_binding).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

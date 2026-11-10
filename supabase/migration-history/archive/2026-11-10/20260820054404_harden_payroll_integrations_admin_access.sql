@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260820054404 (harden_payroll_integrations_admin_access).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

@@ -1,5 +1,5 @@
--- RBAC helpers must inspect user_roles without recursively invoking
--- user_roles RLS policies. They expose only role membership results.
+-- RBAC helpers must be able to inspect user_roles without recursively invoking
+-- the user_roles RLS policies. They return only the caller's role membership.
 create or replace function public.has_role(required_role text)
 returns boolean
 language sql
@@ -8,8 +8,10 @@ security definer
 set search_path = public, pg_temp
 as $$
   select exists (
-    select 1 from public.user_roles
-    where user_id = auth.uid() and role::text = required_role
+    select 1
+    from public.user_roles
+    where user_id = auth.uid()
+      and role::text = required_role
   );
 $$;
 
@@ -21,8 +23,10 @@ security definer
 set search_path = public, pg_temp
 as $$
   select exists (
-    select 1 from public.user_roles
-    where user_id = auth.uid() and role::text = any(requested_roles)
+    select 1
+    from public.user_roles
+    where user_id = auth.uid()
+      and role::text = any(requested_roles)
   );
 $$;
 
@@ -34,8 +38,10 @@ security definer
 set search_path = public, pg_temp
 as $$
   select exists (
-    select 1 from public.user_roles
-    where user_id = _user_id and role = _role
+    select 1
+    from public.user_roles
+    where user_id = _user_id
+      and role = _role
   );
 $$;
 

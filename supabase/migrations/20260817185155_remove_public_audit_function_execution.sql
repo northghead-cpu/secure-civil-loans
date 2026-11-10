@@ -1,4 +1,12 @@
--- Compatibility alias for migration 20260817185155 (remove_public_audit_function_execution).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+REVOKE EXECUTE ON FUNCTION public.audit_bank_product_change() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.audit_granular_consent_change() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.audit_kyc_write_change() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.audit_loan_application_change() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.audit_loan_application_changes() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.audit_user_role_change() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.audit_bank_product_change() TO service_role;
+GRANT EXECUTE ON FUNCTION public.audit_granular_consent_change() TO service_role;
+GRANT EXECUTE ON FUNCTION public.audit_kyc_write_change() TO service_role;
+GRANT EXECUTE ON FUNCTION public.audit_loan_application_change() TO service_role;
+GRANT EXECUTE ON FUNCTION public.audit_loan_application_changes() TO service_role;
+GRANT EXECUTE ON FUNCTION public.audit_user_role_change() TO service_role;

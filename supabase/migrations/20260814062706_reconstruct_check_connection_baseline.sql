@@ -1,4 +1,19 @@
--- Compatibility alias for migration 20260814062706 (reconstruct_check_connection_baseline).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+CREATE OR REPLACE FUNCTION public.check_connection()
+RETURNS json
+LANGUAGE plpgsql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public'
+AS $$
+BEGIN
+  RETURN json_build_object(
+    'status', 'connected',
+    'timestamp', now(),
+    'user_id', auth.uid(),
+    'role_check', (SELECT count(*) FROM public.user_roles WHERE user_id = auth.uid())
+  );
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.check_connection() FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.check_connection() TO authenticated;

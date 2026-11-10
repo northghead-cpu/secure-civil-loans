@@ -1,2 +1,2 @@
--- Compatibility alias for already recorded production migration 20260824033402.
--- Canonical migrations retain the implementation; no SQL or customer-data mutation.
+REVOKE EXECUTE ON FUNCTION public.log_audit(uuid, text, text, text, text, jsonb, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.log_audit(uuid, text, text, text, text, jsonb, jsonb) TO service_role;

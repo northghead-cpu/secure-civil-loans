@@ -1,4 +1,3 @@
--- Compatibility alias for migration 20260814062717 (reconstruct_profile_financial_columns).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS net_salary numeric,
+  ADD COLUMN IF NOT EXISTS existing_obligations numeric;

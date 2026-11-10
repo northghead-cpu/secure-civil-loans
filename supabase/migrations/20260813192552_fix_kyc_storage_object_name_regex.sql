@@ -1,4 +1,7 @@
--- Compatibility alias for migration 20260813192552 (fix_kyc_storage_object_name_regex).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+CREATE OR REPLACE FUNCTION public.is_valid_kyc_storage_object_name(object_name TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT object_name ~* ('^(nrc|gov-id|payslip)-[0-9]{13}' || chr(92) || '\\.(pdf|png|jpe?g)$')
+$$;

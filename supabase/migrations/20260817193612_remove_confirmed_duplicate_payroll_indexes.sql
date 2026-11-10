@@ -1,4 +1,2 @@
--- Compatibility alias for migration 20260817193612 (remove_confirmed_duplicate_payroll_indexes).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+drop index if exists public.idx_pda_loan_application_id;
+drop index if exists public.idx_pda_user_id;

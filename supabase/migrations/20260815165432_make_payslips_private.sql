@@ -1,4 +1,1 @@
--- Compatibility alias for migration 20260815165432 (make_payslips_private).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+update storage.buckets set public = false where id = 'payslips' and public = true;

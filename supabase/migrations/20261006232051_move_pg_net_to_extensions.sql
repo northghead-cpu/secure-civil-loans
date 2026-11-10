@@ -1,2 +1,3 @@
--- Compatibility alias for already recorded production migration 20261006232051.
--- Canonical migrations retain the implementation; no SQL or customer-data mutation.
+create schema if not exists extensions;
+drop extension if exists pg_net;
+create extension pg_net with schema extensions;

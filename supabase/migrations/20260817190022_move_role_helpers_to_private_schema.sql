@@ -1,4 +1,9 @@
--- Compatibility alias for migration 20260817190022 (move_role_helpers_to_private_schema).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+ALTER FUNCTION public.has_any_role(text[]) SET SCHEMA private;
+ALTER FUNCTION public.has_role(text) SET SCHEMA private;
+ALTER FUNCTION public.has_role(uuid, app_role) SET SCHEMA private;
+REVOKE EXECUTE ON FUNCTION private.has_any_role(text[]) FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION private.has_role(text) FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION private.has_role(uuid, app_role) FROM anon, authenticated, PUBLIC;
+GRANT EXECUTE ON FUNCTION private.has_any_role(text[]) TO authenticated;
+GRANT EXECUTE ON FUNCTION private.has_role(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION private.has_role(uuid, app_role) TO authenticated;

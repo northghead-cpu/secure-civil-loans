@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260819220917 (add_incident_promotion_function).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.
