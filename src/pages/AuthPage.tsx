@@ -1,4 +1,5 @@
 import { safeReturnPath } from "@/lib/safeReturnPath";
+import { beginSessionMetadata, clearSessionMetadata } from "@/hooks/useIdleTimeout";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -128,11 +129,18 @@ const AuthPage = () => {
       return;
     }
 
+    let loginSucceeded = false;
     try {
       if (mode === "login") {
+        // Start a new authentication lifecycle with clean client-side session
+        // metadata. Old/future activity timestamps can otherwise force the
+        // idle-session guard to sign out immediately after password success.
+        clearSessionMetadata();
+        beginSessionMetadata();
         const { data, error: signInError } =
           await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
+        loginSucceeded = true;
 
         recordSuccess(throttleScope);
         recordSuccess(globalScope, { mode });
@@ -177,6 +185,7 @@ const AuthPage = () => {
         });
       }
     } catch (err: unknown) {
+      if (mode === "login" && !loginSucceeded) clearSessionMetadata();
       const rawMessage = err instanceof Error ? err.message : "Unknown error";
       // Auth-enumeration hardening: collapse credential/lookup errors into one generic message.
       const lower = rawMessage.toLowerCase();
@@ -225,16 +234,21 @@ const AuthPage = () => {
 
   const onThirdPartySignIn = async (provider: "google" | "apple") => {
     try {
+      clearSessionMetadata();
+      beginSessionMetadata();
       const { error } = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin + (nextPath ?? ""),
       });
-      if (error)
+      if (error) {
+        clearSessionMetadata();
         toast({
           title: "Error",
           description: "Sign in failed. Please try again.",
           variant: "destructive",
         });
+      }
     } catch {
+      clearSessionMetadata();
       toast({
         title: "Error",
         description: "Sign in failed. Please try again.",

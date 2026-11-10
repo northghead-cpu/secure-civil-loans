@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   evaluateSession,
   LAST_ACTIVITY_KEY,
-  LEGACY_SESSION_START_KEY,
+  SESSION_START_KEY,
   SIGNOUT_BROADCAST_KEY,
 } from "@/lib/sessionPolicy";
 
@@ -16,8 +16,17 @@ const INTERACTION_EVENTS = ["mousedown", "keydown", "scroll", "touchstart", "mou
 const CHECK_INTERVAL_MS = 30 * 1000;
 
 export function clearSessionMetadata() {
+  // A fresh explicit login must not inherit idle/tamper metadata or a stale
+  // cross-tab sign-out marker from a previous browser session.
   localStorage.removeItem(LAST_ACTIVITY_KEY);
-  localStorage.removeItem(LEGACY_SESSION_START_KEY);
+  localStorage.removeItem(SESSION_START_KEY);
+  localStorage.removeItem(SIGNOUT_BROADCAST_KEY);
+}
+
+export function beginSessionMetadata(now = Date.now()) {
+  const timestamp = String(now);
+  localStorage.setItem(SESSION_START_KEY, timestamp);
+  localStorage.setItem(LAST_ACTIVITY_KEY, timestamp);
 }
 
 export function useIdleTimeout(user: { last_sign_in_at?: string | null } | null) {
@@ -42,7 +51,12 @@ export function useIdleTimeout(user: { last_sign_in_at?: string | null } | null)
 
     const check = () => {
       if (signingOut) return;
-      const d = evaluateSession({ now: Date.now(), lastSignInAt, lastActivityRaw: localStorage.getItem(LAST_ACTIVITY_KEY) });
+      const d = evaluateSession({
+        now: Date.now(),
+        lastSignInAt,
+        lastActivityRaw: localStorage.getItem(LAST_ACTIVITY_KEY),
+        sessionStartRaw: localStorage.getItem(SESSION_START_KEY),
+      });
       if (d.action === "init") localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
       else if (d.action === "expire") void forceSignOut(true);
     };

@@ -1,76 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { scrubDeep, scrubUrl } from "@/lib/sentry";
-
-describe("sentry redaction", () => {
-  it("truncates deep and cyclic objects instead of leaking unsanitized content", () => {
-    const input: Record<string, unknown> = { safe: "ok" };
-    let cursor = input;
-    for (let i = 0; i < 12; i++) {
-      const next = { safe: "ok" };
-      cursor.child = next;
-      cursor = next;
-    }
-    cursor.email = "deep@example.test";
-    input.cycle = input;
-    const output = JSON.stringify(scrubDeep(input));
-    expect(output).not.toContain("deep@example.test");
-    expect(output).toContain("[redacted]");
+import { scrubDeep, scrubUrl, safeErrorEvent } from "@/lib/sentry";
+describe("deny-by-default telemetry", () => {
+  it("discards unknown values, including free text and numbers", () => {
+    const out = scrubDeep({ note: "Jane earns 18500", diagnostic: { amount: 18500 }, email: "a@example.test", route: "/profile" });
+    expect(out).toEqual({ note: "[redacted]", diagnostic: { amount: "[redacted]" }, email: "[redacted]", route: "/profile" });
   });
-  it("redacts regulated keys", () => {
-    const out = scrubDeep({
-      nrc_number: "123456/78/1",
-      employee_number: "EMP-1",
-      salary: 18500,
-      kyc_status: "VERIFIED",
-      crb_score: 640,
-      payslip_url: "https://x/y.pdf",
-      loan_application: { amount: 5000 },
-      access_token: "abc",
-      authorization: "Bearer abc",
-      password: "hunter2",
-      email: "a@b.com",
-      phone: "0977123456",
-      full_name: "Jane Banda",
-      route: "/profile",
-    }) as Record<string, unknown>;
-
-    for (const key of [
-      "nrc_number", "employee_number", "salary", "kyc_status", "crb_score",
-      "payslip_url", "loan_application", "access_token", "authorization",
-      "password", "email", "phone", "full_name",
-    ]) {
-      expect(out[key], key).toBe("[redacted]");
-    }
-    expect(out.route).toBe("/profile");
+  it("drops all query/hash values and unknown path segments", () => {
+    expect(scrubUrl("https://app/profile?anything=private#token")).toBe("/profile");
+    expect(scrubUrl("https://app/customers/Jane-Banda")).toBe("[redacted]");
+    expect(scrubUrl("not a URL Jane earns 18500")).toBe("[redacted]");
   });
-
-  it("redacts sensitive value shapes under harmless keys", () => {
-    const out = scrubDeep({
-      note: "customer nrc 123456/78/1 said hi",
-      blob: "data:image/png;base64,AAAABBBBCCCC",
-      jwt: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijk",
-      contact: "someone@example.com",
-      cell: "+260977123456",
-    }) as Record<string, string>;
-
-    expect(out.note).toBe("customer nrc [redacted] said hi");
-    expect(out.blob).toBe("[redacted]");
-    expect(out.contact).toBe("[redacted]");
-    expect(out.cell).toBe("[redacted]");
+  it("terminates cyclic objects", () => {
+    const input: Record<string, unknown> = {}; input.cycle = input;
+    expect(JSON.stringify(scrubDeep(input))).toContain("[redacted]");
   });
-
-  it("scrubs tokens and hashes out of urls", () => {
-    expect(scrubUrl("https://app/reset?access_token=abc&code=xyz&page=2")).toBe(
-      "https://app/reset?access_token=%5Bredacted%5D&code=%5Bredacted%5D&page=2",
-    );
-    expect(scrubUrl("https://app/x#access_token=abc")).toBe("https://app/x");
-  });
-
-  it("handles nested structures and arrays without throwing", () => {
-    const out = scrubDeep({ a: [{ nrc: "1" }, { ok: "fine" }] }) as {
-      a: Array<Record<string, string>>;
-    };
-    expect(out.a[0].nrc).toBe("[redacted]");
-    expect(out.a[1].ok).toBe("fine");
+  it("reconstructs an event without arbitrary fields, breadcrumbs or frame context", () => {
+    const out = safeErrorEvent({ type: undefined, message: "Jane earns 18500", user: { email: "jane@example.test" }, extra: { customer: "Jane" }, request: { url: "https://app/profile?case=Jane" }, breadcrumbs: [{ message: "Jane" }], exception: { values: [{ type: "Jane", value: "18500", stacktrace: { frames: [{ filename: "https://app/assets/index-abc.js?secret=Jane", lineno: 21, vars: { name: "Jane" }, context_line: "Jane" }, { filename: "https://app/customers/Jane" }] } }] } });
+    const serialized = JSON.stringify(out);
+    expect(serialized).not.toMatch(/Jane|18500|example.test|secret|context_line|breadcrumbs/);
+    expect(out.exception?.values?.[0].stacktrace?.frames).toEqual([{ filename: "/assets/index-abc.js", lineno: 21, colno: undefined, in_app: true }]);
   });
 });

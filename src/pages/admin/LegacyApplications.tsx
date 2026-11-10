@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { openPrivateStorageDocument } from "@/lib/privateStorageDocuments";
 import { useRBAC } from "@/hooks/useRBAC";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ const statusColors: Record<string, string> = {
   rejected: "bg-destructive/10 text-destructive border-destructive/20",
   reviewing: "bg-info/10 text-info border-info/20",
 };
-// Signed-URL requests remain allowlisted. Storage RLS is still authoritative.
+// File requests remain allowlisted. Storage RLS is still authoritative.
 const KYC_FILE_NAME_PATTERN =
   /^(?:nrc|gov-id|payslip|introductory-letter)-\d{13}\.(?:pdf|png|jpe?g)$/i;
 const isValidKycFileName = (name: string): boolean =>
@@ -68,7 +69,7 @@ const UsersApplications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [selected, setSelected] = useState<Application | null>(null);
   const [loadingApps, setLoadingApps] = useState(true);
-  const [documents, setDocuments] = useState<{ name: string; url: string }[]>(
+  const [documents, setDocuments] = useState<{ name: string; path: string }[]>(
     [],
   );
   const [salaryForm, setSalaryForm] = useState({
@@ -107,20 +108,8 @@ const UsersApplications = () => {
       return;
     }
     if (files) {
-      const docs = await Promise.all(
-        files
-          .filter((f) => isValidKycFileName(f.name))
-          .map(async (f) => {
-            const { data, error } = await supabase.storage
-              .from("kyc-documents")
-              .createSignedUrl(`${app.user_id}/${f.name}`, 3600);
-            if (error || !data?.signedUrl) return null;
-            return { name: f.name, url: data.signedUrl };
-          }),
-      );
-      setDocuments(
-        docs.filter((d): d is { name: string; url: string } => Boolean(d)),
-      );
+      setDocuments(files.filter((f) => isValidKycFileName(f.name))
+        .map((f) => ({ name: f.name, path: `${app.user_id}/${f.name}` })));
     }
   };
   const updateApplication = async (
@@ -220,18 +209,20 @@ const UsersApplications = () => {
                 ) : (
                   <div className="grid gap-3">
                     {documents.map((doc) => (
-                      <a
+                      <button
                         key={doc.name}
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        type="button"
+                        onClick={() => {
+                          void openPrivateStorageDocument("kyc-documents", doc.path)
+                            .catch(() => toast.error("Document access is unavailable. Check your session and retry."));
+                        }}
                         className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                       >
                         <Download className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm font-medium text-foreground">
                           {doc.name}
                         </span>
-                      </a>
+                      </button>
                     ))}
                   </div>
                 )}

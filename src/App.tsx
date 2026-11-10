@@ -26,7 +26,10 @@ const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
   useLayoutEffect(() => {
     if (hash) {
-      const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+      let anchor: string;
+      try { anchor = decodeURIComponent(hash.slice(1)); }
+      catch { return; }
+      const target = document.getElementById(anchor);
       if (target) {
         target.scrollIntoView({ behavior: "auto", block: "start" });
         return;

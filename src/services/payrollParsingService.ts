@@ -9,8 +9,13 @@
 
 import { processDocument, type OCRResult } from "@/services/ocrService";
 import { features } from "@/config/features";
+import { extractDocumentName, extractDocumentEmployer } from "./ocrFieldExtraction";
+import { parseSmartZambiaPayslip, type PayslipReviewFlag } from "./smartZambiaPayslip";
 
 export interface PayrollParseResult {
+  layout?: "smart_zambia_reference";
+  nrc_number?: string | null;
+  review_flags?: PayslipReviewFlag[];
   /** Gross salary amount (ZMW) */
   gross_salary: number | null;
   /** Total deductions amount (ZMW) */
@@ -67,28 +72,6 @@ const extractAmountNear = (text: string, keywords: string[]): number | null => {
 };
 
 /**
- * Extract employer / ministry name.
- * Looks for common payslip header patterns.
- */
-const extractEmployer = (text: string): string | null => {
-  const patterns = [
-    /(?:REPUBLIC\s+OF\s+ZAMBIA[\s\S]*?)(MINISTRY\s+OF\s+[A-Z][A-Z\s&]*[A-Z])/i,
-    /(MINISTRY\s+OF\s+[A-Z][A-Z\s&]*[A-Z])/i,
-    /(?:employer|department|organisation|organization|company)[:\s]+([A-Za-z\s&,.-]{4,60})/i,
-  ];
-
-  for (const p of patterns) {
-    const m = text.match(p);
-    if (m) {
-      const val = (m[1] ?? m[0]).trim().replace(/\s{2,}/g, " ");
-      // Skip if it's just "OF" or too short
-      if (val.length > 5) return val;
-    }
-  }
-  return null;
-};
-
-/**
  * Extract employee / payroll number.
  */
 const extractEmployeeNumber = (text: string): string | null => {
@@ -127,7 +110,7 @@ const extractPayPeriod = (text: string): string | null => {
 /**
  * Parse a payslip file and extract salary / employer details.
  *
- * @param file - The payslip image or PDF
+ * @param file - The payslip JPG or PNG image
  * @returns Parsed payroll data
  */
 export const parsePayslip = async (file: File): Promise<PayrollParseResult> => {
@@ -170,6 +153,8 @@ export const parsePayslip = async (file: File): Promise<PayrollParseResult> => {
     }
 
     const text = ocr.extracted_text;
+    const smartZambia = parseSmartZambiaPayslip(text, ocr.confidence);
+    if (smartZambia) return { ...smartZambia, raw_text: text, confidence: ocr.confidence, success: true };
 
     // Extract fields
     const gross_salary = extractAmountNear(text, [
@@ -193,10 +178,10 @@ export const parsePayslip = async (file: File): Promise<PayrollParseResult> => {
       "net\\s*payable",
     ]);
 
-    const employer = extractEmployer(text);
+    const employer = extractDocumentEmployer(text);
     const employee_number = extractEmployeeNumber(text) ?? ocr.document_number ?? null;
     const pay_period = extractPayPeriod(text);
-    const full_name = ocr.full_name ?? null;
+    const full_name = extractDocumentName(text);
 
     const result: PayrollParseResult = {
       gross_salary,

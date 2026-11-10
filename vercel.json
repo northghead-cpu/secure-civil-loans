@@ -5,62 +5,110 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.de.sentry.io; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-sYZrIxnAApiMUtmq2PZPylQfZoHL2Ge06qw5OkjZFbo=' 'sha256-N/Vj9/vBaj4j9ajwYNjIZ+Fas6TckNmRWBZMbcIts6k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://zdpeaxkormwjrgllwalq.supabase.co wss://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co wss://mioppvtzbaixeeuxkroo.supabase.co https://o4511870789943296.ingest.de.sentry.io; upgrade-insecure-requests"
         },
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=63072000; includeSubDomains; preload"
         },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
         {
           "key": "Permissions-Policy",
           "value": "accelerometer=(), autoplay=(), camera=(), display-capture=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), xr-spatial-tracking=()"
         },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" },
-        { "key": "X-DNS-Prefetch-Control", "value": "off" },
-        { "key": "X-Permitted-Cross-Domain-Policies", "value": "none" },
-        { "key": "Origin-Agent-Cluster", "value": "?1" }
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Cross-Origin-Embedder-Policy",
+          "value": "credentialless"
+        },
+        {
+          "key": "X-DNS-Prefetch-Control",
+          "value": "off"
+        },
+        {
+          "key": "X-Permitted-Cross-Domain-Policies",
+          "value": "none"
+        },
+        {
+          "key": "Origin-Agent-Cluster",
+          "value": "?1"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/(.*)\\.(woff2|woff|ttf|otf)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/(.*)\\.(svg|png|jpg|jpeg|webp|avif|ico)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=604800" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
       ]
     },
     {
       "source": "/(robots.txt|sitemap.xml|llms.txt)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
       ]
     },
     {
       "source": "/(index.html)?",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     },
     {
       "source": "/(profile|apply|underwriting|application-submitted|login|forgot-password|reset-password|support|admin)(/.*)?",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, private" },
-        { "key": "Pragma", "value": "no-cache" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, private"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        }
       ]
     },
     {
@@ -149,10 +197,25 @@
     }
   ],
   "rewrites": [
-    {"source": "/partnership-profile", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
-    {"source": "/partnership-profile/", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
-    {"source": "/partnership-profile/index.html", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
-    {"source": "/partnership-profile/riverbanc-company-profile.pdf", "destination": "/partnership-profile/riverbanc-company-profile.pdf"},
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/partnership-profile",
+      "destination": "/partnership-profile/riverbanc-company-profile.pdf"
+    },
+    {
+      "source": "/partnership-profile/",
+      "destination": "/partnership-profile/riverbanc-company-profile.pdf"
+    },
+    {
+      "source": "/partnership-profile/index.html",
+      "destination": "/partnership-profile/riverbanc-company-profile.pdf"
+    },
+    {
+      "source": "/partnership-profile/riverbanc-company-profile.pdf",
+      "destination": "/partnership-profile/riverbanc-company-profile.pdf"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

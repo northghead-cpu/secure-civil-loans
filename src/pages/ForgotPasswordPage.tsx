@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, ArrowLeft, Mail, RotateCcw } from "lucide-react";
 import { checkThrottle, recordFailure, recordSuccess, formatRetry, normalizeEmail } from "@/lib/authThrottle";
+import { recoveryRedirect } from "@/lib/recoveryRedirect";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
@@ -34,10 +35,8 @@ const ForgotPasswordPage = () => {
 
     setLoading(true);
     try {
-      // Production reset links always return to Riverbanc's canonical domain,
-      // even when the request originates from a Vercel preview deployment.
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalized, {
-        redirectTo: `${import.meta.env.PROD ? "https://riverbanc.co.zm" : window.location.origin}/reset-password`,
+        redirectTo: recoveryRedirect(),
       });
 
       if (resetError) {

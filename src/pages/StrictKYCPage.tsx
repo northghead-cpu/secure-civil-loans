@@ -49,9 +49,8 @@ const emptySlot = (): PayslipSlot => ({
   result: null,
   validating: false,
 });
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_UPLOAD_TYPES = new Set([
-  "application/pdf",
   "image/png",
   "image/jpeg",
 ]);
@@ -172,11 +171,11 @@ const StrictKYCPage = () => {
       setGovIdResult(null);
     }
     if (file.size > MAX_FILE_BYTES) {
-      toast.error("Identity document exceeds the 10MB limit.");
+      toast.error("Identity document exceeds the 5MB limit.");
       return;
     }
     if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
-      toast.error("Unsupported identity document type.");
+      toast.error("Use a JPG or PNG for OCR. Convert PDF pages to images before uploading.");
       return;
     }
     setParsingIdentity(true);
@@ -215,6 +214,7 @@ const StrictKYCPage = () => {
   };
 
   const handlePayslip = async (index: number, file: File | null) => {
+    setPayslips((current) => current.map((slot, i) => (i === index ? emptySlot() : slot)));
     if (!file) {
       setPayslips((current) =>
         current.map((slot, i) => (i === index ? emptySlot() : slot)),
@@ -222,11 +222,11 @@ const StrictKYCPage = () => {
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      toast.error("Payslip exceeds the 10MB limit.");
+      toast.error("Payslip exceeds the 5MB limit.");
       return;
     }
     if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
-      toast.error("Unsupported payslip document type.");
+      toast.error("Use a JPG or PNG for OCR. Convert PDF pages to images before uploading.");
       return;
     }
     setPayslips((current) =>
@@ -340,7 +340,7 @@ const StrictKYCPage = () => {
     }
     if (
       introductoryLetter.size > MAX_FILE_BYTES ||
-      !ALLOWED_UPLOAD_TYPES.has(introductoryLetter.type)
+      !(ALLOWED_UPLOAD_TYPES.has(introductoryLetter.type) || introductoryLetter.type === "application/pdf")
     ) {
       toast.error("Unsupported or oversized introductory letter.");
       return;
@@ -376,16 +376,17 @@ const StrictKYCPage = () => {
       ];
       const uploadedDocuments = [];
       for (const document of files) {
-        const ext = document.file.name.split(".").pop()?.toLowerCase() || "pdf";
-        const path = `${user.id}/${document.field}-${Date.now()}.${ext}`;
-        const { error } = await supabase.storage
-          .from("kyc-documents")
-          .upload(path, document.file, {
-            upsert: false,
-            contentType: document.file.type,
-          });
-        if (error) throw new Error(`Failed to upload ${document.field}`);
-        uploadedDocuments.push({ ...document, storagePath: path });
+        const { data, error } = await supabase.functions.invoke(
+          `upload-kyc-document?kind=${encodeURIComponent(document.field)}`,
+          { body: document.file, headers: { "Content-Type": document.file.type } },
+        );
+        if (error || typeof data?.path !== "string") {
+          const formats = document.field === "introductory-letter"
+            ? "a flat PDF up to 100 pages, or a JPG/PNG up to 4 megapixels"
+            : "a JPG/PNG up to 4 megapixels";
+          throw new Error(`Could not validate ${document.field}. Use ${formats}; files must be under 5 MB.`);
+        }
+        uploadedDocuments.push({ ...document, storagePath: data.path });
       }
       const documentRecords = buildKycDocumentRecords({
         userId: user.id,
@@ -459,6 +460,9 @@ const StrictKYCPage = () => {
                 <p className="text-muted-foreground mt-2">
                   Verify your NRC and government-issued identity document.
                 </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Use JPG or PNG images up to 5MB for OCR. Convert PDF pages to images first. Review and correct any suggested details.
+                </p>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
@@ -502,7 +506,7 @@ const StrictKYCPage = () => {
                   <label className="mt-2 border-2 border-dashed border-border rounded-xl p-5 text-center cursor-pointer block focus-within:ring-2 focus-within:ring-ring">
                     <input
                       type="file"
-                      accept=".png,.jpg,.jpeg,.pdf"
+                      accept=".png,.jpg,.jpeg"
                       className="sr-only"
                       onChange={(e) =>
                         handleIdentity("nrc", e.target.files?.[0] || null)
@@ -547,7 +551,7 @@ const StrictKYCPage = () => {
                   <label className="mt-2 border-2 border-dashed border-border rounded-xl p-5 text-center cursor-pointer block focus-within:ring-2 focus-within:ring-ring">
                     <input
                       type="file"
-                      accept=".png,.jpg,.jpeg,.pdf"
+                      accept=".png,.jpg,.jpeg"
                       className="sr-only"
                       onChange={(e) =>
                         handleIdentity("gov", e.target.files?.[0] || null)
@@ -591,6 +595,7 @@ const StrictKYCPage = () => {
               </div>
               <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
                 <p className="text-sm font-medium">Required periods</p>
+                <p className="text-xs text-muted-foreground mt-1">Payslips must be JPG or PNG images up to 5MB. Convert PDF pages to images first.</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {requiredPeriods.map((period) => (
                     <span
@@ -615,7 +620,7 @@ const StrictKYCPage = () => {
                     <label className="mt-2 border-2 border-dashed border-border rounded-xl p-5 text-center cursor-pointer block focus-within:ring-2 focus-within:ring-ring">
                       <input
                         type="file"
-                        accept=".png,.jpg,.jpeg,.pdf"
+                        accept=".png,.jpg,.jpeg"
                         className="sr-only"
                         onChange={(e) =>
                           handlePayslip(index, e.target.files?.[0] || null)
@@ -639,6 +644,12 @@ const StrictKYCPage = () => {
                         </p>
                       )}
                     </label>
+                    {!!slot.result?.review_flags?.length && (
+                      <div className="mt-2 text-xs" role="status">
+                        <p>Consistency checks require staff review:</p>
+                        <ul className="list-disc pl-4">{slot.result.review_flags.map(flag => <li key={flag.code}>{flag.message}</li>)}</ul>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -677,6 +688,7 @@ const StrictKYCPage = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   Upload the government-issued letter provided by your employer.
                   Riverbanc does not create or author this document.
+                  {" "}PDF, JPG and PNG are accepted, up to 5MB.
                 </p>
                 <label className="mt-3 border-2 border-dashed border-border rounded-xl p-5 text-center cursor-pointer block focus-within:ring-2 focus-within:ring-ring">
                   <input

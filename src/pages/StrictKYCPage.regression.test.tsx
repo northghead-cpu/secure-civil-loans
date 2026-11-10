@@ -71,27 +71,27 @@ describe("KYC recovery and replacement", () => {
       </MemoryRouter>,
     );
     await screen.findByRole("heading", { name: "Identity" });
-    const file = new File(["fixture"], "identity.pdf", {
-      type: "application/pdf",
+    const file = new File(["fixture"], "identity.png", {
+      type: "image/png",
     });
     let inputs = view.container.querySelectorAll("input[type=file]");
     fireEvent.change(inputs[0], { target: { files: [file] } });
-    await screen.findByText("identity.pdf");
+    await screen.findByText("identity.png");
     fireEvent.change(inputs[1], {
       target: {
         files: [
-          new File(["fixture"], "government.pdf", { type: "application/pdf" }),
+          new File(["fixture"], "government.png", { type: "image/png" }),
         ],
       },
     });
-    await screen.findByText("government.pdf");
+    await screen.findByText("government.png");
     fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
     await screen.findByRole("heading", { name: "Employment evidence" });
     inputs = view.container.querySelectorAll("input[type=file]");
     fireEvent.change(inputs[0], {
       target: {
         files: [
-          new File(["fixture"], "first.pdf", { type: "application/pdf" }),
+          new File(["fixture"], "first.png", { type: "image/png" }),
         ],
       },
     });
@@ -101,7 +101,7 @@ describe("KYC recovery and replacement", () => {
     fireEvent.change(inputs[0], {
       target: {
         files: [
-          new File(["fixture"], "replacement.pdf", { type: "application/pdf" }),
+          new File(["fixture"], "replacement.png", { type: "image/png" }),
         ],
       },
     });
@@ -110,5 +110,23 @@ describe("KYC recovery and replacement", () => {
       expect(screen.getByText("Accepted by OCR")).toBeInTheDocument(),
     );
     expect(mocks.error).not.toHaveBeenCalled();
+    fireEvent.change(inputs[0], {
+      target: { files: [new File(["%PDF-1.7"], "replacement.pdf", { type: "application/pdf" })] },
+    });
+    await waitFor(() => expect(screen.queryByText("Accepted by OCR")).not.toBeInTheDocument());
+    expect(mocks.parse).toHaveBeenCalledTimes(2);
+    expect(mocks.error).toHaveBeenCalledWith(expect.stringContaining("Convert PDF pages to images"));
+  });
+  it("explains unsupported PDF OCR before accepting an identity document", async () => {
+    const view = render(<MemoryRouter><StrictKYCPage /></MemoryRouter>);
+    await screen.findByRole("heading", { name: "Identity" });
+    const inputs = view.container.querySelectorAll("input[type=file]");
+    expect(inputs[0].getAttribute("accept")).not.toContain("pdf");
+    fireEvent.change(inputs[0], {
+      target: { files: [new File(["%PDF-1.7"], "identity.pdf", { type: "application/pdf" })] },
+    });
+    expect(mocks.error).toHaveBeenCalledWith(expect.stringContaining("Convert PDF pages to images"));
+    expect(screen.queryByText("identity.pdf")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continue/ })).toBeDisabled();
   });
 });

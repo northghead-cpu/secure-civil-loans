@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { openPrivateStorageDocument } from "@/lib/privateStorageDocuments";
 
 interface Receipt {
   id: string;
@@ -50,38 +51,11 @@ const PaymentReceiptHistory = () => {
       toast.info("This receipt document is still being prepared.");
       return;
     }
-    const popup =
-      mode === "download" ? null : window.open("about:blank", "_blank");
-    if (mode !== "download" && !popup) {
-      toast.info("Allow pop-ups to view your receipt.");
-      return;
-    }
-    if (popup) {
-      popup.opener = null;
-      popup.document.title = "Riverbanc payment receipt";
-      popup.document.body.textContent = "Preparing your receipt…";
-    }
     setBusyId(receipt.id);
     try {
-      const { data, error } = await supabase.storage
-        .from("payment-receipts")
-        .createSignedUrl(receipt.document_path, 300);
-      if (error || !data?.signedUrl)
-        throw error ?? new Error("Signed URL unavailable");
-      if (mode === "download") {
-        const anchor = document.createElement("a");
-        anchor.href = data.signedUrl;
-        anchor.download = `${receipt.receipt_number}.pdf`;
-        anchor.target = "_blank";
-        anchor.rel = "noreferrer";
-        anchor.click();
-      } else if (popup) {
-        popup.location.href = data.signedUrl;
-        if (mode === "print")
-          toast.info("Use your browser PDF viewer to print the receipt.");
-      }
+      await openPrivateStorageDocument("payment-receipts", receipt.document_path, mode, `${receipt.receipt_number}.pdf`);
+      if (mode === "print") toast.info("Use your browser PDF viewer to print the receipt.");
     } catch {
-      popup?.close();
       toast.error("Unable to open this receipt right now.");
     } finally {
       setBusyId(null);

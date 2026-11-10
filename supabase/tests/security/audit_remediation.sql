@@ -4,7 +4,10 @@ INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES
 ('f2080000-0000-4000-8000-000000000001','ui-borrower-a@example.invalid','{"full_name":"Synthetic Borrower A"}'),
 ('f2080000-0000-4000-8000-000000000002','ui-borrower-b@example.invalid','{"full_name":"Synthetic Borrower B"}'),
 ('f2080000-0000-4000-8000-000000000003','ui-admin@example.invalid','{"full_name":"Synthetic Admin"}');
-INSERT INTO public.user_roles(user_id,role) VALUES('f2080000-0000-4000-8000-000000000003','admin') ON CONFLICT DO NOTHING;
+INSERT INTO public.user_roles(user_id,role) VALUES
+('f2080000-0000-4000-8000-000000000001','user'),
+('f2080000-0000-4000-8000-000000000002','user'),
+('f2080000-0000-4000-8000-000000000003','admin') ON CONFLICT DO NOTHING;
 INSERT INTO public.profiles(user_id,full_name) VALUES
 ('f2080000-0000-4000-8000-000000000001','Synthetic Borrower A'),
 ('f2080000-0000-4000-8000-000000000002','Synthetic Borrower B'),
@@ -90,7 +93,7 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES('f2080000-0000-4000-8000-000000000004','readonly@example.invalid','{}');
-INSERT INTO public.profiles(user_id,full_name) VALUES('f2080000-0000-4000-8000-000000000004','Read only staff');
+INSERT INTO public.profiles(user_id,full_name) VALUES('f2080000-0000-4000-8000-000000000004','Read only staff') ON CONFLICT(user_id) DO NOTHING;
 INSERT INTO public.user_roles(user_id,role)VALUES('f2080000-0000-4000-8000-000000000004','super_user');
 SELECT set_config('request.jwt.claims','{"sub":"f2080000-0000-4000-8000-000000000004","role":"authenticated","aal":"aal2"}',true);
 SET LOCAL ROLE authenticated;
