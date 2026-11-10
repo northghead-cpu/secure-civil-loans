@@ -1,0 +1,2 @@
+-- Compatibility alias for already recorded production migration 20260905121835.
+-- Canonical migrations retain the implementation; no SQL or customer-data mutation.

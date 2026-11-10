@@ -20,6 +20,8 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
+      - name: Migration filename and recorded-ledger regressions
+        run: node --test scripts/migration-history.test.mjs
       - run: bun run vitest run
       - name: Isolated PostgreSQL workflow regression tests
         run: bun run test:db-ui
