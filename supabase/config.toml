@@ -1,1 +1,30 @@
 project_id = "zdpeaxkormwjrgllwalq"
+
+[auth]
+minimum_password_length = 8
+
+[auth.sessions]
+timebox = "12h"
+inactivity_timeout = "30m"
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[functions.upload-kyc-document]
+verify_jwt = true
+
+[functions.sentry-incident-webhook]
+verify_jwt = false
+
+[functions.aikido-incident-webhook]
+verify_jwt = false
+
+[functions.process-monthly-payroll-receipts]
+verify_jwt = false
+
+[functions.resend-receipt-webhook]
+verify_jwt = false
+
+[functions.send-handshake-referral]
+verify_jwt = true

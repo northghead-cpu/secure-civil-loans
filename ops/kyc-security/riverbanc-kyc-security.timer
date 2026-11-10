@@ -1,0 +1,11 @@
+[Unit]
+Description=Riverbanc Marketplace security scan and backup cadence
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:20:00 Africa/Lusaka
+RandomizedDelaySec=120
+Persistent=true
+Unit=riverbanc-kyc-security.service
+
+[Install]
+WantedBy=timers.target

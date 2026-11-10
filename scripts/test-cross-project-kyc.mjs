@@ -1,0 +1,22 @@
+// Synthetic integration harness using both actual repositories, no hosted data.
+import assert from 'node:assert/strict';import {pathToFileURL} from 'node:url';import {join} from 'node:path';
+import {makeExport} from '../supabase/functions/kyc-package-export/handler.mjs';import {sha} from '../supabase/functions/kyc-package-export/protocol.mjs';
+if(!process.env.HANDSHAKE_CHECKOUT)throw Error('Set HANDSHAKE_CHECKOUT to the reviewed Handshake checkout');
+const mod=p=>import(pathToFileURL(join(process.env.HANDSHAKE_CHECKOUT,p)).href);
+const {makePreparation}=await mod('supabase/functions/prepare-kyc-package/handler.mjs');
+const {makeHandler:makeDownload}=await mod('supabase/functions/pilot-kyc-download/handler.ts');
+const {checkSource}=await mod('supabase/functions/pilot-kyc-download/source-check.mjs');
+const secret='synthetic-integration-secret-'.repeat(3),id='11111111-1111-4111-8111-111111111111',attempt='22222222-2222-4222-8222-222222222222',grant='33333333-3333-4333-8333-333333333333',fp='a'.repeat(64);
+const payload=new TextEncoder().encode('%PDF Synthetic borrower document');let permitted=true,staged,manifest,audits=0,claimed=false;
+const documents=['NRC','GOV_ID','INTRODUCTORY_LETTER','PAYSLIP','PAYSLIP','PAYSLIP'].map((type,i)=>({id,type,path:id+'/'+i+'.pdf',period:type==='PAYSLIP'?`2026-0${i}-01`:null,size:payload.length,sha256:sha(payload)}));
+const source=makeExport({secret,tenantMap:{'Synthetic lender':'synthetic'},context:async()=>{if(!permitted)throw Error('Consent withdrawn');return {documents,source_fingerprint:fp,borrower:{full_name:'Synthetic Borrower'}};},read:async()=>payload,audit:async()=>{}});
+const transport=(_url,init)=>source(new Request('https://source.invalid',init));
+const preparation=makePreparation({secret,claim:async()=>({request_id:id,attempt_id:attempt,reference:'RBH-'+id,tenant_short_name:'synthetic',package_fingerprint:fp}),recheck:async()=>{},request:transport,store:async(name,bytes)=>{staged=bytes;manifest={object_name:name,byte_size:bytes.length,sha256:sha(bytes),source_handoff_id:id,source_tenant_slug:'synthetic',source_fingerprint:fp,request_id:id,package_fingerprint:fp};},finish:async()=>id});
+const prepared=await preparation(new Request('https://prepare.invalid',{method:'POST',headers:{Authorization:'Bearer synthetic-staff','Content-Type':'application/json'},body:JSON.stringify({request_id:id})}));
+assert.equal(prepared.status,200);assert.equal((await prepared.json()).release_authorized,false);
+const download=makeDownload({authenticate:async t=>t==='synthetic-lender',claim:async(_t,g,recheck)=>{assert.equal(g,grant);if(claimed&&!recheck)throw Error('Single-use');claimed=true;return manifest;},read:async(_path,m)=>{await checkSource(m,secret,transport);await checkSource(m,secret,transport);return staged;},finish:async(_g,ok)=>{if(ok)audits++;}});
+const request=()=>new Request('https://download.invalid',{method:'POST',headers:{Authorization:'Bearer synthetic-lender','Content-Type':'application/json'},body:JSON.stringify({grant_id:grant})});
+const response=await download(request());assert.equal(response.status,200);assert.equal(sha(new Uint8Array(await response.arrayBuffer())),manifest.sha256);assert.equal(audits,1);
+assert.equal((await download(request())).status,403);
+claimed=false;permitted=false;assert.equal((await download(request())).status,403);assert.equal(audits,1);
+console.log('PASS: actual cross-project handlers prepare a signed ZIP, independently recheck source, enforce single use, audit stream completion, and block withdrawn consent. Synthetic bytes only.');

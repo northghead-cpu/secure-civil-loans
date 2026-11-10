@@ -1,0 +1,4 @@
+# Serve the approved PDF directly; keep existing shared profile URLs.
+/partnership-profile /partnership-profile/riverbanc-company-profile.pdf 200
+/partnership-profile/ /partnership-profile/riverbanc-company-profile.pdf 200
+/partnership-profile/index.html /partnership-profile/riverbanc-company-profile.pdf 200
