@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Riverbanc OCR regression</title>
+<h1>Riverbanc OCR regression</h1>
+<p>Local synthetic-document check of the actual OCR and parsing services.</p>
+<label>Document type <select id="kind"><option value="nrc">NRC</option><option value="passport">Passport</option><option value="payslip">Payslip</option></select></label>
+<label>Select synthetic document <input id="file" type="file" accept="image/png,image/jpeg"></label>
+<pre id="result" aria-live="polite">Select a synthetic document.</pre>
+<pre id="violations">Security policy violations: 0</pre>
+<script type="module" src="./ocr.ts"></script></html>

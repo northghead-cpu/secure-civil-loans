@@ -1,7 +1,10 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { z } from "https://esm.sh/zod@3.23.8";
+import { RequestError, readBoundedText, requireJson } from "../_shared/request-security.ts";
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { corsHeadersFor } from "../_shared/cors.ts";
+import { z } from "https://esm.sh/zod@4.6.6";
 
-const CRBRequestSchema = z.object({
+export const CRBRequestSchema = z.object({
   nrc_number: z.string().trim().min(8, "nrc_number too short").max(20, "nrc_number too long").regex(/^[0-9\/\s-]+$/, "nrc_number contains invalid characters"),
   full_name: z.string().trim().min(2, "full_name too short").max(120, "full_name too long").regex(/^[A-Za-z][A-Za-z\s'.\-]*$/, "full_name contains invalid characters"),
 }).strict();
@@ -12,48 +15,18 @@ const badRequest = (corsHeaders: Record<string, string>, message: string, detail
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id",
-};
-
 const MAX_BODY_BYTES = 8 * 1024;
-const RATE_LIMIT_WINDOW_SEC = 60;
-const RATE_LIMIT_MAX = 10;
-const NONCE_TTL_SEC = 5 * 60;
 const FN_NAME = "crb-proxy";
-
-async function pruneOld(admin: ReturnType<typeof createClient>) {
-  const cutoff = new Date(Date.now() - NONCE_TTL_SEC * 1000).toISOString();
-  await admin.from("edge_request_log").delete().lt("created_at", cutoff);
-}
-
-async function checkAndRecord(
-  admin: ReturnType<typeof createClient>,
-  userId: string,
-  nonce: string,
-): Promise<{ limited: boolean; replay: boolean; error?: string }> {
-  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_SEC * 1000).toISOString();
-  const { count, error: countErr } = await admin
-    .from("edge_request_log")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("function_name", FN_NAME)
-    .gte("created_at", windowStart);
-  if (countErr) return { limited: false, replay: false, error: countErr.message };
-  if ((count ?? 0) >= RATE_LIMIT_MAX) return { limited: true, replay: false };
-
-  const { error: insErr } = await admin
-    .from("edge_request_log")
-    .insert({ user_id: userId, function_name: FN_NAME, nonce });
-  if (insErr) {
-    if ((insErr as { code?: string }).code === "23505") return { limited: false, replay: true };
-    return { limited: false, replay: false, error: insErr.message };
-  }
-  return { limited: false, replay: false };
+async function checkAndRecord(admin: SupabaseClient, userId: string, nonce: string) {
+  const { data, error } = await admin.rpc("consume_edge_request", {
+    p_user_id: userId, p_function_name: FN_NAME, p_nonce: nonce,
+  });
+  if (error || !data || typeof data.allowed !== "boolean") return { error: "GUARD_UNAVAILABLE", limited: false, replay: false };
+  return { limited: !data.allowed && !data.replay, replay: !!data.replay };
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req, "POST");
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -85,26 +58,25 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+    const authorization = await requirePrivilegedMfa({
+      auth: supabase.auth,
+      accountForUser: async (id) => {
+        const { data, error } = await supabase.from("profiles").select("account_status").eq("user_id", id).maybeSingle();
+        return { data, error };
+      },
+      rolesForUser: async (id) => {
+        const { data, error } = await supabase.from("user_roles").select("role")
+          .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+        return { data: data as { role: string }[] | null, error };
+      },
+    }, authHeader);
+    if (authorization.status) {
+      return new Response(JSON.stringify({ error: authorization.code }), {
+        status: authorization.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const { data: roleRow } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .in("role", ["admin", "super_admin"])
-      .maybeSingle();
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const user = { id: authorization.userId };
 
     const nonce = req.headers.get("x-request-id") ?? "";
     if (!/^[A-Za-z0-9._-]{16,128}$/.test(nonce)) {
@@ -118,7 +90,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    pruneOld(adminClient).catch(() => {});
 
     const guard = await checkAndRecord(adminClient, user.id, nonce);
     if (guard.error) {
@@ -141,14 +112,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const rawBody = await req.text();
-    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
-      return new Response(JSON.stringify({ error: "Payload too large" }), {
-        status: 413,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
+    requireJson(req);
+    const rawBody = await readBoundedText(req, MAX_BODY_BYTES);
     let json: unknown;
     try {
       json = JSON.parse(rawBody);
@@ -191,6 +156,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "3600" },
     });
   } catch (error) {
+    if (error instanceof RequestError) return new Response(JSON.stringify({ error: error.code }), { status: error.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     console.error("[crb-proxy] Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,

@@ -1,4 +1,0 @@
--- Historical migration marker.
--- The remote Supabase project records this migration version as applied.
--- This file intentionally performs no schema change; the current schema is
--- represented by the repository's reconstructed migrations and later fixes.

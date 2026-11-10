@@ -1,3 +1,0 @@
--- Supabase migration-history verification marker.
--- No schema change. This marker only retriggers the Supabase Preview branch
--- after stale preview cleanup; it must remain a no-op.

@@ -1,5 +1,6 @@
 import Tesseract from "tesseract.js";
 import { features } from "@/config/features";
+import { extractDocumentName } from "./ocrFieldExtraction";
 
 export type DocumentType = "nrc" | "payslip" | "bank_statement" | "government_id";
 
@@ -27,7 +28,7 @@ const log = (message: string, data?: unknown): void => {
   if (features.enableOCROLogging) console.log(`[OCR Service] ${message}`, data ?? "");
 };
 
-export const isValidFileType = (file: File): boolean => ["image/png", "image/jpeg", "image/jpg", "application/pdf"].includes(file.type);
+export const isValidFileType = (file: File): boolean => ["image/png", "image/jpeg", "image/jpg"].includes(file.type);
 
 const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -38,10 +39,8 @@ const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, rej
 
 const extractPatterns = {
   names: (text: string): string[] => {
-    const patterns = [/\b([A-Z][A-Z\s]{2,30})\b/g, /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/g];
-    const matches: string[] = [];
-    patterns.forEach((pattern) => { const found = text.match(pattern); if (found) matches.push(...found.filter((m) => m.length > 3 && !m.includes("REPUBLIC"))); });
-    return [...new Set(matches)].slice(0, 5);
+    const name = extractDocumentName(text);
+    return name ? [name] : [];
   },
   nrcNumber: (text: string): string | null => {
     const pattern = /\b(\d{6}\/\d{2}\/\d{1,2})\b/;
@@ -92,11 +91,19 @@ const parseExtractedText = (text: string, documentType: DocumentType): Partial<O
 
 export const processDocument = async (file: File, documentType: DocumentType = "nrc"): Promise<OCRResult> => {
   if (!features.enableOCR) return { ...defaultOCRResult, document_type: documentType };
-  if (!isValidFileType(file)) return { ...defaultOCRResult, document_type: documentType, error: `Unsupported file type: ${file.type}` };
+  if (!isValidFileType(file)) return { ...defaultOCRResult, document_type: documentType, error: "OCR requires a JPG or PNG image. Convert PDF pages to images before uploading." };
   try {
     log("Starting OCR processing", { fileName: file.name, documentType });
     const imageData = await fileToDataUrl(file);
-    const result = await Tesseract.recognize(imageData, "eng", { logger: (m) => { if (features.enableOCROLogging && m.status === "recognizing text") log(`OCR Progress: ${Math.round(m.progress * 100)}%`); } });
+    const result = await Tesseract.recognize(imageData, "eng", {
+      workerPath: new URL("/ocr/tesseract-7.0.0/worker.min.js", window.location.origin).href,
+      corePath: new URL("/ocr/core-7.0.0", window.location.origin).href,
+      langPath: new URL("/ocr/eng-1.0.0", window.location.origin).href,
+      workerBlobURL: false,
+      // Keep identity-document processing transient; don't persist OCR data.
+      cacheMethod: "none",
+      logger: (m) => { if (features.enableOCROLogging && m.status === "recognizing text") log(`OCR Progress: ${Math.round(m.progress * 100)}%`); },
+    });
     const data = result.data;
     if (!data) return { ...defaultOCRResult, document_type: documentType, error: "OCR processing failed" };
     log("OCR processing completed", { confidence: data.confidence });

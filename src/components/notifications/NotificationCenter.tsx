@@ -1,7 +1,11 @@
 import { Bell, CheckCircle2, Clock3, FileWarning, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export type BorrowerNotificationType =
@@ -39,25 +43,37 @@ const priority: BorrowerNotificationType[] = [
 
 interface NotificationCenterProps {
   notifications?: BorrowerNotification[];
+  onRead?: (id: string) => void;
   onNavigate?: (href: string) => void;
 }
 
-export function NotificationCenter({ notifications = [], onNavigate }: NotificationCenterProps) {
+export function NotificationCenter({
+  notifications = [],
+  onNavigate,
+  onRead,
+}: NotificationCenterProps) {
   const [open, setOpen] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const visible = useMemo(
-    () => [...notifications].sort((a, b) => priority.indexOf(a.type) - priority.indexOf(b.type)),
+    () =>
+      [...notifications].sort(
+        (a, b) => priority.indexOf(a.type) - priority.indexOf(b.type),
+      ),
     [notifications],
   );
 
-  const unreadCount = visible.filter((item) => !item.read && !readIds.has(item.id)).length;
+  const unreadCount = visible.filter(
+    (item) => !item.read && !readIds.has(item.id),
+  ).length;
   const hasAction = visible.some(
-    (item) => item.type === "action_required" && !item.read && !readIds.has(item.id),
+    (item) =>
+      item.type === "action_required" && !item.read && !readIds.has(item.id),
   );
 
   const markRead = (notification: BorrowerNotification) => {
     setReadIds((current) => new Set(current).add(notification.id));
+    onRead?.(notification.id);
     if (notification.href) onNavigate?.(notification.href);
     setOpen(false);
   };
@@ -68,7 +84,11 @@ export function NotificationCenter({ notifications = [], onNavigate }: Notificat
         <Button
           variant="ghost"
           size="icon"
-          aria-label={unreadCount ? `${unreadCount} unread notifications` : "Notifications"}
+          aria-label={
+            unreadCount
+              ? `${unreadCount} unread notifications`
+              : "Notifications"
+          }
           className="relative"
         >
           <Bell className="h-5 w-5" />
@@ -83,13 +103,23 @@ export function NotificationCenter({ notifications = [], onNavigate }: Notificat
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[360px] p-0">
+      <PopoverContent
+        align="end"
+        className="w-[min(360px,calc(100vw-2rem))] p-0"
+      >
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div>
             <h2 className="font-semibold">Notifications</h2>
-            <p className="text-xs text-muted-foreground">Only important updates appear here.</p>
+            <p className="text-xs text-muted-foreground">
+              Your latest 50 recorded updates.
+            </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close notifications">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setOpen(false)}
+            aria-label="Close notifications"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -97,13 +127,16 @@ export function NotificationCenter({ notifications = [], onNavigate }: Notificat
         {visible.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <p className="font-medium">You're all caught up.</p>
-            <p className="mt-1 text-sm text-muted-foreground">There is nothing that needs your attention.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              There is nothing that needs your attention.
+            </p>
           </div>
         ) : (
           <div className="max-h-[420px] overflow-y-auto">
             {visible.map((notification) => {
               const Icon = typeIcon[notification.type];
-              const unread = !notification.read && !readIds.has(notification.id);
+              const unread =
+                !notification.read && !readIds.has(notification.id);
               return (
                 <button
                   key={notification.id}
@@ -114,13 +147,26 @@ export function NotificationCenter({ notifications = [], onNavigate }: Notificat
                     unread && "bg-muted/30",
                   )}
                 >
-                  <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", notification.type === "action_required" && "text-destructive")} />
+                  <Icon
+                    className={cn(
+                      "mt-0.5 h-5 w-5 shrink-0",
+                      notification.type === "action_required" &&
+                        "text-destructive",
+                    )}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2 font-medium">
                       {notification.title}
-                      {unread && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="Unread" />}
+                      {unread && (
+                        <span
+                          className="h-1.5 w-1.5 rounded-full bg-primary"
+                          aria-label="Unread"
+                        />
+                      )}
                     </span>
-                    <span className="mt-1 block text-sm text-muted-foreground">{notification.message}</span>
+                    <span className="mt-1 block text-sm text-muted-foreground">
+                      {notification.message}
+                    </span>
                   </span>
                 </button>
               );
