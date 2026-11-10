@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; form-action 'none'; base-uri 'none'"><title>Riverbanc recovery key setup</title>
+<style>body{font:17px system-ui;max-width:680px;margin:60px auto;padding:24px;color:#152d48;background:#f8fafc}h1{font-size:28px}label{display:block;margin:24px 0 8px}input{box-sizing:border-box;width:100%;padding:12px;font:inherit}button{margin-top:24px;padding:12px 18px;background:#152d48;color:white;border:0;border-radius:6px;font:inherit}a{display:block;margin:20px 0}#status{white-space:pre-line}</style>
+<h1>Riverbanc backup recovery keys</h1><p>Open this saved file on your trusted computer. It makes no network requests. Your recovery key is encrypted using your passphrase before download.</p><p>Keep the encrypted recovery file and passphrase separately, outside Supabase and Cloudflare. Losing either prevents recovery.</p>
+<label for="password">Recovery passphrase (at least 16 characters)</label><input id="password" type="password" autocomplete="new-password"><label for="confirm">Repeat passphrase</label><input id="confirm" type="password" autocomplete="new-password"><button id="generate">Generate recovery files</button><p id="status" role="status"></p><div id="downloads"></div>
+<script>
+const enc=new TextEncoder(),$=id=>document.getElementById(id);
+const b64=bytes=>{let s='';for(const b of new Uint8Array(bytes))s+=String.fromCharCode(b);return btoa(s)};
+function download(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.textContent='Download '+name;$('downloads').append(a);}
+$('generate').onclick=async()=>{try{
+ const pass=$('password').value;if(pass.length<16||pass!==$('confirm').value)throw Error('Use matching passphrases of at least 16 characters.');
+ if(!crypto.subtle)throw Error('This browser cannot run local key setup. Use an up-to-date Chrome or Edge.');
+ $('generate').disabled=true;$('status').textContent='Generating and verifying keys…';
+ const pair=await crypto.subtle.generateKey({name:'RSA-OAEP',modulusLength:4096,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['encrypt','decrypt']);
+ const probe=crypto.getRandomValues(new Uint8Array(32));const encrypted=await crypto.subtle.encrypt({name:'RSA-OAEP'},pair.publicKey,probe);const restored=new Uint8Array(await crypto.subtle.decrypt({name:'RSA-OAEP'},pair.privateKey,encrypted));if(probe.some((b,i)=>b!==restored[i]))throw Error('Key verification failed.');
+ const raw=new Uint8Array(await crypto.subtle.exportKey('pkcs8',pair.privateKey));const publicDer=await crypto.subtle.exportKey('spki',pair.publicKey);
+ const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+ const material=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);const key=await crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:600000},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+ const aad=enc.encode('Riverbanc-Recovery-Key-v1');const wrapped=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},key,raw);
+ const checked=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,wrapped));if(checked.length!==raw.length||checked.some((b,i)=>b!==raw[i]))throw Error('Recovery file verification failed.');raw.fill(0);checked.fill(0);
+ const kit={format:'Riverbanc-Recovery-Key-v1',kdf:'PBKDF2-SHA256',iterations:600000,salt:b64(salt),iv:b64(iv),ciphertext:b64(wrapped)};
+ const pem='-----BEGIN PUBLIC KEY-----\n'+b64(publicDer).match(/.{1,64}/g).join('\n')+'\n-----END PUBLIC KEY-----\n';
+ download('riverbanc-recovery-private.encrypted.json',JSON.stringify(kit,null,2),'application/json');download('riverbanc-recovery-public.pem',pem,'application/x-pem-file');
+ $('password').value='';$('confirm').value='';$('status').textContent='Download BOTH files. Keep the encrypted private file and passphrase safe. Share ONLY riverbanc-recovery-public.pem for backup setup. Never upload the private file or passphrase to chat.';
+ }catch(e){$('status').textContent=e.message;$('generate').disabled=false;}};
+</script></html>

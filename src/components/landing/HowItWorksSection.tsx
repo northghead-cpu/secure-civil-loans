@@ -6,25 +6,25 @@ const steps = [
     icon: UserCheck,
     step: "01",
     title: "Verify Your Identity",
-    description: "Upload your NRC and Government ID. Our automated system verifies you in under 2 minutes.",
+    description: "Complete the identity and document checks required to access protected platform features.",
   },
   {
     icon: Search,
     step: "02",
     title: "Compare Offers",
-    description: "We pull real-time offers from 20+ lenders. Sort by rate, term, or total cost to find your best deal.",
+    description: "Review available product information from participating financial institutions and compare the terms and estimated costs shown.",
   },
   {
     icon: FileSignature,
     step: "03",
-    title: "Apply & E-Sign",
-    description: "Choose your offer, complete the CRB check, and e-sign your payroll deduction consent digitally.",
+    title: "Follow the Lender’s Process",
+    description: "Review the relevant disclosures and authorisations, then continue through the application or handoff process provided for that product.",
   },
   {
     icon: Banknote,
     step: "04",
-    title: "Get Funded",
-    description: "Funds are deposited directly into your account. Refinancing settles your old loan automatically.",
+    title: "Lender Makes the Decision",
+    description: "The financial institution assesses your application and decides whether to offer financing. Riverbanc does not lend or approve loans.",
   },
 ];
 
@@ -42,10 +42,10 @@ const HowItWorksSection = () => {
             How It Works
           </span>
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mt-3 mb-4">
-            Four Simple Steps to a Better Loan
+            How to Compare Loan Options
           </h2>
           <p className="text-muted-foreground text-lg">
-            Our streamlined digital process takes you from application to funding faster than any traditional lender.
+            Riverbanc helps you compare available options. Each participating financial institution controls its application process, eligibility requirements and lending decisions.
           </p>
         </motion.div>
 

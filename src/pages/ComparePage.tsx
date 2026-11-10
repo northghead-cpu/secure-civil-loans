@@ -1,9 +1,14 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import LenderHandoffModal, {
+  type HandoffOffer,
+} from "@/components/LenderHandoffModal";
+import OfferCalculator from "@/components/OfferCalculator";
+import { calculateLoan } from "@/services/loanCalculationService";
 import { LampContainer } from "@/components/ui/lamp";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,232 +19,522 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { ArrowRight, Star } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowRight, CheckCircle2, Info, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRBAC } from "@/hooks/useRBAC";
-import { Loader2 } from "lucide-react";
-import ApplyLoanModal from "@/components/ApplyLoanModal";
+import { supabase } from "@/integrations/supabase/client";
 
-interface LoanOffer {
-  id: string;
-  lender: string;
-  rate: number;
-  term: number;
-  monthlyPayment: number;
-  totalCost: number;
-  maxAmount: number;
-  featured: boolean;
-  rating: number;
-  processingTime: string;
+type ProductType =
+  "loan_bank" | "loan_microfinance" | "salary_advance_microfinance";
+interface LoanOffer extends HandoffOffer {
+  processingTime?: string;
+  productType: ProductType;
 }
-
-const mockOffers: LoanOffer[] = [
-  { id: "1", lender: "Zambia National Building Society", rate: 18.5, term: 60, monthlyPayment: 2580, totalCost: 154800, maxAmount: 150000, featured: true, rating: 4.8, processingTime: "2 days" },
-  { id: "2", lender: "Atlas Mara Bank", rate: 21.0, term: 48, monthlyPayment: 2890, totalCost: 138720, maxAmount: 120000, featured: false, rating: 4.5, processingTime: "3 days" },
-  { id: "3", lender: "Indo Zambia Bank", rate: 19.5, term: 60, monthlyPayment: 2650, totalCost: 159000, maxAmount: 200000, featured: true, rating: 4.6, processingTime: "2 days" },
-  { id: "4", lender: "First National Bank", rate: 20.0, term: 36, monthlyPayment: 3200, totalCost: 115200, maxAmount: 100000, featured: false, rating: 4.4, processingTime: "5 days" },
-  { id: "5", lender: "Stanbic Bank Zambia", rate: 17.5, term: 72, monthlyPayment: 2350, totalCost: 169200, maxAmount: 250000, featured: true, rating: 4.9, processingTime: "1 day" },
-  { id: "6", lender: "Bayport Financial", rate: 22.5, term: 48, monthlyPayment: 3050, totalCost: 146400, maxAmount: 80000, featured: false, rating: 4.2, processingTime: "Same day" },
-];
+interface BankProduct {
+  id: string;
+  bank_name: string;
+  product_type: ProductType;
+  interest_rate: number;
+  min_amount: number;
+  max_amount: number;
+  max_term_months: number;
+  processing_days: number;
+}
+const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+  loan_bank: "Bank",
+  loan_microfinance: "Microfinance",
+  salary_advance_microfinance: "Salary Advance — Microfinance",
+};
 
 const ComparePage = () => {
   const [amount, setAmount] = useState([100000]);
   const [sortBy, setSortBy] = useState("rate");
   const [termFilter, setTermFilter] = useState("all");
-  const [loanModalOpen, setLoanModalOpen] = useState(false);
+  const [providerFilter, setProviderFilter] = useState("all");
+  const [selectedOffer, setSelectedOffer] = useState<LoanOffer | null>(null);
+  const [products, setProducts] = useState<BankProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [income, setIncome] = useState<{
+    netSalary: number | null;
+    deductions: number | null;
+  }>({ netSalary: null, deductions: null });
   const navigate = useNavigate();
   const { user, profile, loading, profileLoading, refreshProfile } = useAuth();
   const { hasRole } = useRBAC();
-
+  const [accessCheckComplete, setAccessCheckComplete] = useState(false);
   useEffect(() => {
-    if (user) refreshProfile();
-  }, [user]);
-
-  useEffect(() => {
-    if (loading || profileLoading) return;
-    
+    let cancelled = false;
+    if (loading) return;
     if (!user) {
-      navigate("/login", { replace: true });
+      navigate("/login?next=%2Fcompare", { replace: true });
       return;
     }
-
-    const isAdmin = hasRole("super_admin") || hasRole("admin") || hasRole("super_user");
-    if (isAdmin) return;
-
-    const kycStatus = profile?.kyc_status;
-    if (kycStatus !== "VERIFIED" && kycStatus !== "COMPLETED") {
-      navigate("/apply", { replace: true });
-    }
-  }, [user, profile, loading, profileLoading, hasRole, navigate]);
-
-  if (loading || profileLoading) {
+    const checkKycAccess = async () => {
+      try {
+        // Fetch the latest profile before deciding access; initial context state may be null.
+        const { data: latestProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("kyc_status")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (profileError) throw profileError;
+        const isAdmin =
+          hasRole("super_admin") || hasRole("admin") || hasRole("super_user");
+        const status = latestProfile?.kyc_status;
+        if (!isAdmin && status !== "VERIFIED" && status !== "COMPLETED") {
+          navigate("/apply", { replace: true });
+          return;
+        }
+        // Refresh the shared context only after the authoritative access check succeeds.
+        void refreshProfile().catch(() => undefined);
+        setAccessCheckComplete(true);
+      } catch {
+        if (!cancelled) {
+          setProductsError(
+            "We couldn't verify your profile status. Please refresh and try again.",
+          );
+          setAccessCheckComplete(true);
+        }
+      }
+    };
+    void checkKycAccess();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, loading, refreshProfile, hasRole, navigate]);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const loadProducts = async () => {
+      setProductsLoading(true);
+      setProductsError(null);
+      const { data, error } = await supabase
+        .from("bank_products")
+        .select(
+          "id, bank_name, product_type, interest_rate, min_amount, max_amount, max_term_months, processing_days",
+        )
+        .eq("active", true)
+        .order("interest_rate", { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        setProductsError(
+          "We couldn't load current lender offers. Please try again.",
+        );
+        setProducts([]);
+      } else {
+        const validProducts = (data ?? [])
+          .filter((p) =>
+            [
+              "loan_bank",
+              "loan_microfinance",
+              "salary_advance_microfinance",
+            ].includes(p.product_type),
+          )
+          .map((p) => ({ ...p, product_type: p.product_type as ProductType }));
+        setProducts(validProducts);
+      }
+      setProductsLoading(false);
+    };
+    loadProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+  useEffect(() => {
+    if (
+      !user ||
+      (profile?.kyc_status !== "VERIFIED" &&
+        profile?.kyc_status !== "COMPLETED")
+    )
+      return;
+    let cancelled = false;
+    const loadVerifiedIncome = async () => {
+      const { data } = await supabase
+        .from("loan_applications")
+        .select("net_salary, deductions, created_at")
+        .eq("user_id", user.id)
+        .eq("verification_passed", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data)
+        setIncome({ netSalary: data.net_salary, deductions: data.deductions });
+    };
+    loadVerifiedIncome();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, profile?.kyc_status]);
+  const matchesFilters = (p: BankProduct) => {
+    const min = p.min_amount ?? 0;
+    const max = p.max_amount ?? Number.MAX_SAFE_INTEGER;
+    const maxTerm = p.max_term_months ?? 0;
+    const requestedTerm = termFilter === "all" ? maxTerm : Number(termFilter);
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
+      Number.isFinite(amount[0]) &&
+      amount[0] > 0 &&
+      amount[0] >= min &&
+      amount[0] <= max &&
+      maxTerm >= requestedTerm
     );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  const filtered = mockOffers
-    .filter((o) => termFilter === "all" || o.term === parseInt(termFilter))
-    .sort((a, b) => {
-      if (sortBy === "rate") return a.rate - b.rate;
-      if (sortBy === "monthly") return a.monthlyPayment - b.monthlyPayment;
-      if (sortBy === "total") return a.totalCost - b.totalCost;
-      return 0;
+  };
+  const makeOffer = (p: BankProduct): LoanOffer => {
+    const term =
+      termFilter === "all" ? (p.max_term_months ?? 0) : Number(termFilter);
+    const rate = p.interest_rate ?? 0;
+    const calculation = calculateLoan({
+      principal: amount[0],
+      annualRate: rate,
+      termMonths: term,
+      takeHomePay: income.netSalary,
+      existingDeductions: income.deductions,
     });
-
+    return {
+      id: p.id,
+      lender: p.bank_name || "Participating financial institution",
+      rate,
+      maxAmount: p.max_amount ?? 0,
+      term,
+      monthlyPayment: calculation.monthlyRepayment,
+      totalCost: calculation.totalRepayment,
+      processingTime:
+        p.processing_days != null
+          ? `${p.processing_days} business day${p.processing_days === 1 ? "" : "s"}`
+          : undefined,
+      productType: p.product_type,
+    };
+  };
+  const offers = useMemo<LoanOffer[]>(
+    () =>
+      products
+        .filter((p) => p.product_type !== "salary_advance_microfinance")
+        .filter((p) => {
+          const sectionMatches =
+            providerFilter === "all" ||
+            (providerFilter === "bank" && p.product_type === "loan_bank") ||
+            (providerFilter === "microfinance" &&
+              p.product_type === "loan_microfinance");
+          return sectionMatches && matchesFilters(p);
+        })
+        .map(makeOffer),
+    [products, amount, termFilter, providerFilter, income],
+  );
+  const salaryAdvanceOffers = useMemo<LoanOffer[]>(
+    () =>
+      products
+        .filter(
+          (p) =>
+            p.product_type === "salary_advance_microfinance" &&
+            matchesFilters(p),
+        )
+        .map(makeOffer),
+    [products, amount, termFilter, income],
+  );
+  const sortedOffers = (items: LoanOffer[]) =>
+    [...items].sort((a, b) =>
+      sortBy === "rate"
+        ? a.rate - b.rate
+        : sortBy === "monthly"
+          ? a.monthlyPayment - b.monthlyPayment
+          : a.totalCost - b.totalCost,
+    );
+  const renderOffers = (
+    items: LoanOffer[],
+    emptyTitle: string,
+    emptyDescription: string,
+  ) => {
+    const filtered = sortedOffers(items);
+    return filtered.length === 0 ? (
+      <motion.div className="rounded-2xl border border-border/60 bg-card p-8 sm:p-12 text-center card-elevated">
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Info className="h-6 w-6 text-primary" />
+        </div>
+        <Badge variant="outline" className="mb-4">
+          Verified offers only
+        </Badge>
+        <h2 className="text-2xl font-display font-semibold text-foreground">
+          {emptyTitle}
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl text-muted-foreground leading-relaxed">
+          {emptyDescription}
+        </p>
+        <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-1.5 text-sm text-muted-foreground">
+          <CheckCircle2 className="h-4 w-4 text-primary" />
+          Your profile is verified
+        </div>
+      </motion.div>
+    ) : (
+      <div className="space-y-4">
+        {filtered.map((offer) => (
+          <motion.div
+            key={offer.id}
+            className="bg-card rounded-xl p-6 border border-border/50 card-elevated"
+          >
+            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <h2 className="font-display font-semibold text-foreground text-base">
+                    {offer.lender}
+                  </h2>
+                  <Badge variant="outline">
+                    {PRODUCT_TYPE_LABELS[offer.productType]}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  {offer.processingTime && (
+                    <span>Processing: {offer.processingTime}</span>
+                  )}
+                  <span>Maximum: K{offer.maxAmount.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 lg:gap-10 text-center">
+                <div>
+                  <p className="text-2xl font-display font-bold text-foreground">
+                    {offer.rate}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Annual Rate</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-display font-bold text-foreground">
+                    {offer.term} mo
+                  </p>
+                  <p className="text-xs text-muted-foreground">Term</p>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Live calculation below
+                  </p>
+                </div>
+              </div>
+              <Button onClick={() => setSelectedOffer(offer)}>
+                View offer <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+            <OfferCalculator
+              amount={amount[0]}
+              rate={offer.rate}
+              termMonths={offer.term}
+              takeHomePay={income.netSalary}
+              existingDeductions={income.deductions}
+            />
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
+  if (
+    loading ||
+    profileLoading ||
+    !user ||
+    !accessCheckComplete ||
+    productsLoading
+  )
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Compare Loan Offers — Riverbanc</title>
-        <meta name="description" content="Compare real-time loan offers from Bank of Zambia-licensed lenders. Filter by term and sort by rate, monthly payment, or total cost." />
-        <link rel="canonical" href="https://riverbanc.co.zm/compare" />
-        <meta property="og:title" content="Compare Loan Offers — Riverbanc" />
-        <meta property="og:description" content="Real-time rates from licensed lenders across Zambia." />
-        <meta property="og:url" content="https://riverbanc.co.zm/compare" />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Loan Comparison",
-          "provider": { "@type": "Organization", "name": "Riverbanc" },
-          "areaServed": "ZM",
-          "serviceType": "FinancialProduct"
-        })}</script>
+        <title>Compare Loan Options — Riverbanc</title>
+        <meta
+          name="description"
+          content="Compare verified loans and salary advances from participating financial institutions through Riverbanc."
+        />
+        <link rel="canonical" href="https://www.riverbanc.co.zm/compare" />
       </Helmet>
       <Navbar />
       <main className="pt-24 pb-16">
         <LampContainer className="h-48 bg-background">
           <span />
         </LampContainer>
-
         <motion.div
           className="container mx-auto px-4 lg:px-8 mt-6"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
-            Compare Loan Offers
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Real-time rates from licensed lenders across Zambia
-          </p>
+          <div className="max-w-3xl">
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
+              Compare Loan Options
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Choose the type of borrowing you need, then compare verified
+              offers from participating financial institutions.
+            </p>
+          </div>
         </motion.div>
-
         <div className="container mx-auto px-4 lg:px-8 mt-6">
-          <motion.div
-            className="bg-card rounded-xl p-6 border border-border/50 card-elevated mb-8"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+          <Tabs
+            defaultValue="loans"
+            onValueChange={() => {
+              setProviderFilter("all");
+              setTermFilter("all");
+            }}
           >
-            <div className="grid md:grid-cols-3 gap-6 items-end">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Loan Amount: K{amount[0].toLocaleString()}
-                </label>
-                <Slider value={amount} onValueChange={setAmount} min={10000} max={500000} step={5000} className="mt-3" />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>K10,000</span>
-                  <span>K500,000</span>
+            <TabsList className="grid w-full max-w-xl grid-cols-2 mb-6">
+              <TabsTrigger value="loans">Loans</TabsTrigger>
+              <TabsTrigger value="salary-advance">Salary Advance</TabsTrigger>
+            </TabsList>
+            <div className="bg-card rounded-xl p-6 border border-border/50 card-elevated mb-8">
+              <div className="grid md:grid-cols-4 gap-6 items-end">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Amount: K{amount[0].toLocaleString()}
+                  </label>
+                  <Input
+                    aria-label="Requested amount in ZMW"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={amount[0]}
+                    onChange={(e) => setAmount([Number(e.target.value)])}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Enter the amount you need. Product limits are shown in each
+                    offer.
+                  </p>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Term</label>
-                <Select value={termFilter} onValueChange={setTermFilter}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Terms</SelectItem>
-                    <SelectItem value="36">36 Months</SelectItem>
-                    <SelectItem value="48">48 Months</SelectItem>
-                    <SelectItem value="60">60 Months</SelectItem>
-                    <SelectItem value="72">72 Months</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Sort By</label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rate">Interest Rate</SelectItem>
-                    <SelectItem value="monthly">Monthly Payment</SelectItem>
-                    <SelectItem value="total">Total Cost</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Term
+                  </label>
+                  <Select value={termFilter} onValueChange={setTermFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Product maximum term</SelectItem>
+                      {Array.from(
+                        {
+                          length: Math.max(
+                            1,
+                            ...products.map((p) => p.max_term_months),
+                          ),
+                        },
+                        (_, i) => (
+                          <SelectItem key={i + 1} value={String(i + 1)}>
+                            {i + 1} month{i ? "s" : ""}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Sort By
+                  </label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rate">Interest Rate</SelectItem>
+                      <SelectItem value="monthly">Monthly Payment</SelectItem>
+                      <SelectItem value="total">Total Cost</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <TabsContent value="loans" className="m-0">
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Provider
+                  </label>
+                  <Select
+                    value={providerFilter}
+                    onValueChange={setProviderFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Banks & Microfinance</SelectItem>
+                      <SelectItem value="bank">Banks only</SelectItem>
+                      <SelectItem value="microfinance">
+                        Microfinance only
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TabsContent>
+                <TabsContent value="salary-advance" className="m-0">
+                  <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                    Microfinance institutions only
+                  </div>
+                </TabsContent>
               </div>
             </div>
-          </motion.div>
-
-          <div className="space-y-4">
-            {filtered.map((offer, i) => (
-              <motion.div
-                key={offer.id}
-                className={`bg-card rounded-xl p-6 border card-elevated ${
-                  offer.featured ? "border-accent/30" : "border-border/50"
-                }`}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 + i * 0.05 }}
-              >
-                <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h2 className="font-display font-semibold text-foreground text-base">{offer.lender}</h2>
-                      {offer.featured && (
-                        <Badge className="bg-accent/10 text-accent border-accent/20 text-xs">
-                          <Star className="w-3 h-3 mr-1" /> Top Pick
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <span>⭐ {offer.rating}</span>
-                      <span className="mx-2">•</span>
-                      <span>Processing: {offer.processingTime}</span>
-                      <span className="mx-2">•</span>
-                      <span>Max: K{offer.maxAmount.toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-6 lg:gap-10 text-center">
-                    <div>
-                      <p className="text-2xl font-display font-bold text-foreground">{offer.rate}%</p>
-                      <p className="text-xs text-muted-foreground">Annual Rate</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-display font-bold text-foreground">K{offer.monthlyPayment.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Monthly</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-display font-bold text-foreground">{offer.term} mo</p>
-                      <p className="text-xs text-muted-foreground">Term</p>
-                    </div>
-                  </div>
-
-                  <Button onClick={() => setLoanModalOpen(true)}>
-                    Apply Now <ArrowRight className="w-4 h-4" />
+            <TabsContent value="loans" className="m-0">
+              {productsError ? (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center">
+                  <Info className="h-6 w-6 mx-auto mb-3 text-destructive" />
+                  <h2 className="text-xl font-display font-semibold">
+                    Offers temporarily unavailable
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {productsError}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-5"
+                    onClick={() => window.location.reload()}
+                  >
+                    Try again
                   </Button>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              ) : (
+                renderOffers(
+                  offers,
+                  "No matching loan offers yet",
+                  "No participating bank or microfinance institution currently has a verified loan product matching this amount and term.",
+                )
+              )}
+            </TabsContent>
+            <TabsContent value="salary-advance" className="m-0">
+              {productsError ? (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center">
+                  <Info className="h-6 w-6 mx-auto mb-3 text-destructive" />
+                  <h2 className="text-xl font-display font-semibold">
+                    Offers temporarily unavailable
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {productsError}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-5"
+                    onClick={() => window.location.reload()}
+                  >
+                    Try again
+                  </Button>
+                </div>
+              ) : (
+                renderOffers(
+                  salaryAdvanceOffers,
+                  "No salary advances available yet",
+                  "No participating microfinance institution currently has a verified salary advance matching this amount and term.",
+                )
+              )}
+            </TabsContent>
+          </Tabs>
+          <p className="mt-8 text-center text-xs text-muted-foreground">
+            Riverbanc is a technology platform, not a bank or lender.
+            Participating financial institutions provide the products and make
+            lending decisions.
+          </p>
         </div>
       </main>
       <Footer />
-      <ApplyLoanModal open={loanModalOpen} onClose={() => setLoanModalOpen(false)} />
+      <LenderHandoffModal
+        open={Boolean(selectedOffer)}
+        offer={selectedOffer}
+        requestedAmount={amount[0]}
+        onClose={() => setSelectedOffer(null)}
+      />
     </div>
   );
 };
-
 export default ComparePage;

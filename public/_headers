@@ -1,5 +1,5 @@
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.de.sentry.io; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-sYZrIxnAApiMUtmq2PZPylQfZoHL2Ge06qw5OkjZFbo=' 'sha256-N/Vj9/vBaj4j9ajwYNjIZ+Fas6TckNmRWBZMbcIts6k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'; frame-ancestors 'none'; form-action 'self'; connect-src 'self' https://zdpeaxkormwjrgllwalq.supabase.co wss://zdpeaxkormwjrgllwalq.supabase.co https://mioppvtzbaixeeuxkroo.supabase.co wss://mioppvtzbaixeeuxkroo.supabase.co https://o4511870789943296.ingest.de.sentry.io; upgrade-insecure-requests
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
@@ -49,6 +49,9 @@
 
 # Authenticated views are client-rendered from the same shell, but keep the
 # no-store contract explicit so intermediaries never retain them.
+/support
+  Cache-Control: no-store, no-cache, must-revalidate, private
+  Pragma: no-cache
 /profile
   Cache-Control: no-store, no-cache, must-revalidate, private
   Pragma: no-cache
@@ -73,3 +76,25 @@
 /login
   Cache-Control: no-store, no-cache, must-revalidate, private
   Pragma: no-cache
+
+# Company profile: serve only the approved PDF, revalidating after updates.
+/partnership-profile
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+/partnership-profile/
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+/partnership-profile/index.html
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+/partnership-profile/riverbanc-company-profile.pdf
+  Content-Type: application/pdf
+  Content-Disposition: inline; filename="Riverbanc-Company-Profile.pdf"
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
