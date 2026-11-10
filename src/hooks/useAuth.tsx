@@ -1,9 +1,18 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { useIdleTimeout, clearSessionMetadata } from "@/hooks/useIdleTimeout";
+import { SIGNOUT_BROADCAST_KEY } from "@/lib/sessionPolicy";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface ProfileData {
+  account_status?: string;
   full_name: string | null;
   kyc_status: string | null;
   phone: string | null;
@@ -55,9 +64,7 @@ const hasRecoveryTokenInUrl = (): boolean => {
   if (typeof window === "undefined") return false;
   const hash = window.location.hash || "";
   const search = window.location.search || "";
-  // Legacy hash-based recovery: type=recovery in hash
   const hashRecovery = /(?:^|[#&?])type=recovery(?:&|$)/.test(hash);
-  // Query parameter PKCE flow: code parameter present
   const pkceCode = /[?&]code=/.test(search);
   return hashRecovery || pkceCode;
 };
@@ -66,93 +73,178 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [profileOwner, setProfileOwner] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
-  // Seed from URL so the first render already knows we're in recovery mode.
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() => hasRecoveryTokenInUrl());
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() =>
+    hasRecoveryTokenInUrl(),
+  );
 
-  const fetchProfile = useCallback(async (userId: string): Promise<ProfileData | null> => {
-    setProfileLoading(true);
-    try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary, nrc_verified, phone_verified, consent_accepted, consent_signed_at, consent_marketing, consent_data_sharing_lenders, consent_crb_check, consent_analytics, consents_updated_at")
-        .eq("user_id", userId)
-        .maybeSingle();
-      setProfile(data);
-      return data;
-    } finally {
-      setProfileLoading(false);
-    }
-  }, []);
+  const fetchProfile = useCallback(
+    async (userId: string): Promise<ProfileData | null> => {
+      setProfileLoading(true);
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select(
+            "account_status, full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary, nrc_verified, phone_verified, consent_accepted, consent_signed_at, consent_marketing, consent_data_sharing_lenders, consent_crb_check, consent_analytics, consents_updated_at",
+          )
+          .eq("user_id", userId)
+          .maybeSingle();
+        // Do not allow a delayed profile request to repopulate state after logout
+        // or after another account has signed in.
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+        if (currentUser?.id !== userId) return null;
+        setProfile(data);
+        setProfileOwner(userId);
+        return data;
+      } finally {
+        setProfileLoading(false);
+      }
+    },
+    [],
+  );
 
   const refreshProfile = useCallback(async (): Promise<ProfileData | null> => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser) {
-      return fetchProfile(currentUser.id);
-    }
-    return null;
-  }, [fetchProfile]);
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+    if (!currentUser) return null;
 
-  const clearPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "account_status, full_name, kyc_status, phone, email, nrc_number, employer, employee_number, salary, nrc_verified, phone_verified, consent_accepted, consent_signed_at, consent_marketing, consent_data_sharing_lenders, consent_crb_check, consent_analytics, consents_updated_at",
+      )
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    setProfile(data);
+    setProfileOwner(currentUser.id);
+    return data;
+  }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setIsPasswordRecovery(true);
-        }
-        if (event === "SIGNED_OUT") {
-          setIsPasswordRecovery(false);
-        }
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (event === "SIGNED_IN") {
-          localStorage.setItem("rb.sessionStart", Date.now().toString());
-          localStorage.setItem("rb.lastActivity", Date.now().toString());
-        }
-        if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+    if (!user) return;
+    const channel = supabase
+      .channel(`account-access-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          void refreshProfile().catch(() => undefined);
+        },
+      )
+      .subscribe();
+    const refreshOnFocus = () => {
+      void refreshProfile().catch(() => undefined);
+    };
+    window.addEventListener("focus", refreshOnFocus);
+    return () => {
+      window.removeEventListener("focus", refreshOnFocus);
+      void supabase.removeChannel(channel);
+    };
+  }, [user, refreshProfile]);
+
+  const clearPasswordRecovery = useCallback(
+    () => setIsPasswordRecovery(false),
+    [],
+  );
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "PASSWORD_RECOVERY") setIsPasswordRecovery(true);
+      if (event === "SIGNED_OUT") setIsPasswordRecovery(false);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      // Session-lifetime metadata is owned by useIdleTimeout. SIGNED_IN can
+      // also fire on session recovery, so it must never reset activity here.
+      if (nextSession?.user) {
+        const userId = nextSession.user.id;
+        // Avoid awaiting Supabase calls inside onAuthStateChange; its auth lock
+        // must be released before fetchProfile makes another auth request.
+        setTimeout(() => {
+          void fetchProfile(userId);
+        }, 0);
+      } else {
+        setProfile(null);
+        setProfileLoading(false);
+      }
+      setLoading(false);
+    });
+
+    void supabase.auth
+      .getSession()
+      .then(({ data: { session: initialSession } }) => {
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        if (initialSession?.user) {
+          void fetchProfile(initialSession.user.id).finally(() =>
+            setLoading(false),
+          );
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const started = Number(localStorage.getItem("rb.sessionStart") || 0);
-        if (!started) {
-          localStorage.setItem("rb.sessionStart", Date.now().toString());
-          localStorage.setItem("rb.lastActivity", Date.now().toString());
-        }
-        fetchProfile(session.user.id).then(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
+      });
 
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-    setIsPasswordRecovery(false);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("rb.sessionStart");
-      localStorage.removeItem("rb.lastActivity");
+    try {
+      // Explicit local scope guarantees this browser loses its session even if
+      // global sign-out/revocation of other sessions is unavailable.
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error)
+        console.error(
+          "Supabase local sign-out reported an error:",
+          error.message,
+        );
+    } catch (error) {
+      console.error("Supabase local sign-out failed:", error);
+    } finally {
+      // Fail closed in the UI: protected routes must not retain a stale user
+      // while the auth event or a network request is delayed.
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setProfileLoading(false);
+      setLoading(false);
+      setIsPasswordRecovery(false);
+      if (typeof window !== "undefined") {
+        clearSessionMetadata();
+        localStorage.setItem(SIGNOUT_BROADCAST_KEY, Date.now().toString());
+      }
     }
   };
 
-  useIdleTimeout(!!session);
-
+  useIdleTimeout(session ? user : null);
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, isPasswordRecovery, clearPasswordRecovery, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        profile: profileOwner === user?.id ? profile : null,
+        loading,
+        profileLoading: profileLoading || (!!user && profileOwner !== user.id),
+        isPasswordRecovery,
+        clearPasswordRecovery,
+        signOut,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

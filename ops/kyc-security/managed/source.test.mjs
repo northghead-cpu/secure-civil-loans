@@ -1,0 +1,269 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { generateKeyPairSync, createPrivateKey } from "node:crypto";
+import { makeBackupSource } from "../../../supabase/functions/marketplace-backup-source/handler.mjs";
+import { verifyManagedObject, loadBrowserRecoveryKey } from "./recover.mjs";
+import { readFile, mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import vm from "node:vm";
+import { digest } from "../envelope.mjs";
+import { tick } from "./worker.mjs";
+const pair = generateKeyPairSync("rsa", {
+  modulusLength: 3072,
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" },
+});
+const token = "x".repeat(43),
+  id = "11111111-1111-4111-8111-111111111111",
+  run = "22222222-2222-4222-8222-222222222222";
+const bytes = Buffer.from("synthetic private document");
+const item = {
+  id,
+  version: "one",
+  bucket_id: "kyc-documents",
+  name: "borrower/private.pdf",
+  metadata: { size: bytes.length },
+};
+const base = {
+  token,
+  publicKey: pair.publicKey,
+  page: async () => [item],
+  object: async () => item,
+  read: async () => bytes,
+};
+const request = (body, auth = token, extra = {}) =>
+  new Request("https://source.test", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${auth}`,
+      "Content-Type": "application/json",
+      ...extra,
+    },
+    body: JSON.stringify(body),
+  });
+test("Missing configuration refuses all data access", async () => {
+  const response = await makeBackupSource({ ...base, token: undefined })(
+    request({ action: "page" }),
+  );
+  assert.equal(response.status, 503);
+});
+test("Wrong token and browser callers are refused", async () => {
+  const h = makeBackupSource(base);
+  assert.equal((await h(request({}, "y".repeat(43)))).status, 401);
+  assert.equal(
+    (await h(request({}, token, { Origin: "https://browser.test" }))).status,
+    403,
+  );
+});
+test("Backup listing strips source names and enforces pilot budget", async () => {
+  const r = await makeBackupSource(base)(
+    request({ action: "page", before: new Date().toISOString() }),
+  );
+  const d = await r.json();
+  assert.equal(d.items.length, 1);
+  assert.equal(d.items[0].name, undefined);
+  assert.equal(
+    (
+      await makeBackupSource({
+        ...base,
+        page: async () => Array(100).fill(item),
+      })(request({ action: "page", before: new Date().toISOString() }))
+    ).status,
+    503,
+  );
+});
+test("Encrypted source output can be independently recovered and rejects tampering", async () => {
+  const r = await makeBackupSource(base)(
+    request({ action: "seal", id, version: "one", run_id: run }),
+  );
+  assert.equal(r.status, 200);
+  const encrypted = Buffer.from(await r.arrayBuffer());
+  assert.ok(!encrypted.includes("borrower/private.pdf"));
+  const record = { id, version: "one", sha256: digest(encrypted) };
+  assert.equal(
+    verifyManagedObject(
+      encrypted,
+      createPrivateKey(pair.privateKey),
+      record,
+      run,
+    ).size,
+    bytes.length,
+  );
+  assert.throws(() =>
+    verifyManagedObject(
+      encrypted,
+      createPrivateKey(pair.privateKey),
+      { ...record, version: "two" },
+      run,
+    ),
+  );
+  encrypted[5] ^= 1;
+  assert.throws(() =>
+    verifyManagedObject(
+      encrypted,
+      createPrivateKey(pair.privateKey),
+      record,
+      run,
+    ),
+  );
+});
+test("Changed source version is refused, never certified clean", async () => {
+  const r = await makeBackupSource(base)(
+    request({ action: "seal", id, version: "two", run_id: run }),
+  );
+  assert.equal(r.status, 503);
+});
+test("Scheduled worker fails closed without enablement and after the November pilot", async () => {
+  assert.equal((await tick({})).status, "disabled");
+  assert.equal(
+    (
+      await tick(
+        { BACKUP_ENABLED: "true", SOURCE_TOKEN: token },
+        Date.parse("2026-12-01T00:00:00Z"),
+      )
+    ).status,
+    "disabled",
+  );
+});
+test("Synthetic real-stream readback reaches complete and keeps restore false", async () => {
+  const entries = new Map();
+  let etag = 0;
+  const bucket = {
+    async get(k) {
+      const e = entries.get(k);
+      return e
+        ? {
+            ...e,
+            body: new Blob([e.bytes]).stream(),
+            json: async () => JSON.parse(e.bytes.toString()),
+          }
+        : null;
+    },
+    async put(k, value, opts = {}) {
+      const prev = entries.get(k);
+      if (opts.onlyIf?.etagDoesNotMatch === "*" && prev) return null;
+      if (opts.onlyIf?.etagMatches && prev?.etag !== opts.onlyIf.etagMatches)
+        return null;
+      const b =
+        typeof value === "string" ? Buffer.from(value) : Buffer.from(value);
+      const e = {
+        bytes: b,
+        etag: String(++etag),
+        size: b.length,
+        customMetadata: opts.customMetadata,
+      };
+      entries.set(k, e);
+      return e;
+    },
+  };
+  const handler = makeBackupSource(base);
+  const result = await tick(
+    { BACKUP_ENABLED: "true", SOURCE_TOKEN: token, BACKUPS: bucket },
+    Date.parse("2026-11-10T10:00:00Z"),
+    (_url, init) => handler(new Request("https://source.test", init)),
+  );
+  assert.equal(result.status, "complete");
+  const state = JSON.parse(
+    entries.get("managed-daily-v2/state/2026-11-10.json").bytes,
+  );
+  assert.equal(state.restore_verified, false);
+  assert.equal(state.encrypted_readback_verified, true);
+  assert.equal(state.count, 1);
+});
+test("Offline setup produces a password-protected recovery kit that the verifier can load", async () => {
+  const html = await readFile(
+    new URL("./recovery-setup.html", import.meta.url),
+    "utf8",
+  );
+  assert.match(html, /connect-src 'none'/);
+  const elements = new Map(),
+    downloads = [];
+  for (const id of ["password", "confirm", "generate", "status", "downloads"])
+    elements.set(id, {
+      value: "synthetic test passphrase 12345",
+      append: (a) => downloads.push(a),
+    });
+  const blobs = new Map();
+  let n = 0;
+  const context = vm.createContext({
+    TextEncoder,
+    Uint8Array,
+    crypto,
+    Blob,
+    btoa,
+    URL: {
+      createObjectURL: (b) => {
+        const key = "blob:" + n++;
+        blobs.set(key, b);
+        return key;
+      },
+    },
+    document: {
+      getElementById: (id) => elements.get(id),
+      createElement: () => ({}),
+    },
+  });
+  vm.runInContext(html.match(/<script>([\s\S]*)<\/script>/)[1], context);
+  await elements.get("generate").onclick();
+  assert.equal(downloads.length, 2, elements.get("status").textContent);
+  const kit = await blobs.get(downloads[0].href).text();
+  assert.ok(!kit.includes("PRIVATE KEY"));
+  const dir = await mkdtemp(join(tmpdir(), "riverbanc-synthetic-recovery-"));
+  try {
+    const path = join(dir, "kit.json");
+    await writeFile(path, kit, { mode: 0o600 });
+    const loaded = await loadBrowserRecoveryKey(
+      path,
+      "synthetic test passphrase 12345",
+    );
+    assert.equal(loaded.asymmetricKeyDetails.modulusLength, 4096);
+    await assert.rejects(loadBrowserRecoveryKey(path, "wrong passphrase"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("Daily snapshot recovers every object and never exposes plaintext", async () => {
+  const h = makeBackupSource(base);
+  const r = await h(
+    request({
+      action: "snapshot",
+      before: new Date().toISOString(),
+      run_id: run,
+    }),
+  );
+  assert.equal(r.status, 200);
+  const raw = Buffer.from(await r.arrayBuffer());
+  assert.equal(digest(raw), r.headers.get("X-Backup-SHA256"));
+  assert.ok(!raw.includes("borrower/private.pdf"));
+  const bundle = JSON.parse(raw);
+  assert.equal(bundle.records.length, 1);
+  const record = bundle.records[0];
+  assert.equal(
+    verifyManagedObject(
+      Buffer.from(JSON.stringify(record.envelope)),
+      createPrivateKey(pair.privateKey),
+      record,
+      run,
+    ).size,
+    bytes.length,
+  );
+});
+test("A failed daily snapshot returns no partial archive", async () => {
+  const h = makeBackupSource({
+    ...base,
+    read: async () => {
+      throw Error("synthetic failure");
+    },
+  });
+  const r = await h(
+    request({
+      action: "snapshot",
+      before: new Date().toISOString(),
+      run_id: run,
+    }),
+  );
+  assert.equal(r.status, 503);
+  assert.equal((await r.json()).error, "BACKUP_SOURCE_FAILED");
+});

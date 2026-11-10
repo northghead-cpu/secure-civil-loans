@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { riverbancMark } from "@/assets/riverbanc-mark";
 
 const Footer = () => {
   return (
@@ -8,9 +8,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                <Shield className="w-4 h-4 text-accent-foreground" />
-              </div>
+              <img src={riverbancMark} alt="" aria-hidden="true" className="h-8 w-8 object-contain shrink-0" />
               <span className="font-display text-lg font-bold text-primary-foreground">Riverbanc</span>
             </Link>
             <p className="text-primary-foreground/50 text-sm leading-relaxed">

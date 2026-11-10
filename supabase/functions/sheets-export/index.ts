@@ -1,3 +1,5 @@
+import { RequestError, readBoundedText, requireJson } from "../_shared/request-security.ts";
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
  * sheets-export — server-side Riverbanc -> Google Sheets reporting sync.
  *
@@ -15,8 +17,27 @@
  * POST { action: "sync", spreadsheetId?: string }
  * POST { action: "status" }
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeadersFor } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+const ALLOWED_RIVERBANC_ORIGINS = new Set([
+  "https://riverbanc.co.zm",
+  "https://www.riverbanc.co.zm",
+  "https://riverbanc-tech-git-main-riverbank1.vercel.app",
+  "https://riverbanc-tech-riverbank1.vercel.app",
+  "https://secure-civil-loans.vercel.app",
+  "https://riverbanc-tech-l8vpknneo-riverbank1.vercel.app",
+]);
+
+function corsHeadersFor(req: Request, methods: string): Record<string, string> {
+  const origin = req.headers.get("origin");
+  return {
+    ...(origin && ALLOWED_RIVERBANC_ORIGINS.has(origin)
+      ? { "Access-Control-Allow-Origin": origin }
+      : {}),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id",
+    "Access-Control-Allow-Methods": methods,
+    "Vary": "Origin",
+  };
+}
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -65,9 +86,15 @@ async function gateway(path: string, init: RequestInit = {}) {
   if (!res.ok) {
     const details = await res.text();
     console.error(`Google Sheets gateway ${path} failed [${res.status}]: ${details}`);
-    throw new Error(`[${res.status}] ${details}`);
+    throw new ProviderError(res.status);
   }
   return res.json();
+}
+
+class ProviderError extends Error {
+  constructor(public status: number) {
+    super(`Google Sheets provider request failed [${status}]`);
+  }
 }
 
 type Grid = (string | number)[][];
@@ -84,7 +111,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
 
   // --- Identity + role check with the caller's own token (RLS-respecting) ---
   const asUser = createClient(
@@ -92,31 +119,28 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } },
   );
-  const { data: claims, error: claimsErr } = await asUser.auth.getClaims(
-    authHeader.replace("Bearer ", ""),
-  );
-  const userId = claims?.claims?.sub as string | undefined;
-  const aal = claims?.claims?.aal as string | undefined;
-  if (claimsErr || !userId) return json({ error: "Unauthorized" }, 401);
-
-  const [{ data: isAdmin }, { data: isSuperAdmin }] = await Promise.all([
-    asUser.rpc("has_role", { _user_id: userId, _role: "admin" }),
-    asUser.rpc("has_role", { _user_id: userId, _role: "super_admin" }),
-  ]);
-  if (!isAdmin && !isSuperAdmin) return json({ error: "Forbidden" }, 403);
-  if (aal !== "aal2") return json({ error: "MFA required" }, 403);
-
-  if (!LOVABLE_API_KEY || !GOOGLE_SHEETS_API_KEY) {
-    return json(
-      { error: "Google Sheets connection is not configured for this project." },
-      503,
-    );
-  }
+  const authorization = await requirePrivilegedMfa({
+      auth: asUser.auth,
+      accountForUser: async (id) => {
+        const { data, error } = await asUser.from("profiles").select("account_status").eq("user_id", id).maybeSingle();
+        return { data, error };
+      },
+      rolesForUser: async (id) => {
+        const { data, error } = await asUser.from("user_roles").select("role")
+          .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+        return { data: data as { role: string }[] | null, error };
+      },
+    }, authHeader);
+  if (authorization.status) return json({ error: authorization.code, code: authorization.code }, authorization.status);
+  const userId = authorization.userId;
 
   let body: { action?: string; spreadsheetId?: string };
   try {
-    body = await req.json();
-  } catch {
+    requireJson(req);
+    body = JSON.parse(await readBoundedText(req, 4096));
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid JSON object" }, 400);
+  } catch (error) {
+    if (error instanceof RequestError) return json({ error: error.code }, error.status);
     return json({ error: "Invalid JSON body" }, 400);
   }
 
@@ -127,17 +151,35 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
+  const { data: quota, error: quotaError } = await db.rpc("consume_edge_request", {
+    p_user_id: userId, p_function_name: "sheets-export", p_nonce: req.headers.get("x-request-id") ?? crypto.randomUUID(),
+  });
+  if (quotaError || !quota || typeof quota.allowed !== "boolean") return json({ error: "Service unavailable" }, 503);
+  if (quota.replay) return json({ error: "Duplicate request" }, 409);
+  if (!quota.allowed) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } });
   try {
     if (body.action === "status") {
-      const { data } = await db
+      const { data, error } = await db
         .from("report_sync_state")
         .select("*")
         .eq("id", "google_sheets")
         .maybeSingle();
-      return json({ state: data ?? null });
+      if (error) return json({ error: "Unable to read reporting status" }, 500);
+      return json({
+        state: data ?? null,
+        configured: Boolean(LOVABLE_API_KEY && GOOGLE_SHEETS_API_KEY),
+        connectorLinked: Boolean(GOOGLE_SHEETS_API_KEY),
+        syncStateExists: Boolean(data),
+      });
     }
 
     if (body.action !== "sync") return json({ error: "Unknown action" }, 400);
+    if (!LOVABLE_API_KEY || !GOOGLE_SHEETS_API_KEY) {
+      return json(
+        { error: "Google Sheets connection is not configured for this project.", code: "CONNECTOR_NOT_LINKED" },
+        503,
+      );
+    }
 
     // ------------------------------ Extract ------------------------------
     const [
@@ -180,6 +222,15 @@ Deno.serve(async (req) => {
           "id,user_id,loan_application_id,agreement_version,authorized_amount,authorized_term_months,signed_at,revoked_at,status,created_at",
         ),
     ]);
+
+    const queryResults = [
+      profiles, kyc, applications, offers, underwriting, creditChecks, riskFlags,
+      payouts, products, bankProducts, notifications, consentHistory, auditLogs, authorizations,
+    ];
+    if (queryResults.some((result) => result.error)) {
+      console.error("sheets-export database extraction failed: one or more source queries returned an error");
+      throw new Error("Database extraction failed");
+    }
 
     const rows = <T>(r: { data: T[] | null; error: unknown }) => r.data ?? [];
     const P = rows<Record<string, unknown>>(profiles);
@@ -868,7 +919,7 @@ Deno.serve(async (req) => {
       rowCounts[tab] = Math.max(0, padded.length - 1);
     }
 
-    await db.from("report_sync_state").upsert({
+    const { error: stateError } = await db.from("report_sync_state").upsert({
       id: "google_sheets",
       spreadsheet_id: spreadsheetId,
       last_synced_at: new Date().toISOString(),
@@ -876,16 +927,24 @@ Deno.serve(async (req) => {
       row_counts: rowCounts,
       last_error: null,
     });
+    if (stateError) {
+      console.error("sheets-export failed to persist sync state");
+      throw new Error("Sync completed but status persistence failed");
+    }
 
-    await db.rpc("log_audit", {
+    const { error: auditError } = await db.rpc("log_audit", {
       _user_id: userId,
-      _role: isSuperAdmin ? "super_admin" : "admin",
+      _role: authorization.role,
       _action: "google_sheets_report_sync",
       _record_id: spreadsheetId,
       _table_name: "report_sync_state",
       _old_value: null,
       _new_value: { row_counts: rowCounts, created },
     });
+    if (auditError) {
+      console.error("sheets-export failed to write audit event");
+      throw new Error("Sync completed but audit logging failed");
+    }
 
     return json({
       ok: true,
@@ -896,6 +955,7 @@ Deno.serve(async (req) => {
       syncedAt: new Date().toISOString(),
     });
   } catch (err) {
+    const isProvider = err instanceof ProviderError;
     const message = err instanceof Error ? err.message : "Sync failed";
     // Log only a bounded internal diagnostic; never return or persist provider
     // error bodies because they can contain identifiers, URLs, or secrets.
@@ -903,7 +963,15 @@ Deno.serve(async (req) => {
     console.error("sheets-export failed:", diagnostic);
     await db
       .from("report_sync_state")
-      .upsert({ id: "google_sheets", last_error: "Report sync failed" });
-    return json({ error: "Report sync failed" }, 502);
+      .upsert({
+        id: "google_sheets",
+        last_error: isProvider ? "Google Sheets rejected the request" : "Report sync failed",
+      });
+    if (isProvider) {
+      const status = (err as ProviderError).status;
+      const code = status === 401 || status === 403 ? "PROVIDER_AUTH" : "PROVIDER_ERROR";
+      return json({ error: "Google Sheets request failed", code, providerStatus: status }, 502);
+    }
+    return json({ error: "Report sync failed", code: "SYNC_FAILED" }, 500);
   }
 });

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -48,24 +48,6 @@ export type Database = {
           table_name?: string | null
           user_id?: string
         }
-        Relationships: []
-      }
-      support_cases: {
-        Row: { id: string; case_number: string; user_id: string; subject: string; category: string; status: string; priority: string; created_at: string; updated_at: string; last_message_at: string; closed_at: string | null }
-        Insert: { id?: string; case_number?: string; user_id: string; subject: string; category: string; status?: string; priority?: string; created_at?: string; updated_at?: string; last_message_at?: string; closed_at?: string | null }
-        Update: { id?: string; case_number?: string; user_id?: string; subject?: string; category?: string; status?: string; priority?: string; created_at?: string; updated_at?: string; last_message_at?: string; closed_at?: string | null }
-        Relationships: []
-      }
-      support_messages: {
-        Row: { id: string; case_id: string; sender_id: string; body: string; is_staff_reply: boolean; created_at: string }
-        Insert: { id?: string; case_id: string; sender_id: string; body: string; is_staff_reply?: boolean; created_at?: string }
-        Update: { id?: string; case_id?: string; sender_id?: string; body?: string; is_staff_reply?: boolean; created_at?: string }
-        Relationships: []
-      }
-      support_case_events: {
-        Row: { id: string; case_id: string; actor_id: string | null; event_type: string; details: Json; created_at: string }
-        Insert: { id?: string; case_id: string; actor_id?: string | null; event_type: string; details?: Json; created_at?: string }
-        Update: { id?: string; case_id?: string; actor_id?: string | null; event_type?: string; details?: Json; created_at?: string }
         Relationships: []
       }
       bank_products: {
@@ -870,9 +852,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_support_case: { Args: { p_category: string; p_message: string; p_subject: string }; Returns: string }
-      reply_support_case: { Args: { p_case_id: string; p_message: string }; Returns: string }
-      update_support_case: { Args: { p_case_id: string; p_priority: string; p_status: string }; Returns: undefined }
       calculate_zmw_underwriting: {
         Args: { p_debt: number; p_income: number }
         Returns: {
