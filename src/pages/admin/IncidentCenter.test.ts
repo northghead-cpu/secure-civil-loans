@@ -4,7 +4,6 @@ import { buildIncidentStatusUpdate } from "./IncidentCenter";
 describe("Incident Center lifecycle updates", () => {
   it("records the acting admin when an incident is acknowledged", () => {
     const now = "2026-09-05T10:00:00.000Z";
-
     expect(buildIncidentStatusUpdate("detected", "admin-1", now)).toEqual({
       status: "acknowledged",
       updated_at: now,
@@ -15,7 +14,6 @@ describe("Incident Center lifecycle updates", () => {
 
   it("records the acting admin and resolution code when an incident is resolved", () => {
     const now = "2026-09-05T10:05:00.000Z";
-
     expect(buildIncidentStatusUpdate("investigating", "admin-1", now)).toEqual({
       status: "resolved",
       updated_at: now,

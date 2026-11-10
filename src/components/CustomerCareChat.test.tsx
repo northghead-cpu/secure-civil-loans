@@ -1,0 +1,106 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import CustomerCareChat from "./CustomerCareChat";
+
+const mocks = vi.hoisted(() => ({
+  user: null as null | { id: string },
+  loading: false,
+  order: vi.fn(),
+  rpc: vi.fn(),
+  roles: [] as string[],
+  rbacLoading: false,
+}));
+
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({ user: mocks.user, loading: mocks.loading }),
+}));
+
+vi.mock("@/hooks/useRBAC", () => ({
+  useRBAC: () => ({ roles: mocks.roles, loading: mocks.rbacLoading }),
+}));
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({ order: mocks.order }),
+      }),
+    }),
+    rpc: mocks.rpc,
+  },
+}));
+
+const renderChat = (path = "/") => render(
+  <MemoryRouter initialEntries={[path]}><CustomerCareChat /></MemoryRouter>,
+);
+
+describe("CustomerCareChat", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.user = null;
+    mocks.loading = false;
+    mocks.roles = [];
+    mocks.rbacLoading = false;
+    mocks.order.mockResolvedValue({ data: [], error: null });
+    mocks.rpc.mockResolvedValue({ data: "new-case-id", error: null });
+  });
+
+  it("does not flash the bubble while authentication is still resolving", () => {
+    mocks.loading = true;
+    renderChat();
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
+  });
+
+  it("hides the bubble immediately on privileged routes, before MFA status resolves", () => {
+    mocks.user = { id: "customer-1" };
+    mocks.roles = ["user"];
+    renderChat("/admin");
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
+  });
+
+  it("does not render the bubble for admin or staff accounts", () => {
+    mocks.user = { id: "admin-1" };
+    mocks.roles = ["admin"];
+    renderChat();
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
+  });
+
+  it("does not briefly render while an authenticated account role is loading", () => {
+    mocks.user = { id: "customer-1" };
+    mocks.rbacLoading = true;
+    renderChat();
+    expect(screen.queryByTestId("customer-care-chat")).not.toBeInTheDocument();
+  });
+
+  it("opens as a customer-care bubble and directs signed-out visitors to sign in", () => {
+    renderChat();
+    fireEvent.click(screen.getByRole("button", { name: /chat with customer care/i }));
+
+    expect(screen.getByRole("region", { name: /riverbanc customer care chat/i })).toBeInTheDocument();
+    expect(screen.getByTestId("customer-care-chat").querySelector("button[aria-expanded=\"true\"]")).toHaveTextContent(/^\s*$/);
+    expect(screen.getByText(/sign in to start a private conversation/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /sign in to chat/i })).toHaveAttribute("href", "/login");
+  });
+
+  it("loads the signed-in customer's cases and offers a new conversation", async () => {
+    mocks.user = { id: "customer-1" };
+    mocks.roles = ["user"];
+    renderChat();
+    fireEvent.click(screen.getByRole("button", { name: /chat with customer care/i }));
+
+    expect(await screen.findByRole("heading", { name: /start a conversation/i })).toBeInTheDocument();
+    expect(mocks.order).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /send to customer care/i })).toBeInTheDocument();
+  });
+
+  it("does not send an empty customer-care message", async () => {
+    mocks.user = { id: "customer-1" };
+    mocks.roles = ["user"];
+    renderChat();
+    fireEvent.click(screen.getByRole("button", { name: /chat with customer care/i }));
+
+    expect(await screen.findByRole("heading", { name: /start a conversation/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /send to customer care/i })).toBeDisabled();
+  });
+});

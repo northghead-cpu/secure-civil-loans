@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { OCRResult } from "@/services/ocrService";
 
+// Mock dependencies
 vi.mock("@/services/ocrService", () => ({
   processDocument: vi.fn(),
 }));
@@ -14,12 +14,9 @@ import { processDocument } from "@/services/ocrService";
 import { features } from "@/config/features";
 
 const mockFile = new File(["dummy"], "test.jpg", { type: "image/jpeg" });
-const mutableFeatures = features as unknown as { enableOCR: boolean };
 
-type MockOCROverrides = Partial<OCRResult>;
-
-const mockOCR = (text: string, extra: MockOCROverrides = {}) => {
-  vi.mocked(processDocument).mockResolvedValue({
+const mockOCR = (text: string, extra: Partial<any> = {}) => {
+  (processDocument as any).mockResolvedValue({
     success: true,
     extracted_text: text,
     confidence: 88,
@@ -53,15 +50,15 @@ District: Lusaka`);
   });
 
   it("returns success false when OCR is disabled", async () => {
-    mutableFeatures.enableOCR = false;
+    (features as any).enableOCR = false;
     const r = await parseNRC(mockFile);
     expect(r.success).toBe(false);
     expect(r.error).toBe("OCR is disabled");
-    mutableFeatures.enableOCR = true;
+    (features as any).enableOCR = true;
   });
 
   it("handles OCR failure gracefully", async () => {
-    vi.mocked(processDocument).mockResolvedValue({
+    (processDocument as any).mockResolvedValue({
       success: false,
       extracted_text: "",
       confidence: 0,

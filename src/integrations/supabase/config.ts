@@ -12,12 +12,13 @@ type Env = {
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
 };
 
-export const getSupabaseConfig = (env?: Env) => {
-  const resolvedEnv = env ?? (import.meta.env as unknown as Env);
-
-  return {
-    url: resolvedEnv.VITE_SUPABASE_URL?.trim() || CANONICAL_SUPABASE_URL,
-    publishableKey:
-      resolvedEnv.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || CANONICAL_SUPABASE_PUBLISHABLE_KEY,
-  };
+const runtimeEnv: Env = {
+  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+  VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 };
+
+export const getSupabaseConfig = (env: Env = runtimeEnv) => ({
+  url: env.VITE_SUPABASE_URL?.trim() || CANONICAL_SUPABASE_URL,
+  publishableKey:
+    env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || CANONICAL_SUPABASE_PUBLISHABLE_KEY,
+});

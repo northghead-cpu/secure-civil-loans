@@ -15,7 +15,7 @@ Align the Riverbanc frontend and service architecture with the company's busines
 3. Participating financial institutions own lending decisions and disbursement decisions.
 4. Each business responsibility has one authoritative owner, while distinct actor-facing interfaces remain separate.
 5. No duplicate source of truth is permitted for the same business object.
-6. Consequential actions must be auditable and appropriately role/tenant scoped.
+6. Consequential actions must remain auditable and appropriately role/tenant scoped.
 7. The UI must never imply a capability that the backend cannot actually execute.
 8. Sensitive applicant, KYC, lender and risk data must remain segregated according to role and access boundaries.
 9. Automation may assist operations but must not silently replace accountable business decisions.

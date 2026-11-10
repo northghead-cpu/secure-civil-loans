@@ -1,35 +1,22 @@
+import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
- * reference-data — cached, non-sensitive read API.
+ * reference-data — authenticated reference API.
  *
- * Serves the lender product catalogue, public comparison results and
- * underwriting / CRB *reference* tables through an optional Upstash Redis
- * cache (see ../_shared/cache.ts). When Upstash env vars are absent the
- * function behaves exactly as before: straight database reads.
- *
- * Nothing customer-specific is ever cached here — no PII, no KYC data,
- * no per-borrower CRB files, no session data.
+ * Catalogue and comparison queries always use the caller's RLS context and
+ * bypass shared caches. Only static underwriting and CRB reference tables
+ * use the optional Upstash cache; no customer records are cached.
  *
  * GET  ?resource=catalogue|comparison|underwriting-reference|crb-reference
  * POST { action: "invalidate", resource?: "..." }   (admin/super_admin only)
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { corsHeadersFor } from "../_shared/cors.ts";
 import {
   CACHE_TTL,
   cacheDelPattern,
   cacheEnabled,
   cached,
 } from "../_shared/cache.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json", ...extra },
-  });
 
 const RESOURCES = ["catalogue", "comparison", "underwriting-reference", "crb-reference"] as const;
 type Resource = (typeof RESOURCES)[number];
@@ -59,6 +46,13 @@ const CRB_REFERENCE = {
 };
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req, "GET, POST");
+  const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json", ...extra },
+    });
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const authHeader = req.headers.get("Authorization");
@@ -70,35 +64,54 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
+  const { data: identity, error: identityError } = await supabase.auth.getUser(
     authHeader.replace("Bearer ", ""),
   );
-  if (claimsErr || !claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
-  const userId = claims.claims.sub as string;
+  if (identityError || !identity.user) return json({ error: "Unauthorized" }, 401);
 
   try {
+    // ---------------- Cache invalidation (after writes) ----------------
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (body?.action !== "invalidate") return json({ error: "Unsupported action" }, 400);
 
-      const { data: roleRow } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .in("role", ["admin", "super_admin"])
-        .maybeSingle();
-      if (!roleRow) return json({ error: "Forbidden" }, 403);
+      const authorization = await requirePrivilegedMfa({
+      auth: supabase.auth,
+      accountForUser: async (id) => {
+        const { data, error } = await supabase.from("profiles").select("account_status").eq("user_id", id).maybeSingle();
+        return { data, error };
+      },
+      rolesForUser: async (id) => {
+        const { data, error } = await supabase.from("user_roles").select("role")
+          .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+        return { data: data as { role: string }[] | null, error };
+      },
+    }, authHeader);
+      if (authorization.status) return json({ error: authorization.code }, authorization.status);
 
       const resource = typeof body.resource === "string" ? body.resource : null;
-      if (resource && !RESOURCES.includes(resource as Resource)) return json({ error: "Unknown resource" }, 400);
-      const patterns = resource ? [`${resource}:*`] : RESOURCES.map((r) => `${r}:*`);
+      if (resource && !RESOURCES.includes(resource as Resource)) {
+        return json({ error: "Unknown resource" }, 400);
+      }
+      const patterns = resource
+        ? [`${resource}:*`]
+        : RESOURCES.map((r) => `${r}:*`);
       let purged = 0;
       for (const p of patterns) purged += await cacheDelPattern(p);
       return json({ success: true, cache_enabled: cacheEnabled(), purged });
     }
 
-    if (req.method !== "GET") return json({ error: "Method not allowed" }, 405, { Allow: "GET, POST" });
+    if (req.method !== "GET") {
+      return json({ error: "Method not allowed" }, 405, { Allow: "GET, POST" });
+    }
 
+    const account = await supabase.from("profiles").select("account_status").eq("user_id", identity.user.id).maybeSingle();
+    if (account.error) return json({ error: "AUTHORIZATION_UNAVAILABLE" }, 503);
+    if (account.data?.account_status !== "active") return json({ error: "ACTIVE_ACCOUNT_REQUIRED" }, 403);
+
+    // Caller-scoped database results must never populate a shared cache.
+    const uncached = async <T>(_key: string, _ttl: number, load: () => Promise<T>) => ({ data: await load(), hit: false });
+    // ---------------- Reads ----------------
     const url = new URL(req.url);
     const resource = (url.searchParams.get("resource") ?? "catalogue") as Resource;
     if (!RESOURCES.includes(resource)) return json({ error: "Unknown resource" }, 400);
@@ -107,10 +120,10 @@ Deno.serve(async (req) => {
     let hit = false;
 
     if (resource === "catalogue") {
-      const res = await cached("catalogue:active", CACHE_TTL.catalogue, async () => {
+      const res = await uncached("catalogue:active", CACHE_TTL.catalogue, async () => {
         const { data, error } = await supabase
           .from("bank_products")
-          .select("id, bank_name, product_type, interest_rate, min_amount, max_amount, max_term_months, processing_days")
+          .select("id, bank_name, interest_rate, min_amount, max_amount, max_term_months, processing_days")
           .eq("active", true)
           .order("interest_rate", { ascending: true });
         if (error) throw error;
@@ -119,28 +132,47 @@ Deno.serve(async (req) => {
       payload = res.data;
       hit = res.hit;
     } else if (resource === "comparison") {
-      const amount = Math.min(5_000_000, Math.max(1, Number.parseInt(url.searchParams.get("amount") ?? "100000", 10) || 100000));
-      const term = Math.min(120, Math.max(1, Number.parseInt(url.searchParams.get("term") ?? "60", 10) || 60));
-      const res = await cached(`comparison:${amount}:${term}`, CACHE_TTL.comparison, async () => {
-        const { data, error } = await supabase
-          .from("bank_products")
-          .select("id, bank_name, interest_rate, min_amount, max_amount, max_term_months, processing_days")
-          .eq("active", true);
-        if (error) throw error;
-        return (data ?? [])
-          .filter((p) => amount >= (p.min_amount ?? 0) && amount <= (p.max_amount ?? Infinity))
-          .map((p) => {
-            const months = Math.min(term, p.max_term_months ?? term);
-            const rate = Number(p.interest_rate ?? 0) / 100;
-            const monthly = (amount * (1 + rate * (months / 12))) / months;
-            return { ...p, term_months: months, monthly_payment: Math.round(monthly), total_cost: Math.round(monthly * months) };
-          })
-          .sort((a, b) => a.monthly_payment - b.monthly_payment);
-      });
+      const amount = Math.min(
+        5_000_000,
+        Math.max(1, Number.parseInt(url.searchParams.get("amount") ?? "100000", 10) || 100000),
+      );
+      const term = Math.min(
+        120,
+        Math.max(1, Number.parseInt(url.searchParams.get("term") ?? "60", 10) || 60),
+      );
+      const res = await uncached(
+        `comparison:${amount}:${term}`,
+        CACHE_TTL.comparison,
+        async () => {
+          const { data, error } = await supabase
+            .from("bank_products")
+            .select("id, bank_name, interest_rate, min_amount, max_amount, max_term_months, processing_days")
+            .eq("active", true);
+          if (error) throw error;
+          return (data ?? [])
+            .filter((p) => amount >= (p.min_amount ?? 0) && amount <= (p.max_amount ?? Infinity))
+            .map((p) => {
+              const months = Math.min(term, p.max_term_months ?? term);
+              const rate = Number(p.interest_rate ?? 0) / 100;
+              const monthly = (amount * (1 + rate * (months / 12))) / months;
+              return {
+                ...p,
+                term_months: months,
+                monthly_payment: Math.round(monthly),
+                total_cost: Math.round(monthly * months),
+              };
+            })
+            .sort((a, b) => a.monthly_payment - b.monthly_payment);
+        },
+      );
       payload = res.data;
       hit = res.hit;
     } else if (resource === "underwriting-reference") {
-      const res = await cached("underwriting-reference:v1", CACHE_TTL.reference, async () => UNDERWRITING_REFERENCE);
+      const res = await cached(
+        "underwriting-reference:v1",
+        CACHE_TTL.reference,
+        async () => UNDERWRITING_REFERENCE,
+      );
       payload = res.data;
       hit = res.hit;
     } else {
@@ -152,7 +184,10 @@ Deno.serve(async (req) => {
     return json(
       { success: true, resource, data: payload },
       200,
-      { "X-Cache": cacheEnabled() ? (hit ? "HIT" : "MISS") : "DISABLED", "Cache-Control": "private, max-age=30" },
+      {
+        "X-Cache": !["catalogue", "comparison"].includes(resource) && cacheEnabled() ? (hit ? "HIT" : "MISS") : "DISABLED",
+        "Cache-Control": "private, no-store",
+      },
     );
   } catch (e) {
     console.error("[reference-data] error:", e instanceof Error ? e.message : "unknown");

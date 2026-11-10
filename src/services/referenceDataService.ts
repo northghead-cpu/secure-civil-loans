@@ -14,17 +14,6 @@ export type ReferenceResource =
   | "underwriting-reference"
   | "crb-reference";
 
-export type ReferenceCatalogueItem = {
-  id: string;
-  bank_name: string;
-  product_type: string;
-  interest_rate: number;
-  min_amount: number;
-  max_amount: number;
-  max_term_months: number;
-  processing_days: number;
-};
-
 async function invoke<T>(
   method: "GET" | "POST",
   query: Record<string, string> = {},
@@ -40,7 +29,7 @@ async function invoke<T>(
 }
 
 export const referenceDataService = {
-  getCatalogue: () => invoke<ReferenceCatalogueItem[]>("GET", { resource: "catalogue" }),
+  getCatalogue: () => invoke<unknown[]>("GET", { resource: "catalogue" }),
 
   getComparison: (amount: number, termMonths: number) =>
     invoke<unknown[]>("GET", {

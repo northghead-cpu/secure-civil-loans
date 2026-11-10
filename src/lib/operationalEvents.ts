@@ -1,36 +1,30 @@
-import { captureException, withScope } from "@sentry/react";
-import { scrubDeep } from "@/lib/sentry";
+import * as Sentry from "@sentry/react";
+import { scrubDeep } from "./sentry";
 
 export type OperationalEventSeverity = "low" | "medium" | "high" | "critical";
 
-export interface OperationalEventInput {
+export interface OperationalEvent {
   operation: string;
-  severity: OperationalEventSeverity;
+  severity?: OperationalEventSeverity;
   message: string;
   metadata?: Record<string, unknown>;
 }
 
 /**
- * Capture a structured operational event without allowing regulated metadata
- * to bypass the application's Sentry privacy boundary.
+ * Capture a structured operational event while preserving Riverbanc's
+ * Sentry privacy boundary. Metadata is scrubbed before it enters Sentry.
  */
-export function captureOperationalEvent({
-  operation,
-  severity,
-  message,
-  metadata,
-}: OperationalEventInput): void {
-  const error = new Error(message);
+export function captureOperationalEvent(event: OperationalEvent): void {
+  const operation = event.operation.trim() || "unknown";
+  const error = new Error(event.message);
   error.name = `OperationalEvent:${operation}`;
 
-  withScope((scope) => {
-    scope.setTag("operation", operation);
-    scope.setTag("severity", severity);
-
-    if (metadata) {
-      scope.setContext("operational_event", scrubDeep(metadata));
+  Sentry.withScope((scope) => {
+    scope.setTag("operational_event", operation);
+    if (event.severity) scope.setTag("severity", event.severity);
+    if (event.metadata) {
+      scope.setContext("operational_event", scrubDeep(event.metadata));
     }
-
-    captureException(error);
+    Sentry.captureException(error);
   });
 }

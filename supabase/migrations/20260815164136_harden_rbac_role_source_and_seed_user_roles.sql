@@ -1,14 +1,11 @@
 -- Make user_roles the single source of truth for authorization checks.
---
--- The historical migration originally attempted to backfill roles from
--- public.profiles.role. That column is not part of the canonical profiles
--- schema, so replaying the migration on a fresh Supabase branch fails with
--- SQLSTATE 42703. Role membership must not be guessed from profile data.
--- Existing role assignments, when present, remain in public.user_roles.
+insert into public.user_roles (user_id, role)
+select p.user_id, p.role::public.app_role
+from public.profiles p
+where p.role in ('admin','user','super_admin','super_user','compliance_team','data_entry_team')
+on conflict (user_id, role) do nothing;
 
--- Replace the legacy text helper with the user_roles-backed helper. The
--- follow-up migration 20260815164155 hardens this helper as SECURITY DEFINER
--- so user_roles RLS does not recursively invoke itself.
+-- Replace the legacy text helper that read the mutable profiles.role column.
 create or replace function public.has_role(required_role text)
 returns boolean
 language sql
@@ -20,6 +17,8 @@ as $$
     where user_id = auth.uid() and role::text = required_role
   );
 $$;
+
+revoke update (role) on public.profiles from anon, authenticated;
 
 drop policy if exists "audit_admin_only" on public.audit_logs;
 create policy "audit_admin_only" on public.audit_logs

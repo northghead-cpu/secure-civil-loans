@@ -7,19 +7,14 @@ interface CosmicParallaxBgProps {
   className?: string;
 }
 
-const CosmicParallaxBg: React.FC<CosmicParallaxBgProps> = ({
-  head,
-  text,
-  loop = true,
-  className = '',
-}) => {
+const CosmicParallaxBg: React.FC<CosmicParallaxBgProps> = ({ head, text, loop = true, className = '' }) => {
   const [smallStars, setSmallStars] = useState<string>('');
   const [mediumStars, setMediumStars] = useState<string>('');
   const [bigStars, setBigStars] = useState<string>('');
   const textParts = text.split(',').map(part => part.trim());
 
   const generateStarBoxShadow = (count: number): string => {
-    const shadows = [];
+    const shadows: string[] = [];
     for (let i = 0; i < count; i++) {
       const x = Math.floor(Math.random() * 2000);
       const y = Math.floor(Math.random() * 2000);

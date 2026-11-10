@@ -3,9 +3,9 @@ import { useRBAC } from "@/hooks/useRBAC";
 
 export type AdminCapability =
   | "canViewProfiles"
-  | "canManageUsers"
   | "canViewLoanApplications"
   | "canViewAuditLogs"
+  | "canManageUsers"
   | "canManageLenderProducts"
   | "canManageCommissions"
   | "canViewFinancials"

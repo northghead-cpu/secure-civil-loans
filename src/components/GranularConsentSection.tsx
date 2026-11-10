@@ -7,11 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-type ConsentKey =
-  | "consent_marketing"
-  | "consent_data_sharing_lenders"
-  | "consent_crb_check"
-  | "consent_analytics";
+type ConsentKey = "consent_marketing" | "consent_data_sharing_lenders" | "consent_crb_check" | "consent_analytics";
 
 const ITEMS: { key: ConsentKey; title: string; description: string; required?: boolean }[] = [
   { key: "consent_crb_check", title: "Credit Reference Bureau (CRB) Checks", description: "Allow Riverbanc to query TransUnion/CRB Zambia to assess your creditworthiness during loan applications." },
@@ -22,12 +18,7 @@ const ITEMS: { key: ConsentKey; title: string; description: string; required?: b
 
 const GranularConsentSection = () => {
   const { user, profile, refreshProfile } = useAuth();
-  const [values, setValues] = useState<Record<ConsentKey, boolean>>({
-    consent_marketing: false,
-    consent_data_sharing_lenders: false,
-    consent_crb_check: false,
-    consent_analytics: false,
-  });
+  const [values, setValues] = useState<Record<ConsentKey, boolean>>({ consent_marketing: false, consent_data_sharing_lenders: false, consent_crb_check: false, consent_analytics: false });
   const [saving, setSaving] = useState<ConsentKey | null>(null);
 
   useEffect(() => {
@@ -41,23 +32,28 @@ const GranularConsentSection = () => {
   }, [profile]);
 
   const toggle = async (key: ConsentKey, next: boolean) => {
-    if (!user) return;
-    setSaving(key);
+    if (!user || saving) return;
     const previous = values[key];
-    setValues((v) => ({ ...v, [key]: next }));
-    const update: Partial<Record<ConsentKey, boolean>> = { [key]: next };
-    const { error } = await supabase
-      .from("profiles")
-      .update(update)
-      .eq("user_id", user.id);
-    if (error) {
-      setValues((v) => ({ ...v, [key]: previous }));
-      toast.error("Could not update preference. Please try again.");
-    } else {
+    setSaving(key);
+    setValues((current) => ({ ...current, [key]: next }));
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ [key]: next })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
       toast.success("Preference updated");
-      await refreshProfile();
+      // Keep the saved switch responsive even if a follow-up profile read fails.
+      void refreshProfile().catch(() => undefined);
+    } catch {
+      setValues((current) => ({ ...current, [key]: previous }));
+      toast.error("Could not update preference. Please try again.");
+    } finally {
+      setSaving(null);
     }
-    setSaving(null);
   };
 
   const updatedAt = profile?.consents_updated_at;
@@ -68,12 +64,7 @@ const GranularConsentSection = () => {
       <CardContent className="space-y-4">
         <p className="text-sm text-foreground/80 leading-relaxed">Manage how Riverbanc uses your data. Under the Data Protection Act 2021, you may withdraw any consent at any time. Withdrawing CRB or lender-sharing consent may prevent new loan applications from being processed.</p>
         <div className="divide-y divide-border/60 rounded-lg border border-border/50">
-          {ITEMS.map((item) => (
-            <div key={item.key} className="flex items-start justify-between gap-4 p-4">
-              <div className="flex-1 min-w-0"><Label htmlFor={item.key} className="text-sm font-medium text-foreground">{item.title}</Label><p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.description}</p></div>
-              <div className="flex items-center gap-2 shrink-0 pt-1">{saving === item.key && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}<Switch id={item.key} checked={values[item.key]} disabled={saving === item.key} onCheckedChange={(v) => toggle(item.key, v)} /></div>
-            </div>
-          ))}
+          {ITEMS.map((item) => <div key={item.key} className="flex items-start justify-between gap-4 p-4"><div className="flex-1 min-w-0"><Label htmlFor={item.key} className="text-sm font-medium text-foreground">{item.title}</Label><p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.description}</p></div><div className="flex items-center gap-2 shrink-0 pt-1">{saving === item.key && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}<Switch id={item.key} checked={values[item.key]} disabled={saving === item.key} onCheckedChange={(v) => toggle(item.key, v)} /></div></div>)}
         </div>
         {updatedAt && <p className="text-xs text-muted-foreground">Last updated {new Date(updatedAt).toLocaleString("en-ZA", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>}
       </CardContent>

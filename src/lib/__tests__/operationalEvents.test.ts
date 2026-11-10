@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
-const { captureException, setTag, setContext, withScope } = vi.hoisted(() => {
-  const captureException = vi.fn();
-  const setTag = vi.fn();
-  const setContext = vi.fn();
-  const withScope = vi.fn((callback: (scope: {
-    setTag: (key: string, value: string) => void;
-    setContext: (key: string, value: unknown) => void;
-  }) => void) => callback({ setTag, setContext }));
-  return { captureException, setTag, setContext, withScope };
-});
+const { captureException, withScope, setTag, setContext } = vi.hoisted(() => ({
+  captureException: vi.fn(),
+  withScope: vi.fn(),
+  setTag: vi.fn(),
+  setContext: vi.fn(),
+}));
+
+withScope.mockImplementation((callback: (scope: {
+  setTag: typeof setTag;
+  setContext: typeof setContext;
+}) => void) => callback({ setTag, setContext }));
 
 vi.mock("@sentry/react", () => ({ captureException, withScope }));
 
@@ -29,16 +30,15 @@ describe("operational events", () => {
     });
 
     expect(withScope).toHaveBeenCalledTimes(1);
-    expect(setTag).toHaveBeenCalledWith("operation", "subscription.payment");
-    expect(setTag).toHaveBeenCalledWith("severity", "high");
+    expect(captureException).toHaveBeenCalledTimes(1);
+    const error = captureException.mock.calls[0][0] as Error;
+    expect(error.name).toBe("OperationalEvent:subscription.payment");
+    expect(error.message).toBe("Payment provider failed");
+    expect(setTag).toHaveBeenCalledWith("operational_event", "subscription.payment");
     expect(setContext).toHaveBeenCalledWith("operational_event", {
       nrc: "[redacted]",
       salary: "[redacted]",
       safe_code: "PAYMENT_PROVIDER_UNAVAILABLE",
     });
-    expect(captureException).toHaveBeenCalledTimes(1);
-    const error = captureException.mock.calls[0][0] as Error;
-    expect(error.name).toBe("OperationalEvent:subscription.payment");
-    expect(error.message).toBe("Payment provider failed");
   });
 });
