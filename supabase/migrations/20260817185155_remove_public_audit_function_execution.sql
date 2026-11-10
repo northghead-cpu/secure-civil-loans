@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260817185155 (remove_public_audit_function_execution).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20261104190116 (assessment_authorization_and_intake_repairs).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

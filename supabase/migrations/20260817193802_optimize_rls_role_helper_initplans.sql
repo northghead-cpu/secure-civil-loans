@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260817193802 (optimize_rls_role_helper_initplans).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.
