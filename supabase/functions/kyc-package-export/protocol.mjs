@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { timingSafeEqual, createHmac, createHash } from "node:crypto";
 export const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 export const sign = (secret, text) =>
