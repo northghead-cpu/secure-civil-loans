@@ -1,4 +1,4 @@
-# Free-tier managed backup path — prepared, not active
+# Free-tier managed daily backup path
 
 Marketplace only. No VPS, paid container, public scanner or third-party malware
 upload is used. This path backs up documents independently of the deferred
@@ -10,11 +10,12 @@ ClamAV worker. It never records a clean scan or changes quarantine settings.
   source that returns IDs/versions for a bounded page and RSA/AES envelopes.
   Encryption happens within Supabase. Source paths and SHA-256 are encrypted
   with the bytes. A separate backup token cannot report scans or fetch raw KYC.
-- `worker.mjs`: cron-only consumer, HTTP always 404, R2 binding only to
-  `riverbanc-marketplace-kyc-backup`. One envelope per invocation; conditional
-  lease/checkpoint writes, conditional create-only object writes, ciphertext
-  readback verification, three retry attempts per object, terminal failure on
-  exhaustion. No source or backup deletion. No R2 public domains required.
+- `worker.mjs`: once-daily consumer, HTTP always 404, private R2 binding only.
+  One bounded snapshot is encrypted inside Supabase with four concurrent
+  source readers. RSA-OAEP/SHA-256 uses Web Crypto for Edge/Node interoperability.
+  Conditional lease/checkpoint and create-only snapshot writes prevent
+  overwrites. Ciphertext readback is checked; it is not a recovery test.
+  No source or backup deletion and no public R2 domain is required.
 - `recovery-setup.html`: local, network-disabled WebCrypto RSA-4096 key setup.
   Downloads a public PEM and a private PKCS8 encrypted with AES-256-GCM,
   PBKDF2-SHA256 at 600,000 iterations and a user-chosen passphrase. No key is
@@ -28,7 +29,7 @@ ClamAV worker. It never records a clean scan or changes quarantine settings.
 
 Fail if the snapshot is empty, reaches 100 objects, exceeds 4 MiB original bytes,
 or an individual original exceeds 2 MiB. Today's 75 objects total 702,586 bytes.
-Only one daily run may progress; completed and failed days do not restart.
+Encrypted responses are limited to 8 MiB. Only one daily run may progress; completed and failed days do not restart.
 The consumer is hard-stopped after November 30, 2026 Africa/Lusaka time. This
 stops backup work, not customer access. No retained document is deleted.
 At these caps the planned encrypted storage and operation counts are far below
@@ -37,7 +38,7 @@ overage billing: review other account usage before activation. These application
 limits cannot prohibit unrelated workloads from generating provider charges.
 Supabase also shares project egress and Edge invocation quotas with the app.
 
-## Activation gates still open
+## Activation and verification
 
 1. Owner generates and securely retains the recovery kit locally and supplies
    only `riverbanc-recovery-public.pem`. Independently back up the encrypted
@@ -56,14 +57,19 @@ Supabase also shares project egress and Edge invocation quotas with the app.
    SHA independently of R2. User's trusted recovery computer decrypts actual
    downloaded envelopes and verifies every original hash. Do not mark a run
    restore-verified from ciphertext readback or fixture tests.
-6. Only then enable `BACKUP_ENABLED=true` and a single `*/5 * * * *` cron.
-   Current 75-file snapshots take roughly six hours and fifteen minutes. Check
+6. Only then enable `BACKUP_ENABLED=true` and one daily cron during the
+   remaining November pilot. Do not use a minute/checkpoint schedule. Check
    daily completion/failure receipts. No alerts or outbound messages are sent
    by this code. Free log retention is limited; retain evidence independently.
 
 The existing backup gateway is unchanged. Its service key stays inside Supabase.
 The new source requires its own token and public key and returns 503 without
-either. No live KYC has been exported by this implementation. No cron is active.
+either. An authorized initial snapshot of 75 objects (702,586 original bytes) was
+retrieved from private R2 and independently recovered on November 10, 2026.
+Every source version, original size and SHA-256 passed. The first Edge runtime
+OAEP compatibility issue was corrected under a new object key; the earlier
+object is retained. Keep the actual signed-in owner recovery receipt outside R2.
+A scheduled run remains `restore_verified=false` until independently tested.
 Malware scanning remains deferred; structural PDF/image validation is not AV.
 
 Run `node --test ops/kyc-security/managed/source.test.mjs` for synthetic tests,
