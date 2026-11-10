@@ -1,0 +1,14 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+const db = new PGlite();
+const sql = await readFile(new URL('../supabase/operations/referral-api-security.sql',import.meta.url),'utf8');
+await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth; create function auth.role() returns text language sql as $$ select current_setting('request.jwt.claim.role',true) $$; grant usage on schema auth to public;`);
+await db.exec(sql);
+test('only service_role can call the limiter',async()=>{for(const role of ['anon','authenticated']){await db.exec(`set role ${role}`);await assert.rejects(db.query(`select public.consume_referral_api_limit('sender_global','all')`),e=>e.message.includes('permission denied'));await db.exec('reset role');}await assert.rejects(db.query(`select public.consume_referral_api_limit('sender_global','all')`),e=>e.message.includes('SERVICE_ROLE_REQUIRED'));});
+test('atomic quota allows 20 calls and denies subsequent calls',async()=>{await db.exec(`set request.jwt.claim.role='service_role'; set role service_role;`);const results=await Promise.all(Array.from({length:25},()=>db.query(`select public.consume_referral_api_limit('sender_user','11111111-1111-4111-8111-111111111111') as result`)));assert.equal(results.filter(r=>r.rows[0].result.allowed).length,20);assert.equal(results.filter(r=>!r.rows[0].result.allowed).length,5);await db.exec('reset role');});
+test('windows reset in place without removing rows',async()=>{await db.exec(`update private.referral_api_limits set window_started_at=clock_timestamp()-interval '61 seconds';set role service_role;`);const r=await db.query(`select public.consume_referral_api_limit('sender_user','11111111-1111-4111-8111-111111111111') result`);assert.equal(r.rows[0].result.allowed,true);await db.exec('reset role');assert.equal((await db.query('select count(*)::int count from private.referral_api_limits')).rows[0].count,1);});
+test('scope and subject restrictions cannot be used to request arbitrary quotas',async()=>{for(const args of ["'unknown','all'","'sender_global','other'","'sender_user','all'","'intake_tenant','bad subject'"]){await assert.rejects(db.query(`select public.consume_referral_api_limit(${args})`),e=>e.message.includes('INVALID_RATE_LIMIT_SCOPE'));}});
+test('private counters are inaccessible to ordinary API users',async()=>{await db.exec('set role authenticated');await assert.rejects(db.query('select * from private.referral_api_limits'),e=>e.message.includes('permission denied'));await db.exec('reset role');});
+test('operation script can be reapplied without resetting counters',async()=>{await db.exec(sql);assert.equal((await db.query('select count(*)::int count from private.referral_api_limits')).rows[0].count,1);await db.close();});

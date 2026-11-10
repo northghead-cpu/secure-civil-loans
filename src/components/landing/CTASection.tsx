@@ -14,20 +14,19 @@ const CTASection = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-            Ready to Save on Your Loan?
+            Ready to Compare Loan Options?
           </h2>
           <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-            Join over 300,000 civil servants who have already found better rates
-            through Riverbanc. It takes less than 5 minutes.
+            Explore available loan options from participating financial institutions and review the information you need to make a more informed decision.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
               <Link to="/compare">
-                Compare Offers Now <ArrowRight className="w-4 h-4" />
+                Explore Available Options <ArrowRight className="w-4 h-4" />
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link to="/apply">Start KYC Process</Link>
+              <Link to="/apply">Get Started</Link>
             </Button>
           </div>
         </motion.div>
