@@ -25,6 +25,10 @@ jobs:
         run: bun run test:db-ui
       - name: Marketplace private storage authorization regressions
         run: bun run test:storage-security
+      - name: Marketplace KYC export authorization and archive regressions
+        run: |
+          node scripts/test-kyc-release-source.mjs
+          node --test supabase/functions/kyc-package-export/handler.test.mjs
       - name: Synthetic encrypted backup and recovery regressions
         run: node --test ops/kyc-security/*.test.mjs
       - name: Assessment authorization and request-security regressions
@@ -56,6 +60,7 @@ jobs:
           supabase/functions/send-handshake-referral/index.ts
           supabase/functions/upload-kyc-document/index.ts
           supabase/functions/marketplace-storage-worker/index.ts
+          supabase/functions/kyc-package-export/index.ts
 
   audit:
     # Fail on advisories in production and development dependencies; no exceptions.
