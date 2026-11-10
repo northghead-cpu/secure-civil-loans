@@ -39,7 +39,7 @@ export function makeBackupSource({token, publicKey, page, object, read}) {
       if(!latest||latest.version!==body.version) throw Error('SOURCE_CHANGED');
       // Original paths, hashes and bytes leave Supabase only inside this envelope.
       const payload=Buffer.from(JSON.stringify({source:{id:current.id,bucket_id:current.bucket_id,name:current.name,version:current.version},sha256:digest(bytes),size:bytes.length,bytes:Buffer.from(bytes).toString('base64')}));
-      const encrypted=seal(payload,publicKey,{kind:'object',run_id:body.run_id,object_id:body.id});
+      const encrypted=await seal(payload,publicKey,{kind:'object',run_id:body.run_id,object_id:body.id});
       return new Response(encrypted,{headers:{...headers,'Content-Type':'application/octet-stream','X-Backup-SHA256':digest(encrypted)}});
     } catch {return reply(503,{error:'BACKUP_SOURCE_FAILED'});}
   };

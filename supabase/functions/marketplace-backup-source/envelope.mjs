@@ -5,7 +5,6 @@ import {
   createHash,
   createPublicKey,
   createPrivateKey,
-  publicEncrypt,
   privateDecrypt,
   randomBytes,
   constants,
@@ -24,7 +23,7 @@ export function publicKeyId(pem) {
     throw Error("RSA_3072_PUBLIC_KEY_REQUIRED");
   return digest(key.export({ type: "spki", format: "der" }));
 }
-export function seal(bytes, publicKey, context) {
+export async function seal(bytes, publicKey, context) {
   const header = { format: FORMAT, key_id: publicKeyId(publicKey), ...context };
   if (
     header.format !== FORMAT ||
@@ -45,15 +44,18 @@ export function seal(bytes, publicKey, context) {
         header,
         nonce: nonce.toString("base64"),
         tag: cipher.getAuthTag().toString("base64"),
-        wrapped_key: publicEncrypt(
-          {
-            key: publicKey,
-            oaepHash: "sha256",
-            padding: constants.RSA_PKCS1_OAEP_PADDING,
-          },
-          key,
-        ).toString("base64"),
-        ciphertext: ciphertext.toString("base64"),
+        wrapped_key: Buffer.from(await globalThis.crypto.subtle.encrypt(
+        { name: "RSA-OAEP" },
+        await globalThis.crypto.subtle.importKey(
+          "spki",
+          new Uint8Array(createPublicKey(publicKey).export({ type: "spki", format: "der" })),
+          { name: "RSA-OAEP", hash: "SHA-256" },
+          false,
+          ["encrypt"],
+        ),
+        key,
+      )).toString("base64"),
+      ciphertext: ciphertext.toString("base64"),
       }),
     );
   } finally {
