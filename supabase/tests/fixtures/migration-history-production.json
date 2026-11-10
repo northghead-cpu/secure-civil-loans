@@ -1,0 +1,722 @@
+{
+  "project_ref": "zdpeaxkormwjrgllwalq",
+  "observed_on": "2026-11-10",
+  "history": [
+    {
+      "version": "20260225144117",
+      "name": "2233fcd6-13f9-4527-8cea-49ff9820cad9"
+    },
+    {
+      "version": "20260303075945",
+      "name": "b7782472-fea2-45a9-a389-78c00243a308"
+    },
+    {
+      "version": "20260304133421",
+      "name": "6a072e4e-2386-4f0a-a5ac-8c5bea08b675"
+    },
+    {
+      "version": "20260312010346",
+      "name": "83f8a5c5-1749-4880-bc9e-b2e61ea915fb"
+    },
+    {
+      "version": "20260314124347",
+      "name": "cf4c7d28-2932-443c-b54f-630a4e63ad01"
+    },
+    {
+      "version": "20260315001619",
+      "name": "c4f61424-62ca-43a9-9444-7b8656c1b0d9"
+    },
+    {
+      "version": "20260315001633",
+      "name": "1c8d00fe-6e96-4740-8021-54dd2b006988"
+    },
+    {
+      "version": "20260315001648",
+      "name": "0e36de89-43ae-4cc6-8304-0e3a2ecd0d76"
+    },
+    {
+      "version": "20260331183000",
+      "name": "role_dashboards_and_loan_workflow"
+    },
+    {
+      "version": "20260407080637",
+      "name": "5a169fb0-99e9-487d-9120-a592d09404d4"
+    },
+    {
+      "version": "20260408091630",
+      "name": "959dd15b-6360-4e06-a8bf-d649ffadf406"
+    },
+    {
+      "version": "20260409060557",
+      "name": "e5f7d418-44b3-4e11-9177-6beea46f05b4"
+    },
+    {
+      "version": "20260410070718",
+      "name": "4f6d00fa-275a-485a-a0d7-1f72468c802f"
+    },
+    {
+      "version": "20260411074621",
+      "name": "bb7392ae-84ff-48f6-966d-0764b071597b"
+    },
+    {
+      "version": "20260501113450",
+      "name": "3fc0daaa-c846-432b-aa66-f48ebd48e7ca"
+    },
+    {
+      "version": "20260501113512",
+      "name": "c5c32716-bb81-4133-a8ef-890f6eca6bc6"
+    },
+    {
+      "version": "20260502121424",
+      "name": "90dc4c28-3974-45dc-b6cf-f0ed2c4152b9"
+    },
+    {
+      "version": "20260503112550",
+      "name": "05de9cc5-e57d-4ebc-9539-ccb1738e76b4"
+    },
+    {
+      "version": "20260504082031",
+      "name": "8742b9ba-014c-4d67-879c-ea18c75c2830"
+    },
+    {
+      "version": "20260504082320",
+      "name": "e7aa46af-fe3c-4a32-8911-317895f82bf7"
+    },
+    {
+      "version": "20260504082338",
+      "name": "3450dd18-84e0-4a6c-b2f3-fb42bc866270"
+    },
+    {
+      "version": "20260505060706",
+      "name": "87cb5bc4-6943-4223-951a-341c500da8f8"
+    },
+    {
+      "version": "20260505061347",
+      "name": "578fd37a-8160-4707-9a52-4657a9d35d59"
+    },
+    {
+      "version": "20260505062122",
+      "name": "882c1666-1d25-4b0d-9061-43cd6406714c"
+    },
+    {
+      "version": "20260505062444",
+      "name": "835024ef-905f-4a8b-a171-7b18dc02361c"
+    },
+    {
+      "version": "20260604110545",
+      "name": "f827cb68-9f41-4a8e-bde0-4f5c82e02045"
+    },
+    {
+      "version": "20260604111604",
+      "name": "8523b8c2-a581-4be5-83bd-6812ef35ffbc"
+    },
+    {
+      "version": "20260607134439",
+      "name": "6797317b-9c24-48a8-86b6-8589bca6a1e9"
+    },
+    {
+      "version": "20260722212405",
+      "name": "e280ec96-0348-4873-99bc-a57e9487cbd9"
+    },
+    {
+      "version": "20260723165727",
+      "name": "9b2be7b0-87bf-41ef-ba03-c38905942202"
+    },
+    {
+      "version": "20260725070314",
+      "name": "15b2b392-23ea-41d5-99b9-26c6578fd08d"
+    },
+    {
+      "version": "20260727052943",
+      "name": "d5325e05-8518-459c-95e1-d96883fd429a"
+    },
+    {
+      "version": "20260811000000",
+      "name": "enforce_kyc_storage_object_names"
+    },
+    {
+      "version": "20260811064451",
+      "name": "enforce_kyc_storage_object_names"
+    },
+    {
+      "version": "20260811103315",
+      "name": "5e002478-b37c-40af-ab8e-b1603776bd09"
+    },
+    {
+      "version": "20260813192552",
+      "name": "fix_kyc_storage_object_name_regex"
+    },
+    {
+      "version": "20260814062657",
+      "name": "reconstruct_kyc_baseline"
+    },
+    {
+      "version": "20260814062706",
+      "name": "reconstruct_check_connection_baseline"
+    },
+    {
+      "version": "20260814062711",
+      "name": "reconstruct_loan_application_scoring_baseline"
+    },
+    {
+      "version": "20260814062717",
+      "name": "reconstruct_profile_financial_columns"
+    },
+    {
+      "version": "20260814062738",
+      "name": "correct_kyc_storage_object_name_regex_v2"
+    },
+    {
+      "version": "20260815084605",
+      "name": "riverbanc_subscription_authorizations"
+    },
+    {
+      "version": "20260815084613",
+      "name": "link_subscription_authorization_to_profile_consent"
+    },
+    {
+      "version": "20260815084634",
+      "name": "harden_subscription_authorization_functions"
+    },
+    {
+      "version": "20260815085255",
+      "name": "harden_subscription_e_signature_binding"
+    },
+    {
+      "version": "20260815085302",
+      "name": "lock_subscription_signature_protection_rpc"
+    },
+    {
+      "version": "20260815085459",
+      "name": "bind_subscription_signature_to_kyc_identity"
+    },
+    {
+      "version": "20260815092224",
+      "name": "remove_mock_lender_seed_records"
+    },
+    {
+      "version": "20260815094140",
+      "name": "add_loan_product_type_classification"
+    },
+    {
+      "version": "20260815094400",
+      "name": "add_loan_product_type_classification_v2"
+    },
+    {
+      "version": "20260815103137",
+      "name": "verify_loan_product_type_classification"
+    },
+    {
+      "version": "20260815105031",
+      "name": "secure_application_handoff_authorization"
+    },
+    {
+      "version": "20260815105123",
+      "name": "restrict_application_handoff_rpc"
+    },
+    {
+      "version": "20260815105154",
+      "name": "tighten_application_handoff_table_privileges"
+    },
+    {
+      "version": "20260815164136",
+      "name": "harden_rbac_role_source_and_seed_user_roles"
+    },
+    {
+      "version": "20260815164155",
+      "name": "fix_rbac_role_helper_recursion"
+    },
+    {
+      "version": "20260815164246",
+      "name": "prevent_profile_role_escalation"
+    },
+    {
+      "version": "20260815165432",
+      "name": "make_payslips_private"
+    },
+    {
+      "version": "20260815181032",
+      "name": "remove_legacy_public_kyc_loan_policies"
+    },
+    {
+      "version": "20260815183451",
+      "name": "harden_audit_logging_and_remove_duplicate_triggers"
+    },
+    {
+      "version": "20260816022439",
+      "name": "harden_profile_audit_logging"
+    },
+    {
+      "version": "20260816031705",
+      "name": "revoke_client_audit_writer"
+    },
+    {
+      "version": "20260816085756",
+      "name": "clarify_audit_system_actor"
+    },
+    {
+      "version": "20260816085908",
+      "name": "distinguish_system_audit_actor"
+    },
+    {
+      "version": "20260816090004",
+      "name": "clarify_system_actor_audit_events"
+    },
+    {
+      "version": "20260816090011",
+      "name": "fix_system_audit_actor_attribution"
+    },
+    {
+      "version": "20260816090013",
+      "name": "separate_system_actor_in_audit_logs"
+    },
+    {
+      "version": "20260816090014",
+      "name": "fix_system_audit_actor_attribution"
+    },
+    {
+      "version": "20260816090015",
+      "name": "clarify_system_audit_actor"
+    },
+    {
+      "version": "20260816090022",
+      "name": "fix_system_audit_actor_attribution"
+    },
+    {
+      "version": "20260816090530",
+      "name": "lock_audit_log_direct_inserts"
+    },
+    {
+      "version": "20260816090542",
+      "name": "revoke_audit_log_insert_privilege"
+    },
+    {
+      "version": "20260816103751",
+      "name": "add_minimal_loan_application_audit"
+    },
+    {
+      "version": "20260816103932",
+      "name": "add_loan_application_audit"
+    },
+    {
+      "version": "20260816104742",
+      "name": "add_user_role_audit"
+    },
+    {
+      "version": "20260816105107",
+      "name": "add_kyc_write_audit"
+    },
+    {
+      "version": "20260816125852",
+      "name": "enforce_loan_product_type_values"
+    },
+    {
+      "version": "20260816130233",
+      "name": "add_bank_product_audit"
+    },
+    {
+      "version": "20260817185122",
+      "name": "harden_audit_function_api_execution"
+    },
+    {
+      "version": "20260817185155",
+      "name": "remove_public_audit_function_execution"
+    },
+    {
+      "version": "20260817185446",
+      "name": "move_role_helpers_to_private_schema"
+    },
+    {
+      "version": "20260817185507",
+      "name": "restore_role_helper_execution_compatibility"
+    },
+    {
+      "version": "20260817185528",
+      "name": "remove_unused_private_role_helper_copies"
+    },
+    {
+      "version": "20260817190022",
+      "name": "move_role_helpers_to_private_schema"
+    },
+    {
+      "version": "20260817191508",
+      "name": "lock_edge_request_log_to_service_role"
+    },
+    {
+      "version": "20260817192010",
+      "name": "lock_down_edge_request_log"
+    },
+    {
+      "version": "20260817192045",
+      "name": "verify_edge_request_log_lockdown"
+    },
+    {
+      "version": "20260817193601",
+      "name": "add_missing_fk_indexes_and_remove_duplicate_indexes"
+    },
+    {
+      "version": "20260817193612",
+      "name": "remove_confirmed_duplicate_payroll_indexes"
+    },
+    {
+      "version": "20260817193726",
+      "name": "optimize_rls_auth_function_initplans_v2"
+    },
+    {
+      "version": "20260817193755",
+      "name": "optimize_direct_user_rls_initplans"
+    },
+    {
+      "version": "20260817193802",
+      "name": "optimize_rls_role_helper_initplans"
+    },
+    {
+      "version": "20260817193814",
+      "name": "optimize_risk_flags_rls_initplan"
+    },
+    {
+      "version": "20260817193834",
+      "name": "consolidate_permissive_rls_policies"
+    },
+    {
+      "version": "20260817195109",
+      "name": "optimize_risk_flags_admin_rls"
+    },
+    {
+      "version": "20260819215241",
+      "name": "create_incidents"
+    },
+    {
+      "version": "20260819215445",
+      "name": "add_incident_writer"
+    },
+    {
+      "version": "20260819220415",
+      "name": "separate_incident_actions_from_audit_details"
+    },
+    {
+      "version": "20260819220758",
+      "name": "create_incident_event_rules"
+    },
+    {
+      "version": "20260819220917",
+      "name": "add_incident_promotion_function"
+    },
+    {
+      "version": "20260819221446",
+      "name": "connect_audit_to_incident_evaluator"
+    },
+    {
+      "version": "20260819222843",
+      "name": "create_reconciliation_framework"
+    },
+    {
+      "version": "20260819222932",
+      "name": "add_reconciliation_runner"
+    },
+    {
+      "version": "20260819223107",
+      "name": "implement_reconciliation_check_execution"
+    },
+    {
+      "version": "20260819223343",
+      "name": "fix_reconciliation_runner_role_check"
+    },
+    {
+      "version": "20260819223508",
+      "name": "add_reconciliation_failure_detection_function"
+    },
+    {
+      "version": "20260819223601",
+      "name": "add_reconciliation_finding_lifecycle"
+    },
+    {
+      "version": "20260820054338",
+      "name": "create_lender_commission_settings"
+    },
+    {
+      "version": "20260820054404",
+      "name": "harden_payroll_integrations_admin_access"
+    },
+    {
+      "version": "20260820054428",
+      "name": "create_system_settings"
+    },
+    {
+      "version": "20260820055234",
+      "name": "create_admin_automation_rules"
+    },
+    {
+      "version": "20260824033104",
+      "name": "repair_legacy_rbac_function_references"
+    },
+    {
+      "version": "20260824033402",
+      "name": "reconcile_log_audit_client_execute_privilege"
+    },
+    {
+      "version": "20260824033624",
+      "name": "reconcile_reconciliation_rpc_client_privileges"
+    },
+    {
+      "version": "20260824033826",
+      "name": "lock_subscription_authorization_internal_function"
+    },
+    {
+      "version": "20260824034153",
+      "name": "harden_rbac_helper_search_paths"
+    },
+    {
+      "version": "20260824034448",
+      "name": "harden_incident_security_definer_search_paths"
+    },
+    {
+      "version": "20260824034613",
+      "name": "add_targeted_fk_supporting_indexes"
+    },
+    {
+      "version": "20260824035159",
+      "name": "consolidate_loan_application_audit_triggers"
+    },
+    {
+      "version": "20260903221906",
+      "name": "monthly_payroll_receipts"
+    },
+    {
+      "version": "20260903221914",
+      "name": "monthly_payroll_receipt_delivery"
+    },
+    {
+      "version": "20260903221924",
+      "name": "schedule_monthly_payroll_billing"
+    },
+    {
+      "version": "20260903221951",
+      "name": "add_payroll_confirmation_fields"
+    },
+    {
+      "version": "20260903222008",
+      "name": "fix_billing_function_aliases"
+    },
+    {
+      "version": "20260903222204",
+      "name": "harden_monthly_receipt_rls"
+    },
+    {
+      "version": "20260903225552",
+      "name": "optimize_incident_and_admin_policy_performance"
+    },
+    {
+      "version": "20260904090643",
+      "name": "harden_reconciliation_table_grants"
+    },
+    {
+      "version": "20260904111826",
+      "name": "protect_lender_controlled_handoff_status"
+    },
+    {
+      "version": "20260904111859",
+      "name": "harden_handoff_trigger_search_path"
+    },
+    {
+      "version": "20260904142451",
+      "name": "restore_incident_center_schema"
+    },
+    {
+      "version": "20260904142545",
+      "name": "enable_incident_realtime"
+    },
+    {
+      "version": "20260905094311",
+      "name": "harden_incident_table_grants"
+    },
+    {
+      "version": "20260905094654",
+      "name": "revoke_anon_public_table_writes"
+    },
+    {
+      "version": "20260905121835",
+      "name": "20260905130000_add_external_incident_ingestion"
+    },
+    {
+      "version": "20260907200150",
+      "name": "add_strict_kyc_documents"
+    },
+    {
+      "version": "20260907200158",
+      "name": "harden_kyc_document_periods"
+    },
+    {
+      "version": "20260907200218",
+      "name": "harden_kyc_document_security_and_rls_performance"
+    },
+    {
+      "version": "20261006231425",
+      "name": "add_explicit_service_role_rls_policies"
+    },
+    {
+      "version": "20261006232051",
+      "name": "move_pg_net_to_extensions"
+    },
+    {
+      "version": "20261007220942",
+      "name": "enforce_privileged_mfa"
+    },
+    {
+      "version": "20261007221107",
+      "name": "harden_storage_upload_constraints"
+    },
+    {
+      "version": "20261010085237",
+      "name": "harden_public_privileges_and_rls"
+    },
+    {
+      "version": "20261010085405",
+      "name": "optimize_privileged_mfa_rls_initplans"
+    },
+    {
+      "version": "20261010085423",
+      "name": "consolidate_profile_admin_policies"
+    },
+    {
+      "version": "20261010091937",
+      "name": "customer_support_cases"
+    },
+    {
+      "version": "20261010092043",
+      "name": "harden_support_rpc_role_checks"
+    },
+    {
+      "version": "20261010092611",
+      "name": "restrict_support_staff_access"
+    },
+    {
+      "version": "20261010112416",
+      "name": "fix_privileged_mfa_bootstrap"
+    },
+    {
+      "version": "20261010230514",
+      "name": "retain_incomplete_applications_one_year_after_last_update"
+    },
+    {
+      "version": "20261011211314",
+      "name": "explicit_subscription_authorization"
+    },
+    {
+      "version": "20261011211431",
+      "name": "lock_verified_subscription_identity"
+    },
+    {
+      "version": "20261011211553",
+      "name": "clear_billing_run_error_on_retry"
+    },
+    {
+      "version": "20261011211640",
+      "name": "subscription_payroll_reconciliation"
+    },
+    {
+      "version": "20261011212036",
+      "name": "retry_receipt_email_delivery"
+    },
+    {
+      "version": "20261011215949",
+      "name": "billing_retry_reliability"
+    },
+    {
+      "version": "20261011220749",
+      "name": "harden_monthly_payroll_confirmation_read_mfa"
+    },
+    {
+      "version": "20261011221226",
+      "name": "vault_backed_resend_config"
+    },
+    {
+      "version": "20261013103856",
+      "name": "20261013130000_align_bank_product_type_constraint"
+    },
+    {
+      "version": "20261013110927",
+      "name": "fix_bank_product_audit_trigger_schema"
+    },
+    {
+      "version": "20261013111508",
+      "name": "fix_application_handoff_product_schema"
+    },
+    {
+      "version": "20261013112144",
+      "name": "fix_application_handoff_rpc_execution_privileges"
+    },
+    {
+      "version": "20261013112413",
+      "name": "fix_handoff_consent_separate_from_subscription_consent"
+    },
+    {
+      "version": "20261022050737",
+      "name": "restrict_client_trusted_records"
+    },
+    {
+      "version": "20261023081750",
+      "name": "marketplace_ui_workflows"
+    },
+    {
+      "version": "20261027085120",
+      "name": "handshake_transfer_retry"
+    },
+    {
+      "version": "20261030193144",
+      "name": "add_kyc_review_revision"
+    },
+    {
+      "version": "20261031040031",
+      "name": "referral_api_security_limits"
+    },
+    {
+      "version": "20261105082522",
+      "name": "assessment_authorization_and_intake_repairs"
+    },
+    {
+      "version": "20261109110816",
+      "name": "marketplace_sensitive_storage_sessions"
+    },
+    {
+      "version": "20261109112959",
+      "name": "marketplace_authenticated_document_reads"
+    },
+    {
+      "version": "20261109114704",
+      "name": "marketplace_scan_quarantine"
+    },
+    {
+      "version": "20261109115530",
+      "name": "marketplace_worker_object_lookup"
+    },
+    {
+      "version": "20261109120438",
+      "name": "marketplace_scan_evidence_ordering"
+    },
+    {
+      "version": "20261110082452",
+      "name": "marketplace_kyc_release_source"
+    }
+  ],
+  "canonicalized_sources": [
+    {
+      "old_path": "20260815_remove_legacy_public_kyc_loan_policies.sql",
+      "canonical_path": "20260815181032_remove_legacy_public_kyc_loan_policies.sql",
+      "sha256": "b4fa508d56df4cc4d1e39f5bf3867ee403fea8baa1862f07d24b5fec7d1462f8",
+      "verification": "SQL tokens match the recorded production migration"
+    },
+    {
+      "old_path": "202610270001_handshake_transfer_retry.sql",
+      "canonical_path": "20261027085120_handshake_transfer_retry.sql",
+      "sha256": "74610d9ddadaf43bb95a02bfb97b68793cb96e9f4a46451aeb2e927af55effd1",
+      "verification": "SQL tokens match the recorded production migration"
+    },
+    {
+      "old_path": "20260815130000_add_loan_product_type_classification.sql",
+      "canonical_path": "20260815094140_add_loan_product_type_classification.sql",
+      "sha256": "9ae7be0c5138dd83c26e5f5b56fcc8b22aff5fde1c954e325dc9b3ae89dbb1e5",
+      "verification": "SQL tokens match the recorded production migration"
+    }
+  ]
+}
