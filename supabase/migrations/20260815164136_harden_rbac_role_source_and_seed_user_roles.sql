@@ -1,4 +1,5 @@
 -- Make user_roles the single source of truth for authorization checks.
+-- Preserve existing profile roles by seeding them once into user_roles.
 insert into public.user_roles (user_id, role)
 select p.user_id, p.role::public.app_role
 from public.profiles p
@@ -13,13 +14,17 @@ stable
 set search_path = public, pg_temp
 as $$
   select exists (
-    select 1 from public.user_roles
-    where user_id = auth.uid() and role::text = required_role
+    select 1
+    from public.user_roles
+    where user_id = auth.uid()
+      and role::text = required_role
   );
 $$;
 
+-- The profile role column is legacy metadata; clients must not be able to change it.
 revoke update (role) on public.profiles from anon, authenticated;
 
+-- Remove inconsistent legacy policy definitions and recreate them against user_roles.
 drop policy if exists "audit_admin_only" on public.audit_logs;
 create policy "audit_admin_only" on public.audit_logs
 for select to authenticated

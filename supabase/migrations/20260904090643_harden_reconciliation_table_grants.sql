@@ -1,2 +1,4 @@
--- Compatibility alias for already recorded production migration 20260904090643.
--- Canonical migrations retain the implementation; no SQL or customer-data mutation.
+revoke all on table public.edge_request_log from anon, authenticated;
+revoke all on table public.reconciliation_checks from anon, authenticated;
+revoke all on table public.reconciliation_findings from anon, authenticated;
+revoke all on table public.reconciliation_runs from anon, authenticated;

@@ -1,4 +1,14 @@
--- Compatibility alias for migration 20260817193755 (optimize_direct_user_rls_initplans).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+ALTER POLICY "Users view own consent history" ON public.consent_history USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own loan results" ON public.loan_results USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own notifications" ON public.notifications USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own subscription authorization" ON public.subscription_authorizations USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own underwriting records" ON public.underwriting_queue USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users insert own consent history" ON public.consent_history WITH CHECK (((select auth.uid()) = user_id) AND (changed_by = (select auth.uid())));
+ALTER POLICY "Users insert own authorization" ON public.payroll_deduction_authorizations WITH CHECK ((select auth.uid()) = user_id);
+ALTER POLICY "Authenticated can insert own notifications" ON public.notifications WITH CHECK ((select auth.uid()) = user_id);
+ALTER POLICY "Users can insert own loan results" ON public.loan_results WITH CHECK ((select auth.uid()) = user_id);
+ALTER POLICY "Users can insert own underwriting records" ON public.underwriting_queue WITH CHECK ((select auth.uid()) = user_id);
+ALTER POLICY "Users can insert own kyc" ON public.kyc WITH CHECK ((select auth.uid()) = user_id);
+ALTER POLICY "Users can update own kyc" ON public.kyc USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own kyc" ON public.kyc USING ((select auth.uid()) = user_id);
+ALTER POLICY "Users can view own application handoffs" ON public.application_handoffs USING (((select auth.uid()) = user_id) OR private.has_role((select auth.uid()), 'admin'::app_role) OR private.has_role((select auth.uid()), 'super_admin'::app_role) OR private.has_role((select auth.uid()), 'compliance_team'::app_role));

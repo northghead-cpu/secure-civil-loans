@@ -1,8 +1,3 @@
--- Synchronization marker for the production KYC baseline reconstruction.
--- Production applied this migration as 20260814062657_reconstruct_kyc_baseline.
--- Keep the repository migration history aligned with production.
--- Idempotent so clean replays and existing databases are safe.
-
 CREATE TABLE IF NOT EXISTS public.kyc (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid,

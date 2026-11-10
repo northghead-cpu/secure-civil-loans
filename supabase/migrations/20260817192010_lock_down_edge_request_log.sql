@@ -1,4 +1,2 @@
--- Compatibility alias for migration 20260817192010 (lock_down_edge_request_log).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+REVOKE ALL ON TABLE public.edge_request_log FROM anon, authenticated;
+REVOKE ALL ON TABLE public.edge_request_log FROM PUBLIC;

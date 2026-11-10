@@ -1,4 +1,1 @@
--- Compatibility alias for migration 20260817193814 (optimize_risk_flags_rls_initplan).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+ALTER POLICY "Admins can do everything" ON public.risk_flags USING (((select auth.jwt() ->> 'role'::text) = 'admin'::text));

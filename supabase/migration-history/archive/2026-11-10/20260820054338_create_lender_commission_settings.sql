@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260820054338 (create_lender_commission_settings).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

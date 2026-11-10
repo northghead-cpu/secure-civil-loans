@@ -1,2 +1,2 @@
--- Compatibility alias for already recorded production migration 20260824033826.
--- Canonical migrations retain the implementation; no SQL or customer-data mutation.
+REVOKE EXECUTE ON FUNCTION private.authorize_riverbanc_subscription_internal(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION private.authorize_riverbanc_subscription_internal(uuid, text) TO service_role;

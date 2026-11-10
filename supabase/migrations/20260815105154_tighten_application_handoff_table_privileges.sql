@@ -1,4 +1,15 @@
--- Compatibility alias for migration 20260815105154 (tighten_application_handoff_table_privileges).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+revoke all on public.application_handoffs from anon, authenticated;
+grant select, update on public.application_handoffs to authenticated;
+drop policy if exists "Admins can update application handoffs" on public.application_handoffs;
+create policy "Admins can update application handoffs"
+  on public.application_handoffs for update to authenticated
+  using (
+    public.has_role(auth.uid(), 'admin')
+    or public.has_role(auth.uid(), 'super_admin')
+    or public.has_role(auth.uid(), 'compliance_team')
+  )
+  with check (
+    public.has_role(auth.uid(), 'admin')
+    or public.has_role(auth.uid(), 'super_admin')
+    or public.has_role(auth.uid(), 'compliance_team')
+  );

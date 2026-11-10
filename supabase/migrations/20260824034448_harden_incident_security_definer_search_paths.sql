@@ -1,2 +1,2 @@
--- Compatibility alias for already recorded production migration 20260824034448.
--- Canonical migrations retain the implementation; no SQL or customer-data mutation.
+ALTER FUNCTION public.record_incident(text, text, text, text, text, uuid) SET search_path = pg_catalog, public, private;
+ALTER FUNCTION public.record_incident_action(uuid, uuid) SET search_path = pg_catalog, public, private;

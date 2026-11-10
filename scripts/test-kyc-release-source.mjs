@@ -28,7 +28,7 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
   await db.exec(
     await fs.readFile(
       new URL(
-        "../supabase/migrations/20261110080536_marketplace_kyc_release_source.sql",
+        "../supabase/migrations/20261110082452_marketplace_kyc_release_source.sql",
         import.meta.url,
       ),
       "utf8",

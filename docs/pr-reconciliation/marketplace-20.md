@@ -22,3 +22,16 @@ from the production ledger remain explicitly unrecorded: this change does not
 mark them applied, execute historical SQL, reset a database or recreate a paid
 preview. A hosted preview rerun is still required to validate its complete
 deployment flow. No failed historical check is relabelled as successful.
+
+## Completed source-to-ledger reconciliation
+
+The active directory now matches the 174 recorded production versions exactly.
+All 49 unrecorded variants have been moved out of automatic migration discovery,
+with every original file preserved in the hash-verified history archive. The
+canonical directory uses recorded SQL where available and retains repository
+SQL for the 25 legacy rows with null statements. Database history remains intact;
+no unexecuted version was marked applied and no historical cleanup SQL was run.
+
+The PostgreSQL security tests now target the recorded production authorization
+repair and workflow migrations. Hosted preview/reset validation remains distinct
+from this source/ledger reconciliation; no paid environment is created.

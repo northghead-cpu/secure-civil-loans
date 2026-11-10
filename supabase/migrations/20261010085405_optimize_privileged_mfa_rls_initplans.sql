@@ -1,4 +1,4 @@
--- Preserve the restrictive privileged-session MFA gate while avoiding per-row auth helper evaluation.
+-- Preserve MFA semantics while evaluating JWT/auth helpers once per statement instead of once per row.
 DO $migration$
 DECLARE
   p record;

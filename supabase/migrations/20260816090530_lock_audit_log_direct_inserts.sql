@@ -1,4 +1,1 @@
--- Compatibility alias for migration 20260816090530 (lock_audit_log_direct_inserts).
--- Verified as already recorded on the existing Supabase preview branch.
--- Canonical repository migrations retain the schema implementation.
--- No schema/data mutation; preserve remote history and do not replay legacy SQL.
+drop policy if exists audit_insert_admin_only on public.audit_logs;

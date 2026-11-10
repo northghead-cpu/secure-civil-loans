@@ -1,0 +1,2956 @@
+{
+  "project_ref": "zdpeaxkormwjrgllwalq",
+  "observed_on": "2026-11-10",
+  "canonical": [
+    {
+      "version": "20260225144117",
+      "name": "2233fcd6-13f9-4527-8cea-49ff9820cad9",
+      "path": "20260225144117_2233fcd6-13f9-4527-8cea-49ff9820cad9.sql",
+      "sha256": "9f77e878b47d57cde1cab7c1a974c95b677f8f4895d18a07092fbe9ae4fa6631",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260303075945",
+      "name": "b7782472-fea2-45a9-a389-78c00243a308",
+      "path": "20260303075945_b7782472-fea2-45a9-a389-78c00243a308.sql",
+      "sha256": "7c003386560d5ba54293e0f5cee937bb03d4a3a91c533af33d50b3a902e186e3",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260304133421",
+      "name": "6a072e4e-2386-4f0a-a5ac-8c5bea08b675",
+      "path": "20260304133421_6a072e4e-2386-4f0a-a5ac-8c5bea08b675.sql",
+      "sha256": "46876487adbb73a546117b574f007567d40f512755ea6ccf9e488aa329481152",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260312010346",
+      "name": "83f8a5c5-1749-4880-bc9e-b2e61ea915fb",
+      "path": "20260312010346_83f8a5c5-1749-4880-bc9e-b2e61ea915fb.sql",
+      "sha256": "3f577bc04623a46a355e7a87342317f7d1df288ef8050560c961111afcfbf4d4",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260314124347",
+      "name": "cf4c7d28-2932-443c-b54f-630a4e63ad01",
+      "path": "20260314124347_cf4c7d28-2932-443c-b54f-630a4e63ad01.sql",
+      "sha256": "efcc0c28d9d51aff5aabf21adf661985824a1ff56dcbf233758c2e25bf5c5890",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260315001619",
+      "name": "c4f61424-62ca-43a9-9444-7b8656c1b0d9",
+      "path": "20260315001619_c4f61424-62ca-43a9-9444-7b8656c1b0d9.sql",
+      "sha256": "810dbec61aa808387045b36262b21ac6a5d57a4a6481b5c121e476f49b028a54",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260315001633",
+      "name": "1c8d00fe-6e96-4740-8021-54dd2b006988",
+      "path": "20260315001633_1c8d00fe-6e96-4740-8021-54dd2b006988.sql",
+      "sha256": "48958fc0dfdd96d27a21aa965621e8a63b4dd73c2049673bacd1d901b185025e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260315001648",
+      "name": "0e36de89-43ae-4cc6-8304-0e3a2ecd0d76",
+      "path": "20260315001648_0e36de89-43ae-4cc6-8304-0e3a2ecd0d76.sql",
+      "sha256": "53f7c1693042fbfec463a8d949f7476811115b49ece21e6df5aac4999acc6f37",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260331183000",
+      "name": "role_dashboards_and_loan_workflow",
+      "path": "20260331183000_role_dashboards_and_loan_workflow.sql",
+      "sha256": "be65dad70d3455b61bc314848ec37b15b87b2de281101267d14dbd73880b02c8",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260407080637",
+      "name": "5a169fb0-99e9-487d-9120-a592d09404d4",
+      "path": "20260407080637_5a169fb0-99e9-487d-9120-a592d09404d4.sql",
+      "sha256": "d3fd2176a6924e8c30cd2dfb9a943942f19e936f8ddeb2d1e9767ecf9eab69b7",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260408091630",
+      "name": "959dd15b-6360-4e06-a8bf-d649ffadf406",
+      "path": "20260408091630_959dd15b-6360-4e06-a8bf-d649ffadf406.sql",
+      "sha256": "3571f5d2324af04beb567b9ba3f5ebafae81d7dbee04503662a5e496a199d35a",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260409060557",
+      "name": "e5f7d418-44b3-4e11-9177-6beea46f05b4",
+      "path": "20260409060557_e5f7d418-44b3-4e11-9177-6beea46f05b4.sql",
+      "sha256": "b82c60e4a3f735c3dc011a90c7c4b56bb0521c8c6510e514aa81e8b4d41e9171",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260410070718",
+      "name": "4f6d00fa-275a-485a-a0d7-1f72468c802f",
+      "path": "20260410070718_4f6d00fa-275a-485a-a0d7-1f72468c802f.sql",
+      "sha256": "0e7a5f332c77116de7c82ab682c4d06617be277d8577a27179ce6dd2d0337ce0",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260411074621",
+      "name": "bb7392ae-84ff-48f6-966d-0764b071597b",
+      "path": "20260411074621_bb7392ae-84ff-48f6-966d-0764b071597b.sql",
+      "sha256": "29cd56a84329c96b6d58cc3623e16b78c8e315b8c6734fcb1bd1c0d8c7e8ab1d",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260501113450",
+      "name": "3fc0daaa-c846-432b-aa66-f48ebd48e7ca",
+      "path": "20260501113450_3fc0daaa-c846-432b-aa66-f48ebd48e7ca.sql",
+      "sha256": "f8140930fae6ea040af85faca459dbb9b36b31f9c7bf1fc87c3b0704e440a19f",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260501113512",
+      "name": "c5c32716-bb81-4133-a8ef-890f6eca6bc6",
+      "path": "20260501113512_c5c32716-bb81-4133-a8ef-890f6eca6bc6.sql",
+      "sha256": "7cf67400b3afb5600edac0b242a4cad728ec0df60f2b4efe888211e31ffa7e86",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260502121424",
+      "name": "90dc4c28-3974-45dc-b6cf-f0ed2c4152b9",
+      "path": "20260502121424_90dc4c28-3974-45dc-b6cf-f0ed2c4152b9.sql",
+      "sha256": "a11a1d7ceb369c33074fdb6930220803caa89de90811f9a1b1464b3dd2da2b27",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260503112550",
+      "name": "05de9cc5-e57d-4ebc-9539-ccb1738e76b4",
+      "path": "20260503112550_05de9cc5-e57d-4ebc-9539-ccb1738e76b4.sql",
+      "sha256": "8833330af40dec1e66c6fa94a463603e35a6e0eaecdb8a1150ed8382d7ea695d",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260504082031",
+      "name": "8742b9ba-014c-4d67-879c-ea18c75c2830",
+      "path": "20260504082031_8742b9ba-014c-4d67-879c-ea18c75c2830.sql",
+      "sha256": "98c13e95bf6e9d84ef1989c244f12330b1aaa0f8a5877016f01608926a3574bb",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260504082320",
+      "name": "e7aa46af-fe3c-4a32-8911-317895f82bf7",
+      "path": "20260504082320_e7aa46af-fe3c-4a32-8911-317895f82bf7.sql",
+      "sha256": "04914cb816fd432efdddf9dc7e28da07c04917ed6a6633bd40d47c359dbb81e2",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260504082338",
+      "name": "3450dd18-84e0-4a6c-b2f3-fb42bc866270",
+      "path": "20260504082338_3450dd18-84e0-4a6c-b2f3-fb42bc866270.sql",
+      "sha256": "e55da15d0a8283608eb08179b6a1eb1103b44e9bd18ab4792e5bd0f5a7b69462",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260505060706",
+      "name": "87cb5bc4-6943-4223-951a-341c500da8f8",
+      "path": "20260505060706_87cb5bc4-6943-4223-951a-341c500da8f8.sql",
+      "sha256": "d37cc0a96b98a5aa94dbc629cf4eed8ce07ef043f3371a68f85aedcab45e10ca",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260505061347",
+      "name": "578fd37a-8160-4707-9a52-4657a9d35d59",
+      "path": "20260505061347_578fd37a-8160-4707-9a52-4657a9d35d59.sql",
+      "sha256": "63db942d4373cd22650efac18dcbfde39c79ea2286fc186e33d1c1cff124b710",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260505062122",
+      "name": "882c1666-1d25-4b0d-9061-43cd6406714c",
+      "path": "20260505062122_882c1666-1d25-4b0d-9061-43cd6406714c.sql",
+      "sha256": "78095005745e255bfa3cd24eeb14ae5795a7a374f80ac1087c18693a25069ed2",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260505062444",
+      "name": "835024ef-905f-4a8b-a171-7b18dc02361c",
+      "path": "20260505062444_835024ef-905f-4a8b-a171-7b18dc02361c.sql",
+      "sha256": "2376ee113d8d18926969abba6a7d8b4a220bd769e98eb4f05529e3af81bd6a76",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260604110545",
+      "name": "f827cb68-9f41-4a8e-bde0-4f5c82e02045",
+      "path": "20260604110545_f827cb68-9f41-4a8e-bde0-4f5c82e02045.sql",
+      "sha256": "644e7f7631ebf7087b93c5b01de4f519c295072cf3c16a380faa4c3d6a7c2110",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260604111604",
+      "name": "8523b8c2-a581-4be5-83bd-6812ef35ffbc",
+      "path": "20260604111604_8523b8c2-a581-4be5-83bd-6812ef35ffbc.sql",
+      "sha256": "15754ba61c5f172f0cdf802382406f13729c247d65ea26b13d79513aa78dcb0c",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260607134439",
+      "name": "6797317b-9c24-48a8-86b6-8589bca6a1e9",
+      "path": "20260607134439_6797317b-9c24-48a8-86b6-8589bca6a1e9.sql",
+      "sha256": "7111a70db7f59c35be99ef90657610a3b1e0a57d87f368235173679caa125abe",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260722212405",
+      "name": "e280ec96-0348-4873-99bc-a57e9487cbd9",
+      "path": "20260722212405_e280ec96-0348-4873-99bc-a57e9487cbd9.sql",
+      "sha256": "b6f79e6f398ee695142d350a77ca5bfc5b5db1392d9a50e69817b3076e6317a2",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260723165727",
+      "name": "9b2be7b0-87bf-41ef-ba03-c38905942202",
+      "path": "20260723165727_9b2be7b0-87bf-41ef-ba03-c38905942202.sql",
+      "sha256": "2409e256257caaa34ae84b99f724501a7a932eadc35a900b0c0cc546d0a50738",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260725070314",
+      "name": "15b2b392-23ea-41d5-99b9-26c6578fd08d",
+      "path": "20260725070314_15b2b392-23ea-41d5-99b9-26c6578fd08d.sql",
+      "sha256": "e080630b60170442885a758d9eda9aafe681cf25dd8a8c1306a7777bbcd36d3e",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260727052943",
+      "name": "d5325e05-8518-459c-95e1-d96883fd429a",
+      "path": "20260727052943_d5325e05-8518-459c-95e1-d96883fd429a.sql",
+      "sha256": "ef4ff6ce6223b3e54ac2d2ec4769bae9aaa0d6ae8a87ddb4b38149cb98128e55",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260811000000",
+      "name": "enforce_kyc_storage_object_names",
+      "path": "20260811000000_enforce_kyc_storage_object_names.sql",
+      "sha256": "a250af7bae1c3676d21ad1b3f21faa7593dbf6171a8ad5f664a0fdf6cd99adbf",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260811064451",
+      "name": "enforce_kyc_storage_object_names",
+      "path": "20260811064451_enforce_kyc_storage_object_names.sql",
+      "sha256": "b39b120f5512f8138faa74763ba6f9bb8fd4c8d0ebb87231ebec5262463ba85c",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260811103315",
+      "name": "5e002478-b37c-40af-ab8e-b1603776bd09",
+      "path": "20260811103315_5e002478-b37c-40af-ab8e-b1603776bd09.sql",
+      "sha256": "ced09c739f5a20b9589155f23d29bc11d6e232fb143d9e6e85789d855f166206",
+      "source": "retained_repository_sql_legacy_null_statements"
+    },
+    {
+      "version": "20260813192552",
+      "name": "fix_kyc_storage_object_name_regex",
+      "path": "20260813192552_fix_kyc_storage_object_name_regex.sql",
+      "sha256": "22ae7e6f9b2673da5650aef619eb8ec70d1b01fdf39e6614d66c33ac73f793e7",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260814062657",
+      "name": "reconstruct_kyc_baseline",
+      "path": "20260814062657_reconstruct_kyc_baseline.sql",
+      "sha256": "eaadb160a3fe2ca7113af79272b59e52f53ade04c97eb9d5ab3864f8a608dd99",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260814062706",
+      "name": "reconstruct_check_connection_baseline",
+      "path": "20260814062706_reconstruct_check_connection_baseline.sql",
+      "sha256": "43bcc544ee7470ea18031c182f3b135326f8ef0ca67729cad1a34c7c4627ad2e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260814062711",
+      "name": "reconstruct_loan_application_scoring_baseline",
+      "path": "20260814062711_reconstruct_loan_application_scoring_baseline.sql",
+      "sha256": "775186b900b8e1f6906a04856e76109641d235ea80fe81b487b0b212162a0561",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260814062717",
+      "name": "reconstruct_profile_financial_columns",
+      "path": "20260814062717_reconstruct_profile_financial_columns.sql",
+      "sha256": "4bc61daa780666e840dbe8c1e420d848ef2cab0b8c0ee5da0a19fef7ddf4b18e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260814062738",
+      "name": "correct_kyc_storage_object_name_regex_v2",
+      "path": "20260814062738_correct_kyc_storage_object_name_regex_v2.sql",
+      "sha256": "50f61deca290c39259aede85627bd244d5519db8ca839d5e4a5397491078ee70",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815084605",
+      "name": "riverbanc_subscription_authorizations",
+      "path": "20260815084605_riverbanc_subscription_authorizations.sql",
+      "sha256": "76cf4345b854084800fc2159ac67daaba67a586140c8701e56badb13be7b21d0",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815084613",
+      "name": "link_subscription_authorization_to_profile_consent",
+      "path": "20260815084613_link_subscription_authorization_to_profile_consent.sql",
+      "sha256": "58794d26bdea6354d71539b980b61b443ae57bcae56e77d74c0a296c14ed84c9",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815084634",
+      "name": "harden_subscription_authorization_functions",
+      "path": "20260815084634_harden_subscription_authorization_functions.sql",
+      "sha256": "52f597e602a6319cc420faaf6ed21d4392f537966a04c6ffafcaeabb98639453",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815085255",
+      "name": "harden_subscription_e_signature_binding",
+      "path": "20260815085255_harden_subscription_e_signature_binding.sql",
+      "sha256": "ffb4abb8a41aad20e7088460c079971e57541d73a3b5407c90cea3f6f3c56be5",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815085302",
+      "name": "lock_subscription_signature_protection_rpc",
+      "path": "20260815085302_lock_subscription_signature_protection_rpc.sql",
+      "sha256": "323a72d3f54536d47d75004332758ddb81582f6fba55643879f47607a2bec48b",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815085459",
+      "name": "bind_subscription_signature_to_kyc_identity",
+      "path": "20260815085459_bind_subscription_signature_to_kyc_identity.sql",
+      "sha256": "f5073287f059196c051549fdd32cac37d9456816bfcb1947e025c5248415bbd8",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815092224",
+      "name": "remove_mock_lender_seed_records",
+      "path": "20260815092224_remove_mock_lender_seed_records.sql",
+      "sha256": "0bc33bd1f551dfd939eb273dff4b6c8d9f38016ca31ad4abcc787fb2d0094784",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815094140",
+      "name": "add_loan_product_type_classification",
+      "path": "20260815094140_add_loan_product_type_classification.sql",
+      "sha256": "9ae7be0c5138dd83c26e5f5b56fcc8b22aff5fde1c954e325dc9b3ae89dbb1e5",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815094400",
+      "name": "add_loan_product_type_classification_v2",
+      "path": "20260815094400_add_loan_product_type_classification_v2.sql",
+      "sha256": "9a8b36fdf27744d3982edca6f90120881bfd9466a27a4f5ca07a4eb46cb3d657",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815103137",
+      "name": "verify_loan_product_type_classification",
+      "path": "20260815103137_verify_loan_product_type_classification.sql",
+      "sha256": "f3b0548022df2da196bbb0bd9e41bd28aa5bc40f0a9d8e96e74833aadcd7c41b",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815105031",
+      "name": "secure_application_handoff_authorization",
+      "path": "20260815105031_secure_application_handoff_authorization.sql",
+      "sha256": "53703709b2de987ecd0cfdd9c6576663dafba3b5ebd309b2276eb69bd89be70d",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815105123",
+      "name": "restrict_application_handoff_rpc",
+      "path": "20260815105123_restrict_application_handoff_rpc.sql",
+      "sha256": "e35a96dc20a7563e95a540f7346dde9992e514e54bbacbadf751f7a43d6a05e1",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815105154",
+      "name": "tighten_application_handoff_table_privileges",
+      "path": "20260815105154_tighten_application_handoff_table_privileges.sql",
+      "sha256": "6cc1ece099076464dd173b046b7b0acdcaebefe39be3ba980975ad695a6f4d38",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815164136",
+      "name": "harden_rbac_role_source_and_seed_user_roles",
+      "path": "20260815164136_harden_rbac_role_source_and_seed_user_roles.sql",
+      "sha256": "a93fc365c0a58e79e0e27598097667c4dd5f3e98bfde21b7e4063be85999cfec",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815164155",
+      "name": "fix_rbac_role_helper_recursion",
+      "path": "20260815164155_fix_rbac_role_helper_recursion.sql",
+      "sha256": "a1a36126ffb6b70ae2729e9a6a004c9283f3c02e0430f0c6e1f6f1f881d83c81",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815164246",
+      "name": "prevent_profile_role_escalation",
+      "path": "20260815164246_prevent_profile_role_escalation.sql",
+      "sha256": "0af75b94c359abfa9cdc35c1c9177f7782c7075315934894c48ce3ec0994ccfc",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815165432",
+      "name": "make_payslips_private",
+      "path": "20260815165432_make_payslips_private.sql",
+      "sha256": "0ecd21aaa864d17c42fccdb4c3896b0abe340ab17997a5bda2a568a845f394f4",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815181032",
+      "name": "remove_legacy_public_kyc_loan_policies",
+      "path": "20260815181032_remove_legacy_public_kyc_loan_policies.sql",
+      "sha256": "b2afdd554fc0411c718dedaaae3f4ef1eacd8a484e0ddee8fee8fd67aa576046",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260815183451",
+      "name": "harden_audit_logging_and_remove_duplicate_triggers",
+      "path": "20260815183451_harden_audit_logging_and_remove_duplicate_triggers.sql",
+      "sha256": "cb7d91bf42ef084fb617d574a41e56a852e6a47d99a347279bfe6db822145502",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816022439",
+      "name": "harden_profile_audit_logging",
+      "path": "20260816022439_harden_profile_audit_logging.sql",
+      "sha256": "a7d3b8cd5490be62d56930df3cf53fce3bf52f03b95397cb27a7e6bc00ba49e1",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816031705",
+      "name": "revoke_client_audit_writer",
+      "path": "20260816031705_revoke_client_audit_writer.sql",
+      "sha256": "4b33d28ac773a57e1947842cd4dfeb48122e6408dd706bf1282d53694e93aaf0",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816085756",
+      "name": "clarify_audit_system_actor",
+      "path": "20260816085756_clarify_audit_system_actor.sql",
+      "sha256": "caefa9dcbd66f23c0447bbea3334b61c1ad2a59769971bf722912af623b66567",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816085908",
+      "name": "distinguish_system_audit_actor",
+      "path": "20260816085908_distinguish_system_audit_actor.sql",
+      "sha256": "d2493c2d165c85c6e50e5bfa15f05a8bb55d67c26da96b24478304d9e75db305",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090004",
+      "name": "clarify_system_actor_audit_events",
+      "path": "20260816090004_clarify_system_actor_audit_events.sql",
+      "sha256": "31dfea568a55477800868f8e048ca5a6d8bb67dd259dde222f83d6ee15830fbc",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090011",
+      "name": "fix_system_audit_actor_attribution",
+      "path": "20260816090011_fix_system_audit_actor_attribution.sql",
+      "sha256": "4f8b6ae5df0f920a61226f8e412ee84888ddae51570c7e973e1a6d2d84678d33",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090013",
+      "name": "separate_system_actor_in_audit_logs",
+      "path": "20260816090013_separate_system_actor_in_audit_logs.sql",
+      "sha256": "5bafcd45200453319876d31b30d72ad005bdc86586bc52e3289af0b12a54377d",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090014",
+      "name": "fix_system_audit_actor_attribution",
+      "path": "20260816090014_fix_system_audit_actor_attribution.sql",
+      "sha256": "d0956f07d2f41769464972641247a43c6563273a1d65a1685347c52e77f07443",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090015",
+      "name": "clarify_system_audit_actor",
+      "path": "20260816090015_clarify_system_audit_actor.sql",
+      "sha256": "750b7521e737c5a5d0e901a29968311f07c28f72be7fc76d7e8cc9a970fa0937",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090022",
+      "name": "fix_system_audit_actor_attribution",
+      "path": "20260816090022_fix_system_audit_actor_attribution.sql",
+      "sha256": "9d87c3e481908e9d7491a54e64fed5e670f8e7feab97b02e4de5efd84669c685",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090530",
+      "name": "lock_audit_log_direct_inserts",
+      "path": "20260816090530_lock_audit_log_direct_inserts.sql",
+      "sha256": "870f9a654153a3483b192f53a94359be2176440d428aafcbf9084db9b710b0cb",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816090542",
+      "name": "revoke_audit_log_insert_privilege",
+      "path": "20260816090542_revoke_audit_log_insert_privilege.sql",
+      "sha256": "4270e1ca1441f6e2f6ef375b05bd9d5f9af0416fb85e2cf8cf501fd52151cbbf",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816103751",
+      "name": "add_minimal_loan_application_audit",
+      "path": "20260816103751_add_minimal_loan_application_audit.sql",
+      "sha256": "dff37cea7e7df5e67e073956c84a8b2bc2c2566487bc3f76f457205ae0aa33b6",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816103932",
+      "name": "add_loan_application_audit",
+      "path": "20260816103932_add_loan_application_audit.sql",
+      "sha256": "ce88aee928c3084298b61b2e33c3f8a02ae02634d3b3e086c68625007951a6dd",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816104742",
+      "name": "add_user_role_audit",
+      "path": "20260816104742_add_user_role_audit.sql",
+      "sha256": "52a22e8778d5e42cb5e1545fe29493aceeeaf8cefcc144671992fb227d783764",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816105107",
+      "name": "add_kyc_write_audit",
+      "path": "20260816105107_add_kyc_write_audit.sql",
+      "sha256": "483012c8cccb4f06dd44eb4e9e7287e741cd140c3918fa8d2ef4676796cd84ce",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816125852",
+      "name": "enforce_loan_product_type_values",
+      "path": "20260816125852_enforce_loan_product_type_values.sql",
+      "sha256": "956a7b878c4df4580c96c07f37d5083e9a92843d2632b0fc41cc2aff3477a043",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260816130233",
+      "name": "add_bank_product_audit",
+      "path": "20260816130233_add_bank_product_audit.sql",
+      "sha256": "958c0fb6b485d0d517cde0cb7d940b5495abf89e67afe2605da591c27bee9448",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817185122",
+      "name": "harden_audit_function_api_execution",
+      "path": "20260817185122_harden_audit_function_api_execution.sql",
+      "sha256": "9601816d7e88e958085d3a67461d431aa4ae94a3cf6075e471e31f5a9c4bd623",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817185155",
+      "name": "remove_public_audit_function_execution",
+      "path": "20260817185155_remove_public_audit_function_execution.sql",
+      "sha256": "c4259d14269837bae1c55f0477dd63ca922d2cc17016fc0032a0b795f0cebe0a",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817185446",
+      "name": "move_role_helpers_to_private_schema",
+      "path": "20260817185446_move_role_helpers_to_private_schema.sql",
+      "sha256": "b76c144527e70ce37e46550abd0c40e86543365c4435a6c2f530e2818f0446be",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817185507",
+      "name": "restore_role_helper_execution_compatibility",
+      "path": "20260817185507_restore_role_helper_execution_compatibility.sql",
+      "sha256": "1f77293aa65f78b6851dd1022ca7c9a5559149e4442bef866df3d105faee58b4",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817185528",
+      "name": "remove_unused_private_role_helper_copies",
+      "path": "20260817185528_remove_unused_private_role_helper_copies.sql",
+      "sha256": "41dfdc133826211a6af6ccf4f2e1a2688f1e9e9d4bc50e6b4603414f784ffe40",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817190022",
+      "name": "move_role_helpers_to_private_schema",
+      "path": "20260817190022_move_role_helpers_to_private_schema.sql",
+      "sha256": "d355171f22ff97566282c426da752c6f6e0efa4a428724bf99cca2094c825fd9",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817191508",
+      "name": "lock_edge_request_log_to_service_role",
+      "path": "20260817191508_lock_edge_request_log_to_service_role.sql",
+      "sha256": "f46483ebb86dc8129a253253a8f278d7c416087e329460a67a2b8a5eab25ff38",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817192010",
+      "name": "lock_down_edge_request_log",
+      "path": "20260817192010_lock_down_edge_request_log.sql",
+      "sha256": "441afabdb7acee4c24f4adf4f554acbba6ef41e0e63bb9bf0a690acbcd2c8907",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817192045",
+      "name": "verify_edge_request_log_lockdown",
+      "path": "20260817192045_verify_edge_request_log_lockdown.sql",
+      "sha256": "441afabdb7acee4c24f4adf4f554acbba6ef41e0e63bb9bf0a690acbcd2c8907",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817193601",
+      "name": "add_missing_fk_indexes_and_remove_duplicate_indexes",
+      "path": "20260817193601_add_missing_fk_indexes_and_remove_duplicate_indexes.sql",
+      "sha256": "c1ac24797987166a8948ee1d1c38dd62181d4aff2898f4990186eb95083074c6",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817193612",
+      "name": "remove_confirmed_duplicate_payroll_indexes",
+      "path": "20260817193612_remove_confirmed_duplicate_payroll_indexes.sql",
+      "sha256": "3343ee3fcea7aba2ef9cba58c4af6ad660940ecebdce259c86e00f9b88cc5c8d",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817193726",
+      "name": "optimize_rls_auth_function_initplans_v2",
+      "path": "20260817193726_optimize_rls_auth_function_initplans_v2.sql",
+      "sha256": "d547062d9006cc7a53faab2b860b00bffcc4a23a59cad589775db69f3c6cd508",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817193755",
+      "name": "optimize_direct_user_rls_initplans",
+      "path": "20260817193755_optimize_direct_user_rls_initplans.sql",
+      "sha256": "6cda78998c358896b99b49a3abd083ae9a53e8730e7e41356ea5aa0e31d256d6",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817193802",
+      "name": "optimize_rls_role_helper_initplans",
+      "path": "20260817193802_optimize_rls_role_helper_initplans.sql",
+      "sha256": "069e549cc7610dd1f1a0252a03f78957c755ec9b143b4566fa0689350367100b",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817193814",
+      "name": "optimize_risk_flags_rls_initplan",
+      "path": "20260817193814_optimize_risk_flags_rls_initplan.sql",
+      "sha256": "b7716cf27a2b722a20e41b85a8189bfb5641f94be3fc6d5db468c82dabbb6af7",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817193834",
+      "name": "consolidate_permissive_rls_policies",
+      "path": "20260817193834_consolidate_permissive_rls_policies.sql",
+      "sha256": "3ff8404073ed811a9c6d9770bad68260276bf4201ba94f6d079cd5e32f129c5c",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260817195109",
+      "name": "optimize_risk_flags_admin_rls",
+      "path": "20260817195109_optimize_risk_flags_admin_rls.sql",
+      "sha256": "6fd059aa162650ac1eff1fe96ebddb58103e5c30815e5714a37282d9e39ad76f",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819215241",
+      "name": "create_incidents",
+      "path": "20260819215241_create_incidents.sql",
+      "sha256": "fe42e19d79971c3e023787e1a6ecbc5fbfeaf2beb338caf0675c0c9ca1f2bf02",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819215445",
+      "name": "add_incident_writer",
+      "path": "20260819215445_add_incident_writer.sql",
+      "sha256": "9b1a66b178ef27231c2c0029d422e826470f68936eeb9cc00c28cef456a9b517",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819220415",
+      "name": "separate_incident_actions_from_audit_details",
+      "path": "20260819220415_separate_incident_actions_from_audit_details.sql",
+      "sha256": "788c12424a061bb8dae70d1503a0374558c99d3b42eabcdbf7d80239f0a75561",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819220758",
+      "name": "create_incident_event_rules",
+      "path": "20260819220758_create_incident_event_rules.sql",
+      "sha256": "6e5a4371b4afb0d6606bf60fd606255397d357f2ad2417b6773ab0c336744c62",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819220917",
+      "name": "add_incident_promotion_function",
+      "path": "20260819220917_add_incident_promotion_function.sql",
+      "sha256": "f73adc8678ba68b4baf5c3eb0baa6937d19241f86d79826d40596e0706b03947",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819221446",
+      "name": "connect_audit_to_incident_evaluator",
+      "path": "20260819221446_connect_audit_to_incident_evaluator.sql",
+      "sha256": "788abfbf2727edb0f8258ab966a0a30fe3032eef5feb9536e005b8a393e25b16",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819222843",
+      "name": "create_reconciliation_framework",
+      "path": "20260819222843_create_reconciliation_framework.sql",
+      "sha256": "18938310b7abc3c493b7b9f7106939739b3af9142d32749abf9d90d470acfadc",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819222932",
+      "name": "add_reconciliation_runner",
+      "path": "20260819222932_add_reconciliation_runner.sql",
+      "sha256": "3bdab7395d488e9949fd5c9f9257df50cb74d6a4581c5b21bad62ff6d69723d1",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819223107",
+      "name": "implement_reconciliation_check_execution",
+      "path": "20260819223107_implement_reconciliation_check_execution.sql",
+      "sha256": "daf2443027329ed1f8d637a552c6e9b9582799390830cea0695097c6ca532d3e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819223343",
+      "name": "fix_reconciliation_runner_role_check",
+      "path": "20260819223343_fix_reconciliation_runner_role_check.sql",
+      "sha256": "289e1c9e5b8fa828e703dabbac2e9d9df83da8124e40e34c247a972744efcca1",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819223508",
+      "name": "add_reconciliation_failure_detection_function",
+      "path": "20260819223508_add_reconciliation_failure_detection_function.sql",
+      "sha256": "378f9aef634ebc1f492862aafa021c6aaa0433d698d24230dcb437f0b885aeea",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260819223601",
+      "name": "add_reconciliation_finding_lifecycle",
+      "path": "20260819223601_add_reconciliation_finding_lifecycle.sql",
+      "sha256": "25e5aa2df236d809788ce4d8a5a12686d2cce75fc7c7702d6f53e77990c82226",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260820054338",
+      "name": "create_lender_commission_settings",
+      "path": "20260820054338_create_lender_commission_settings.sql",
+      "sha256": "6bf2e46c706d2b8ae0c8915933d634ec04bc33ad539f6028b0d798edd45aeffb",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260820054404",
+      "name": "harden_payroll_integrations_admin_access",
+      "path": "20260820054404_harden_payroll_integrations_admin_access.sql",
+      "sha256": "3ecc8ffa6d0c196df35721b19d6976942775e79390479a109da6051f105e826e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260820054428",
+      "name": "create_system_settings",
+      "path": "20260820054428_create_system_settings.sql",
+      "sha256": "aaf1bebcf6d51adbba0a00eff0bb3aaaa0505f4807068943c2ea826fe12a4571",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260820055234",
+      "name": "create_admin_automation_rules",
+      "path": "20260820055234_create_admin_automation_rules.sql",
+      "sha256": "cc348cc7e723c35a2ce81ab370c3344f7052f919e9c1ed56a848e7df88da1d89",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824033104",
+      "name": "repair_legacy_rbac_function_references",
+      "path": "20260824033104_repair_legacy_rbac_function_references.sql",
+      "sha256": "0d4566ea260ee15c48bd6484b84c001dae91021b5eab407bcc1fc6984e452d5a",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824033402",
+      "name": "reconcile_log_audit_client_execute_privilege",
+      "path": "20260824033402_reconcile_log_audit_client_execute_privilege.sql",
+      "sha256": "d9506be0f21353df31dd1152d729c256a41e1bad7208872bc4cd2d4d5980ed71",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824033624",
+      "name": "reconcile_reconciliation_rpc_client_privileges",
+      "path": "20260824033624_reconcile_reconciliation_rpc_client_privileges.sql",
+      "sha256": "7568825f9354cc28ec6732ad8ab97ce9c56f2998d4af52e904791f7316df535b",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824033826",
+      "name": "lock_subscription_authorization_internal_function",
+      "path": "20260824033826_lock_subscription_authorization_internal_function.sql",
+      "sha256": "0bedcdc360c9759ce78e6988b66044420a5a84847272c8eefb212d20bb3e3d08",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824034153",
+      "name": "harden_rbac_helper_search_paths",
+      "path": "20260824034153_harden_rbac_helper_search_paths.sql",
+      "sha256": "2c9388f216194e6055884eeb657e0dd973aaee5f44c45c104033eb22fb70d221",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824034448",
+      "name": "harden_incident_security_definer_search_paths",
+      "path": "20260824034448_harden_incident_security_definer_search_paths.sql",
+      "sha256": "a26152f3b2614a66a9575bbe6b92b25a1d43ebf2a00c91fbf4fd10f516e2cf55",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824034613",
+      "name": "add_targeted_fk_supporting_indexes",
+      "path": "20260824034613_add_targeted_fk_supporting_indexes.sql",
+      "sha256": "602cf2d3ea8a278426ab60e28c5079a33d56ecc890c8bbf8e7648d42534f4e69",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260824035159",
+      "name": "consolidate_loan_application_audit_triggers",
+      "path": "20260824035159_consolidate_loan_application_audit_triggers.sql",
+      "sha256": "666305297e5cdbb0dd49344fce8a9aee6610806ea263e79328015b29a0cb6c52",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260903221906",
+      "name": "monthly_payroll_receipts",
+      "path": "20260903221906_monthly_payroll_receipts.sql",
+      "sha256": "c61fb0e5f8726dd2f9419cd82a6767f78d30fdab56831b88685434d16690845e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260903221914",
+      "name": "monthly_payroll_receipt_delivery",
+      "path": "20260903221914_monthly_payroll_receipt_delivery.sql",
+      "sha256": "e6c3cee95368e0697b2452adb7a39fd0651fd843fcf6a80969310af29fa1c808",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260903221924",
+      "name": "schedule_monthly_payroll_billing",
+      "path": "20260903221924_schedule_monthly_payroll_billing.sql",
+      "sha256": "0e1afa7dcca87745af6a5112f8438fe6fa9e6bb0127db040bf5016a15e673f75",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260903221951",
+      "name": "add_payroll_confirmation_fields",
+      "path": "20260903221951_add_payroll_confirmation_fields.sql",
+      "sha256": "a96cac8c3b5baea6671b5a3c82481c9d126c9692137764e63de9965b6469f668",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260903222008",
+      "name": "fix_billing_function_aliases",
+      "path": "20260903222008_fix_billing_function_aliases.sql",
+      "sha256": "a2a449fbe8f7440e2e846b6753332139245a659c962d3c336e19e4307ca75d3d",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260903222204",
+      "name": "harden_monthly_receipt_rls",
+      "path": "20260903222204_harden_monthly_receipt_rls.sql",
+      "sha256": "686ac411ee1b3c61be7ee9318470988b7162173ef606ccefc9de669453d278fc",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260903225552",
+      "name": "optimize_incident_and_admin_policy_performance",
+      "path": "20260903225552_optimize_incident_and_admin_policy_performance.sql",
+      "sha256": "ee16fc5a9b9dbca32bea49a27567edd54aeb83e53c9f902dd53b88ff90ce314a",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260904090643",
+      "name": "harden_reconciliation_table_grants",
+      "path": "20260904090643_harden_reconciliation_table_grants.sql",
+      "sha256": "de4366ea2c343304c7417d7263d7a3a3ea02663854d33b244ce8ec18f9c0e70e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260904111826",
+      "name": "protect_lender_controlled_handoff_status",
+      "path": "20260904111826_protect_lender_controlled_handoff_status.sql",
+      "sha256": "c6dba66cb007466c4fec69071ca16204912bf11d22ae4295dcfa5c14e837e52f",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260904111859",
+      "name": "harden_handoff_trigger_search_path",
+      "path": "20260904111859_harden_handoff_trigger_search_path.sql",
+      "sha256": "92206b956c90ed4b56697bb42cc5db32bf520f1a5b46883a980e9fdaf76cf499",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260904142451",
+      "name": "restore_incident_center_schema",
+      "path": "20260904142451_restore_incident_center_schema.sql",
+      "sha256": "c300d7b71143486a3bee7303cf1507a39e48cb9cc967a9c171bf4cb36e226d01",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260904142545",
+      "name": "enable_incident_realtime",
+      "path": "20260904142545_enable_incident_realtime.sql",
+      "sha256": "7996420c9d9b9c78be1e8c17e1cc6409441912026d57bb685f03437bf32525dc",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260905094311",
+      "name": "harden_incident_table_grants",
+      "path": "20260905094311_harden_incident_table_grants.sql",
+      "sha256": "02689a83830911c1720636a8633001f4f4d956e58afafdbfb32b7650a69ad221",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260905094654",
+      "name": "revoke_anon_public_table_writes",
+      "path": "20260905094654_revoke_anon_public_table_writes.sql",
+      "sha256": "161d40e0facade66fd19b190fbdc0b3a3bf879ec153cf2ac6d94731f021ed674",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260905121835",
+      "name": "20260905130000_add_external_incident_ingestion",
+      "path": "20260905121835_20260905130000_add_external_incident_ingestion.sql",
+      "sha256": "e047857b11adc9acbebadf25acd09044f3679f6eac5cfda35e1fa27e0bc86617",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260907200150",
+      "name": "add_strict_kyc_documents",
+      "path": "20260907200150_add_strict_kyc_documents.sql",
+      "sha256": "44c1a5f678e319daf7b4d8cd73a493295402cc0a19aadc747a59af0b5e2da4ea",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260907200158",
+      "name": "harden_kyc_document_periods",
+      "path": "20260907200158_harden_kyc_document_periods.sql",
+      "sha256": "a1db72b2ac5d80e236dad21ed2423eabc769b74f6abb8c5a9e68bfbdaf24464a",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20260907200218",
+      "name": "harden_kyc_document_security_and_rls_performance",
+      "path": "20260907200218_harden_kyc_document_security_and_rls_performance.sql",
+      "sha256": "d7e14e758cbe8701288bf8b074c18d808fe7e04918ed14e1485f64334702cc4c",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261006231425",
+      "name": "add_explicit_service_role_rls_policies",
+      "path": "20261006231425_add_explicit_service_role_rls_policies.sql",
+      "sha256": "865182ace3a154e43d2423215252d19bd2b621376ab258062826391131f4375a",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261006232051",
+      "name": "move_pg_net_to_extensions",
+      "path": "20261006232051_move_pg_net_to_extensions.sql",
+      "sha256": "07d10e147a0cc0b7edaf4fa614df00d4b4ac523ad2b17fe8521217748b37894c",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261007220942",
+      "name": "enforce_privileged_mfa",
+      "path": "20261007220942_enforce_privileged_mfa.sql",
+      "sha256": "ea0833f2aa648f0dfb51e0d24413059a15569732c1989db20a30e6deb3f2948b",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261007221107",
+      "name": "harden_storage_upload_constraints",
+      "path": "20261007221107_harden_storage_upload_constraints.sql",
+      "sha256": "8a4c9c7456ba56106d158ba2e0251dfb05c79f12cf01ee20814ccc9ffbe14355",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010085237",
+      "name": "harden_public_privileges_and_rls",
+      "path": "20261010085237_harden_public_privileges_and_rls.sql",
+      "sha256": "3691323b7fd33dbb07276adec2c2733b3e4e4120130d80fe6ab8cba5237fa36a",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010085405",
+      "name": "optimize_privileged_mfa_rls_initplans",
+      "path": "20261010085405_optimize_privileged_mfa_rls_initplans.sql",
+      "sha256": "de102611a794b59d7c0ff2aa76e82169cb318cd04f302a2227c1efc1656c6554",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010085423",
+      "name": "consolidate_profile_admin_policies",
+      "path": "20261010085423_consolidate_profile_admin_policies.sql",
+      "sha256": "e3f1ee500840d036b686e3838e5f62fb6e997cd939958ef92683bee63b353546",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010091937",
+      "name": "customer_support_cases",
+      "path": "20261010091937_customer_support_cases.sql",
+      "sha256": "b8b3a7625744129e14161143d0a47c54aae240bb5c68fbbde134d8b9b6ec5b29",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010092043",
+      "name": "harden_support_rpc_role_checks",
+      "path": "20261010092043_harden_support_rpc_role_checks.sql",
+      "sha256": "c8bd17b9c7865ebce121a836b7f9449c14d250f66a078c658f4087adffa2e903",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010092611",
+      "name": "restrict_support_staff_access",
+      "path": "20261010092611_restrict_support_staff_access.sql",
+      "sha256": "585fa66b5c8874db19d4421361efecc193743f7f1ed35d1da09bea8cffea9c07",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010112416",
+      "name": "fix_privileged_mfa_bootstrap",
+      "path": "20261010112416_fix_privileged_mfa_bootstrap.sql",
+      "sha256": "8cc1ee0d91229fcbf3d03fc1516e313195167f33b1d677a9595357a20197e111",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261010230514",
+      "name": "retain_incomplete_applications_one_year_after_last_update",
+      "path": "20261010230514_retain_incomplete_applications_one_year_after_last_update.sql",
+      "sha256": "5dcb87bafc746e210749725327e7280b24a4713d0bbd2b03d3b056f3117c9cc9",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011211314",
+      "name": "explicit_subscription_authorization",
+      "path": "20261011211314_explicit_subscription_authorization.sql",
+      "sha256": "ecfe7e1dbb3584695ad2d2a31188e966d5ea5a3768c8eaec63de74df7552abe3",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011211431",
+      "name": "lock_verified_subscription_identity",
+      "path": "20261011211431_lock_verified_subscription_identity.sql",
+      "sha256": "81b2b31faaaed613712fa77f2ae63a71ccbf55a045e87dc475a84bd3f95af6c8",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011211553",
+      "name": "clear_billing_run_error_on_retry",
+      "path": "20261011211553_clear_billing_run_error_on_retry.sql",
+      "sha256": "96c6f965bec332258e088b0fbbce91c0cc1b908d37440a38dcbd93843f9a8f97",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011211640",
+      "name": "subscription_payroll_reconciliation",
+      "path": "20261011211640_subscription_payroll_reconciliation.sql",
+      "sha256": "ec5660f4e3af9c2bbd721f0325244d87e28be522a3e915c21ffa512f5753a909",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011212036",
+      "name": "retry_receipt_email_delivery",
+      "path": "20261011212036_retry_receipt_email_delivery.sql",
+      "sha256": "08721a08492027fdaa9312848af09a4d8f7bfc91f809e60e1997fc09759a377f",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011215949",
+      "name": "billing_retry_reliability",
+      "path": "20261011215949_billing_retry_reliability.sql",
+      "sha256": "4f0859b8c743e128909cb214aba9ce05b2cf14456d9d8a31545cad50f441925f",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011220749",
+      "name": "harden_monthly_payroll_confirmation_read_mfa",
+      "path": "20261011220749_harden_monthly_payroll_confirmation_read_mfa.sql",
+      "sha256": "bab2cfa2769362a7dc201e1dd223d1973976e4a009f3b9f54e817b4e3a5690b0",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261011221226",
+      "name": "vault_backed_resend_config",
+      "path": "20261011221226_vault_backed_resend_config.sql",
+      "sha256": "064ab972af2a14d78a5d19ad80370d8344f7655ab6f13b2599eb680ba2065534",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261013103856",
+      "name": "20261013130000_align_bank_product_type_constraint",
+      "path": "20261013103856_20261013130000_align_bank_product_type_constraint.sql",
+      "sha256": "09722a58aa9e1d4ae3656babd21230674d96a4a49b90993ef1affb62da18391a",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261013110927",
+      "name": "fix_bank_product_audit_trigger_schema",
+      "path": "20261013110927_fix_bank_product_audit_trigger_schema.sql",
+      "sha256": "544453f984b3b0bb4521b80b563cabff403bcd18c08f274e4fb30111db9eda77",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261013111508",
+      "name": "fix_application_handoff_product_schema",
+      "path": "20261013111508_fix_application_handoff_product_schema.sql",
+      "sha256": "4badc0121f2871da747c8d6687deea5e9f8655a85eefb794aa4817f180416da2",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261013112144",
+      "name": "fix_application_handoff_rpc_execution_privileges",
+      "path": "20261013112144_fix_application_handoff_rpc_execution_privileges.sql",
+      "sha256": "ce9b1e2eb95c295fcd61845fe1b5b7ff1f11e51187bee144afc7413e77d5fdbb",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261013112413",
+      "name": "fix_handoff_consent_separate_from_subscription_consent",
+      "path": "20261013112413_fix_handoff_consent_separate_from_subscription_consent.sql",
+      "sha256": "bdb5d1646285e7fc3f82811bdff9f7a3b74f61d8f6a126c4eb19a44d59b70335",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261022050737",
+      "name": "restrict_client_trusted_records",
+      "path": "20261022050737_restrict_client_trusted_records.sql",
+      "sha256": "e194e3a97a9ca6686510f95a4864a6faf5b58edb8e4490ea74bced3ed3b11911",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261023081750",
+      "name": "marketplace_ui_workflows",
+      "path": "20261023081750_marketplace_ui_workflows.sql",
+      "sha256": "16f07c4349bff92cac3ea911fad4ed3ee439c132c9276b69bbf2d63adde4c8ef",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261027085120",
+      "name": "handshake_transfer_retry",
+      "path": "20261027085120_handshake_transfer_retry.sql",
+      "sha256": "74610d9ddadaf43bb95a02bfb97b68793cb96e9f4a46451aeb2e927af55effd1",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261030193144",
+      "name": "add_kyc_review_revision",
+      "path": "20261030193144_add_kyc_review_revision.sql",
+      "sha256": "f0a6419616ebb2d149997048583dfc28c148bd1d342ec7ee47b73686e9e8ab05",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261031040031",
+      "name": "referral_api_security_limits",
+      "path": "20261031040031_referral_api_security_limits.sql",
+      "sha256": "193ebd90c03608281d1d4da2715b45ede96599c9982207bc07ca0f687ad35161",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261105082522",
+      "name": "assessment_authorization_and_intake_repairs",
+      "path": "20261105082522_assessment_authorization_and_intake_repairs.sql",
+      "sha256": "a7f911469e39db89cfa7eef4680f10430167cadc14f66b3adb65909eeb445134",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261109110816",
+      "name": "marketplace_sensitive_storage_sessions",
+      "path": "20261109110816_marketplace_sensitive_storage_sessions.sql",
+      "sha256": "6aae775db565391e39ac9969d9a37da692e708d3873f7545c76d2f1dc7cf6760",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261109112959",
+      "name": "marketplace_authenticated_document_reads",
+      "path": "20261109112959_marketplace_authenticated_document_reads.sql",
+      "sha256": "1b4e14ff956d30c1ecdb141f0c358063adbb128bda7712cb0c3ed4288f3b05e0",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261109114704",
+      "name": "marketplace_scan_quarantine",
+      "path": "20261109114704_marketplace_scan_quarantine.sql",
+      "sha256": "109f44804bf8b52b75fd8849f2d064cc725db4da27cb7c034981a90ba8fa563e",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261109115530",
+      "name": "marketplace_worker_object_lookup",
+      "path": "20261109115530_marketplace_worker_object_lookup.sql",
+      "sha256": "b0155677a76fec3721a1240b763387b987a8e8a9af40ddd8bdd9cdb6ad81641f",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261109120438",
+      "name": "marketplace_scan_evidence_ordering",
+      "path": "20261109120438_marketplace_scan_evidence_ordering.sql",
+      "sha256": "a5e00ca25c8d4037ee9964cfcfcbf388db3d58a94296cccdfd708bbfe3078979",
+      "source": "recorded_production_sql"
+    },
+    {
+      "version": "20261110082452",
+      "name": "marketplace_kyc_release_source",
+      "path": "20261110082452_marketplace_kyc_release_source.sql",
+      "sha256": "c01e314e434258c65a32fee11ba5e98cb542fdd4fe55a7ac6dc94ae0f2f14b20",
+      "source": "recorded_production_sql"
+    }
+  ],
+  "archive_root": "supabase/migration-history/archive/2026-11-10",
+  "archived": [
+    {
+      "path": "20260411074621_bb7392ae-84ff-48f6-966d-0764b071597b.sql",
+      "sha256": "29cd56a84329c96b6d58cc3623e16b78c8e315b8c6734fcb1bd1c0d8c7e8ab1d",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260411074621"
+      ]
+    },
+    {
+      "path": "20260503112550_05de9cc5-e57d-4ebc-9539-ccb1738e76b4.sql",
+      "sha256": "8833330af40dec1e66c6fa94a463603e35a6e0eaecdb8a1150ed8382d7ea695d",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260503112550"
+      ]
+    },
+    {
+      "path": "20260815094400_add_loan_product_type_classification_v2.sql",
+      "sha256": "56c27d0ec8eac11743a0750466aed3b97197b5ed635bd60381ec71bd594b19d8",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261027085120_handshake_transfer_retry.sql",
+      "sha256": "74610d9ddadaf43bb95a02bfb97b68793cb96e9f4a46451aeb2e927af55effd1",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261027085120"
+      ]
+    },
+    {
+      "path": "20260817185507_restore_role_helper_execution_compatibility.sql",
+      "sha256": "06d16b83ec2d92d76b692bbd0eeddf2b19f53a72750c294773f5bd1135215eb4",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261104060524_assessment_align_constraints_and_triggers.sql",
+      "sha256": "88c0dff7ff4d7780b87f32e42ab85210233497c938d4585f7383f89a884bc224",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260820054338_create_lender_commission_settings.sql",
+      "sha256": "b74185257dc97aa19f19018a9057d6bdf77a4f251c8bbd9104c11aa85262f75e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260903222008_fix_billing_function_aliases.sql",
+      "sha256": "a2a449fbe8f7440e2e846b6753332139245a659c962d3c336e19e4307ca75d3d",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260903222008"
+      ]
+    },
+    {
+      "path": "20260504082300_reconstruct_check_connection_baseline.sql",
+      "sha256": "558c01f50baa0a791ae2a77d6c42e12ffecc39c2c6ac0ab2290e0e59cf6f1ab4",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260304133421_6a072e4e-2386-4f0a-a5ac-8c5bea08b675.sql",
+      "sha256": "16be1eb3e7016bc0cfdd3f97bf672d107e980083ed1d024a283e74611600fd83",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260315001619_c4f61424-62ca-43a9-9444-7b8656c1b0d9.sql",
+      "sha256": "de54168757cf205ec66b5ddcfca6f0c6d51afccdda03083b2b22d9f50293732d",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260813120000_fix_kyc_storage_object_name_regex.sql",
+      "sha256": "d91ab62c1ddf5c421e0f4bbc363e28ba0e537b937288a7295204e86d5db4c624",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260814062738"
+      ]
+    },
+    {
+      "path": "20261011211553_clear_billing_run_error_on_retry.sql",
+      "sha256": "f05d733b3a34f66a15a37b48e7a032d4028cef9473d5280c2900e80205cab9b7",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261011211553"
+      ]
+    },
+    {
+      "path": "20261011212036_retry_receipt_email_delivery.sql",
+      "sha256": "08721a08492027fdaa9312848af09a4d8f7bfc91f809e60e1997fc09759a377f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261011212036"
+      ]
+    },
+    {
+      "path": "20261013150000_fix_application_handoff_product_schema.sql",
+      "sha256": "d63becacd071920c54a7cea60cadb674731a822d7ad116d9f20b6ba1b1d1e354",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261013111508"
+      ]
+    },
+    {
+      "path": "20260814062711_reconstruct_loan_application_scoring_baseline.sql",
+      "sha256": "f708cd2bccf0028140a6624d252336d7328d2bd6a4884411b7e49acfc8d1c075",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261011010000_explicit_subscription_authorization.sql",
+      "sha256": "62f8500d95e53483938c661930fd5b74373122d23c4c805130b29c0dd4fab662",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260815084634_harden_subscription_authorization_functions.sql",
+      "sha256": "8d1316199a96016834c8b0f86bc51ff99c49892354c1ebbfe70971de927a3222",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261104190116_assessment_authorization_and_intake_repairs.sql",
+      "sha256": "b1621324200c54a4113f5bd6dd95310c94eaa71d9d119ad0e9919c2262703a2d",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260501113512_c5c32716-bb81-4133-a8ef-890f6eca6bc6.sql",
+      "sha256": "7cf67400b3afb5600edac0b242a4cad728ec0df60f2b4efe888211e31ffa7e86",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260501113512"
+      ]
+    },
+    {
+      "path": "20261008001000_harden_storage_upload_constraints.sql",
+      "sha256": "afdb4c3886a57a2ed762186853fc29ee0977489427680e7b031f35bb3a65b901",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261007221107"
+      ]
+    },
+    {
+      "path": "20260727052943_d5325e05-8518-459c-95e1-d96883fd429a.sql",
+      "sha256": "ef4ff6ce6223b3e54ac2d2ec4769bae9aaa0d6ae8a87ddb4b38149cb98128e55",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260727052943"
+      ]
+    },
+    {
+      "path": "20260815090100_bind_subscription_signature_to_kyc_identity.sql",
+      "sha256": "8a907b61328cd55bcfed46f34aa5a93178c17be80988eea17c7bf3126e7d486b",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260815085459"
+      ]
+    },
+    {
+      "path": "20261011211640_subscription_payroll_reconciliation.sql",
+      "sha256": "ec5660f4e3af9c2bbd721f0325244d87e28be522a3e915c21ffa512f5753a909",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261011211640"
+      ]
+    },
+    {
+      "path": "20260817191508_lock_edge_request_log_to_service_role.sql",
+      "sha256": "010310fd0009f7f4131adb6aaa497167e5c3cac0e78f63093b8fb35acf57baf6",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260505062000_reconstruct_loan_application_scoring_baseline.sql",
+      "sha256": "ac25b3bda69dc27450e17871fe196a94002ad14a7c41e3b6264447fb6da5ad12",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20261104060232_assessment_align_deployed_policies.sql",
+      "sha256": "16ebebea0b18641d8958a9f831c158c4266ff2719cc840d13de0257c615bf479",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260303075945_b7782472-fea2-45a9-a389-78c00243a308.sql",
+      "sha256": "733e4dfa2c2cccaaf87010f4298b7702e2170ebbfeaf72fbbd0b2d95f30fce54",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260905130000_add_external_incident_ingestion.sql",
+      "sha256": "65b3ab48ecf8229ff8ffa42d7071136cef0a79ed4862eb00eee4af275c74f8d9",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260905121835"
+      ]
+    },
+    {
+      "path": "20260811000000_enforce_kyc_storage_object_names.sql",
+      "sha256": "a250af7bae1c3676d21ad1b3f21faa7593dbf6171a8ad5f664a0fdf6cd99adbf",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260811000000",
+        "20260811064451"
+      ]
+    },
+    {
+      "path": "20260817195109_optimize_risk_flags_admin_rls.sql",
+      "sha256": "a92deca778c05bb72dd644e92c1826ced634510af3f8fdaaca297261e9a9e440",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260817192045_verify_edge_request_log_lockdown.sql",
+      "sha256": "df259e107fe6c5c78fe3490a2173f95f79f2320dadbeeac9c81d884c0692806f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260904090643_harden_reconciliation_table_grants.sql",
+      "sha256": "e12acb5c0091a3277effec582b5d9b3b3ff6b54c5905d87dbc218586b697d991",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815092224_remove_mock_lender_seed_records.sql",
+      "sha256": "df8a732b81b27d1f1a90802588170db103a06af663dd4c1ba7b745a4ff3f9230",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816125852_enforce_loan_product_type_values.sql",
+      "sha256": "5083c1a04ecf16cd9f2e13454d8f090f3219fdeb62f2e3714107e15b1b0cc44e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260824033624_reconcile_reconciliation_rpc_client_privileges.sql",
+      "sha256": "cf424878e8e2c342adb16115bcb3558b228d81fa506613a7803e4dda3269bef3",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819221446_connect_audit_to_incident_evaluator.sql",
+      "sha256": "25f5d90c92a3fdaa1df91ad4b38b32b69a95c7b8175229515d60ea8683e0252e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261109112959_marketplace_authenticated_document_reads.sql",
+      "sha256": "1b4e14ff956d30c1ecdb141f0c358063adbb128bda7712cb0c3ed4288f3b05e0",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261109112959"
+      ]
+    },
+    {
+      "path": "20261010091937_customer_support_cases.sql",
+      "sha256": "b8b3a7625744129e14161143d0a47c54aae240bb5c68fbbde134d8b9b6ec5b29",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261010091937"
+      ]
+    },
+    {
+      "path": "20260817193612_remove_confirmed_duplicate_payroll_indexes.sql",
+      "sha256": "e7784b342bf28c91e74636b2d7293d37c6cdd62d8e6f5b5182d0026c35069c69",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010085237_harden_public_privileges_and_rls.sql",
+      "sha256": "16aef4fe402c57fb898e5f9e6edae3e09c7e761fdfbbaeaaa21953e3c908faf4",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261010085237"
+      ]
+    },
+    {
+      "path": "20260816085756_clarify_audit_system_actor.sql",
+      "sha256": "36a5be63ec45d080bf7816f9baa3efd930893888d93b317cfa2318a8030cbc89",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010092043_harden_support_rpc_role_checks.sql",
+      "sha256": "d2f4bf05e55f9cd3c85abf2e3e5ba7b047c8f9a13775654005769f2bf746edde",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815164155_fix_rbac_role_helper_recursion.sql",
+      "sha256": "045ebe2e1dd43db9764a60108a57a4f8df9cced8e89faa0e753cb3e35319b88c",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260815164155"
+      ]
+    },
+    {
+      "path": "20260816090022_fix_system_audit_actor_attribution.sql",
+      "sha256": "80dc20e0a851bcf5360efa2a11f2bc57b1ef385f69ca8197caf04e4efcb3ea5b",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260903221906_monthly_payroll_receipts.sql",
+      "sha256": "8ba7802f95cd3003cc7043df9f7c9d21e78ad986a174d2d84312ee0331f7f23c",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010092611_restrict_support_staff_access.sql",
+      "sha256": "fce52f7932f253d421325d5c19bf8d595bad49760c79417dd4c7c0e197819252",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261104055651_assessment_restore_billing_schema.sql",
+      "sha256": "0e62fdc71972f9cc318a4257300169dee9751008374a78a36cbf63b2d6910641",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260905094654_revoke_anon_public_table_writes.sql",
+      "sha256": "b88c50209d2f5ce19a553a128ad2df58dda456b67269e07423386ed14878092f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261013111508_fix_application_handoff_product_schema.sql",
+      "sha256": "8a5cfefe9ce7e1addda124faf1ebb27aa23c2f88fcf9f7e42da4e8c1fe9d4ddd",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010112200_fix_privileged_mfa_bootstrap.sql",
+      "sha256": "8cc1ee0d91229fcbf3d03fc1516e313195167f33b1d677a9595357a20197e111",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261010112416"
+      ]
+    },
+    {
+      "path": "20260816090004_clarify_system_actor_audit_events.sql",
+      "sha256": "9b646d8886d5da4cbc8c9eee7b8fd84d7c7ea084e3603c8e1e8638f3be9c9e90",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260817193834_consolidate_permissive_rls_policies.sql",
+      "sha256": "a193517bdbc62152c2e95bfe2d092366547e6574fd6257195c016345ef4d9740",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260814062717_reconstruct_profile_financial_columns.sql",
+      "sha256": "2414312b6ecbc10ad90cb82f8a8d2581d776c263b71303b7c2e83ff7ce0e9160",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261104060002_assessment_reconcile_missing_columns.sql",
+      "sha256": "b64eebc792c3bb6794c0864b7408e61fa4c362f22789f7ba63dd6a550a9854f3",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260816105100_revoke_client_audit_writer.sql",
+      "sha256": "28ba9e02df40b6a8583e6bfccaeba77139ef5bf70b8f3b5d776ee13589747fe2",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260816031705"
+      ]
+    },
+    {
+      "path": "20260501113400_reconstruct_kyc_baseline.sql",
+      "sha256": "32b3c8946e4c39570e1c3ffa60e3f275fb2046e41f6a5dc8915c874f7784632b",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260814062657"
+      ]
+    },
+    {
+      "path": "20260815151000_tighten_application_handoff_table_privileges.sql",
+      "sha256": "0823bc9a0af20ad986a0d3252554f6270551b34458a120c330f7bee28216e21f",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260815105154"
+      ]
+    },
+    {
+      "path": "20260816090542_revoke_audit_log_insert_privilege.sql",
+      "sha256": "47a8933e24f0d23c248cacda5a495d4254447341fac5da56a1cf820fec0fb3d0",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260811103315_5e002478-b37c-40af-ab8e-b1603776bd09.sql",
+      "sha256": "ced09c739f5a20b9589155f23d29bc11d6e232fb143d9e6e85789d855f166206",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260811103315"
+      ]
+    },
+    {
+      "path": "20261011020000_lock_verified_subscription_identity.sql",
+      "sha256": "d256f112a104ae4fed2a5b8cabfe0869491fdf92d94640b3d591069fa9a6c6ec",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261011211431"
+      ]
+    },
+    {
+      "path": "20260815085302_lock_subscription_signature_protection_rpc.sql",
+      "sha256": "641184d1efd5b672e4addb90dedb47d06fc9c64c27711d334716d28ae9296427",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260824033826_lock_subscription_authorization_internal_function.sql",
+      "sha256": "d4689672bd2ff3bdba0f5aa686949268ab0f4d5d18d37af1125854fd2c3b0064",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260903225552_optimize_incident_and_admin_policy_performance.sql",
+      "sha256": "d5cdcde84248c82e1c195c80d5e6a4f5eed47084b7f8c996e91a4720fdfee3b9",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815120000_remove_mock_lender_seed_and_add_application_handoffs.sql",
+      "sha256": "06ac35dcb60499625e6db6c74b38263043d7474e655dabb8c01980d977592b81",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260815123000_harden_audit_logging_and_remove_duplicate_triggers.sql",
+      "sha256": "b44cd32aff56e245ff1844b54d116af562e13ecc83afd1807b2d50c3c18e4f28",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260815183451"
+      ]
+    },
+    {
+      "path": "20260816042400_harden_profile_audit_logging.sql",
+      "sha256": "dab9a3ed55789731f601e6b7bcfefd3fc8a122549f5484663b1f63985c702fe6",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260723165727_9b2be7b0-87bf-41ef-ba03-c38905942202.sql",
+      "sha256": "2409e256257caaa34ae84b99f724501a7a932eadc35a900b0c0cc546d0a50738",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260723165727"
+      ]
+    },
+    {
+      "path": "20260814062657_reconstruct_kyc_baseline.sql",
+      "sha256": "bfac195d02aa0efae0e8d9a972c161a4783db5bcf5658edea750a8ef183a74a9",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260814062657"
+      ]
+    },
+    {
+      "path": "20261104055614_assessment_restore_missing_operational_schema.sql",
+      "sha256": "33345b8225366c530abdb74943c2b83c7a8cc4823f41dec63b0d588749961ebf",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260410070718_4f6d00fa-275a-485a-a0d7-1f72468c802f.sql",
+      "sha256": "0e7a5f332c77116de7c82ab682c4d06617be277d8577a27179ce6dd2d0337ce0",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260410070718"
+      ]
+    },
+    {
+      "path": "20260824035159_consolidate_loan_application_audit_triggers.sql",
+      "sha256": "91d859cf5fb58320932dccb76d872af5fa71f3ddfb8ebf5037c6c0c3c76f7eb1",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261007221107_harden_storage_upload_constraints.sql",
+      "sha256": "a799f7cde55249a568212695084d0976606f82901def2171b96bb00f468130a5",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260505061347_578fd37a-8160-4707-9a52-4657a9d35d59.sql",
+      "sha256": "63db942d4373cd22650efac18dcbfde39c79ea2286fc186e33d1c1cff124b710",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260505061347"
+      ]
+    },
+    {
+      "path": "20261031040031_referral_api_security_limits.sql",
+      "sha256": "749c30979af4822071204e708c30c963906e73fd8aea43731ccc31656cc84851",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260604111604_8523b8c2-a581-4be5-83bd-6812ef35ffbc.sql",
+      "sha256": "15754ba61c5f172f0cdf802382406f13729c247d65ea26b13d79513aa78dcb0c",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260604111604"
+      ]
+    },
+    {
+      "path": "20261013140000_fix_bank_product_audit_trigger_schema.sql",
+      "sha256": "afd2e311dc0995cf53fcd0a7f9e950b3f8749fc1cfca86530796e46c5ec1f34d",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261013110927"
+      ]
+    },
+    {
+      "path": "20260819222932_add_reconciliation_runner.sql",
+      "sha256": "852806dfc3f2dcc96b7cb65dd88ee6f09ca08b70f541326a8102e724d7a3c766",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260723165600_reconstruct_profile_financial_columns.sql",
+      "sha256": "4397f66010b545f614a7109b7a9f111a91cf3be7e6d09225d84da00c65ee6882",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260814062717"
+      ]
+    },
+    {
+      "path": "20260817193726_optimize_rls_auth_function_initplans_v2.sql",
+      "sha256": "d36db6e2d48dbdcadbf7d8563a1d25d84e033910179a42df0044cf2028d57b99",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261021224156_restrict_client_trusted_records.sql",
+      "sha256": "e194e3a97a9ca6686510f95a4864a6faf5b58edb8e4490ea74bced3ed3b11911",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261022050737"
+      ]
+    },
+    {
+      "path": "20260815094140_add_loan_product_type_classification.sql",
+      "sha256": "9ae7be0c5138dd83c26e5f5b56fcc8b22aff5fde1c954e325dc9b3ae89dbb1e5",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260815094140",
+        "20260815094400"
+      ]
+    },
+    {
+      "path": "20260907200158_harden_kyc_document_periods.sql",
+      "sha256": "a1db72b2ac5d80e236dad21ed2423eabc769b74f6abb8c5a9e68bfbdaf24464a",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260907200158"
+      ]
+    },
+    {
+      "path": "20261022050737_restrict_client_trusted_records.sql",
+      "sha256": "0be4556ee961b586703a46e7d46dcb24463630854acd31d5ac89e657553e3f34",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260315001633_1c8d00fe-6e96-4740-8021-54dd2b006988.sql",
+      "sha256": "ce9216016564980cd4e8437c24929f3caa8b72701969fe0d83a83df522a4c27b",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261109115530_marketplace_worker_object_lookup.sql",
+      "sha256": "b0155677a76fec3721a1240b763387b987a8e8a9af40ddd8bdd9cdb6ad81641f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261109115530"
+      ]
+    },
+    {
+      "path": "20260816090011_fix_system_audit_actor_attribution.sql",
+      "sha256": "cfd72f11f78eccb039592e4d6fe62329b1b077437b24689f6da26d514e4a58cd",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261109114704_marketplace_scan_quarantine.sql",
+      "sha256": "109f44804bf8b52b75fd8849f2d064cc725db4da27cb7c034981a90ba8fa563e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261109114704"
+      ]
+    },
+    {
+      "path": "20260604110545_f827cb68-9f41-4a8e-bde0-4f5c82e02045.sql",
+      "sha256": "644e7f7631ebf7087b93c5b01de4f519c295072cf3c16a380faa4c3d6a7c2110",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260604110545"
+      ]
+    },
+    {
+      "path": "20261105082522_assessment_authorization_and_intake_repairs.sql",
+      "sha256": "05ad56ae3f5f390acf6e7134f6629d70bfdc3e8a4f3846cba7fba26bdcb27d06",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260817193814_optimize_risk_flags_rls_initplan.sql",
+      "sha256": "3c7b8c2f3f5494c3d517576095233ee1d4e242d726a7c3c7cb163ef2d703e8fc",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261013130000_align_bank_product_type_constraint.sql",
+      "sha256": "09722a58aa9e1d4ae3656babd21230674d96a4a49b90993ef1affb62da18391a",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261013103856"
+      ]
+    },
+    {
+      "path": "20261006232051_move_pg_net_to_extensions.sql",
+      "sha256": "5a536d50e5ae9e32b373c4e26126cdb6ad94219188795a054c4bbbdce26f88eb",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261030000000_add_kyc_review_revision.sql",
+      "sha256": "f0a6419616ebb2d149997048583dfc28c148bd1d342ec7ee47b73686e9e8ab05",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261030193144"
+      ]
+    },
+    {
+      "path": "20260815000001_riverbanc_subscription_authorizations.sql",
+      "sha256": "8844294a01af57dcca2b14dcb6ae9bf1db158c01d8b42f5a85e898a4011124d4",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260903221914_monthly_payroll_receipt_delivery.sql",
+      "sha256": "fe74cb0ca4c2ad15685bf55d09d9babb9d6719f2c0902e2743baffd1d793f154",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260903221914"
+      ]
+    },
+    {
+      "path": "20260725070314_15b2b392-23ea-41d5-99b9-26c6578fd08d.sql",
+      "sha256": "e080630b60170442885a758d9eda9aafe681cf25dd8a8c1306a7777bbcd36d3e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260725070314"
+      ]
+    },
+    {
+      "path": "20260903222204_harden_monthly_receipt_rls.sql",
+      "sha256": "a2743b3339f23dc0211fc77dd5aefe410e1ad750b7b017a05f7d95d55f3d0a7a",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260903222204"
+      ]
+    },
+    {
+      "path": "20260312010346_83f8a5c5-1749-4880-bc9e-b2e61ea915fb.sql",
+      "sha256": "9a194cdd6bedb9fefb15414eb3b28f53d2aa4836a36dcb214b74c4ff719b1bbe",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261013103856_20261013130000_align_bank_product_type_constraint.sql",
+      "sha256": "83f1e3577a56e06b07032687d9f409aa3c17118b2e36ed7185f87b78f1893ce9",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261011215949_billing_retry_reliability.sql",
+      "sha256": "4f0859b8c743e128909cb214aba9ce05b2cf14456d9d8a31545cad50f441925f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261011215949"
+      ]
+    },
+    {
+      "path": "20260819220758_create_incident_event_rules.sql",
+      "sha256": "51e0f8793c2617123dcf0bb7a225ebd5f1ce2db885e92f4bab5de52184db78e7",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260505060706_87cb5bc4-6943-4223-951a-341c500da8f8.sql",
+      "sha256": "d37cc0a96b98a5aa94dbc629cf4eed8ce07ef043f3371a68f85aedcab45e10ca",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260505060706"
+      ]
+    },
+    {
+      "path": "20261010085405_optimize_privileged_mfa_rls_initplans.sql",
+      "sha256": "58a810f0a071d4f0c7ea15e876a4d28103627f4c3ce07b75a302982923e908b9",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261010085405"
+      ]
+    },
+    {
+      "path": "20260722212405_e280ec96-0348-4873-99bc-a57e9487cbd9.sql",
+      "sha256": "b6f79e6f398ee695142d350a77ca5bfc5b5db1392d9a50e69817b3076e6317a2",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260722212405"
+      ]
+    },
+    {
+      "path": "20260315001648_0e36de89-43ae-4cc6-8304-0e3a2ecd0d76.sql",
+      "sha256": "c742616f3cf024d2ba386d2eca645aaa89937e5e299af7f806fcc4027e57b2b7",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260820054404_harden_payroll_integrations_admin_access.sql",
+      "sha256": "337c3fbe6e34e90963ddfb1ef02f8988f2259eb7ed4571d8e34a8e3bf491b5ab",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815181032_remove_legacy_public_kyc_loan_policies.sql",
+      "sha256": "b4fa508d56df4cc4d1e39f5bf3867ee403fea8baa1862f07d24b5fec7d1462f8",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260815181032"
+      ]
+    },
+    {
+      "path": "20261011211314_explicit_subscription_authorization.sql",
+      "sha256": "4755bbb08a7198499044aadcd20cf4188b162c0b11e9f7d1ee2f8e21e56f1365",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816085908_distinguish_system_audit_actor.sql",
+      "sha256": "98d3b2b3fa666a62184f29abbce2a07e8afa060eecfa83e7fae2c5fc49dd09e8",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816090015_clarify_system_audit_actor.sql",
+      "sha256": "ac6dd33865072c5d6389453b8e99e9109b4ecfa95903da3b4c852c726e20c0e3",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815084613_link_subscription_authorization_to_profile_consent.sql",
+      "sha256": "fa6569a6491868c28fe9267c647b3db0d794cd187f2f56a01b84426a55e881b2",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010092500_restrict_support_staff_access.sql",
+      "sha256": "e45da754eec92c58c0c644f43abc6c1018e2f5fb3ddd2ffd509dfd7a7d3d1f77",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261010092611"
+      ]
+    },
+    {
+      "path": "20261104055855_assessment_restore_access_and_kyc.sql",
+      "sha256": "953a2d9dd19e1e6b755b059d2f3bcbc84fa5b484da0188fed6ac056ee564e5ff",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260817185155_remove_public_audit_function_execution.sql",
+      "sha256": "0469c9ae32a4cd2ca6e247145bdfbe1034a9061454d2bfb7b657f094e9b542fb",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261104060020_assessment_restore_remaining_workflows.sql",
+      "sha256": "9accb7d21fea0b7f18a8b2c13c9fef3d5c21feb331ac9bc203fc7921275895c1",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260407080637_5a169fb0-99e9-487d-9120-a592d09404d4.sql",
+      "sha256": "d3fd2176a6924e8c30cd2dfb9a943942f19e936f8ddeb2d1e9767ecf9eab69b7",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260407080637"
+      ]
+    },
+    {
+      "path": "20260816103751_add_minimal_loan_application_audit.sql",
+      "sha256": "30847158c6a0d2eb94709afd314ff57f200357557addc12272119a5e658beec5",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260501113450_3fc0daaa-c846-432b-aa66-f48ebd48e7ca.sql",
+      "sha256": "f8140930fae6ea040af85faca459dbb9b36b31f9c7bf1fc87c3b0704e440a19f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260501113450"
+      ]
+    },
+    {
+      "path": "20260815130000_add_application_tracking_statuses.sql",
+      "sha256": "c62701dffa682b268d7b4500757fa832b38dbdeed2bc269d24bfe9d6cf7f71c4",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260817193802_optimize_rls_role_helper_initplans.sql",
+      "sha256": "4d6ac5c8f4f3a60074bfae9cb4c087fcd15d3ccdaff5e7c56330571cd758da61",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260903221924_schedule_monthly_payroll_billing.sql",
+      "sha256": "716306afcd75916bd1ab4f44db974b9928e3df49141d560c5553018d24450667",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260903221924"
+      ]
+    },
+    {
+      "path": "20261104060810_assessment_align_column_definitions.sql",
+      "sha256": "94965ed137b173ff29e96f4e6ba12b6ee9d2ee8c6252469c14803d98a0dac053",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20261024064302_cloudflare_audit_remediation.sql",
+      "sha256": "d5f9e5d67c1e99306ac9f19d214df3bdbcee341c322f743cf745839843b090ec",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260815084605_riverbanc_subscription_authorizations.sql",
+      "sha256": "adb81c8318517d9eb64fc2ee359a466dd3cecb8fbe3228898c6c0ff531ed35a6",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010092100_harden_support_rpc_role_checks.sql",
+      "sha256": "c8bd17b9c7865ebce121a836b7f9449c14d250f66a078c658f4087adffa2e903",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261010092043"
+      ]
+    },
+    {
+      "path": "20261013112144_fix_application_handoff_rpc_execution_privileges.sql",
+      "sha256": "9fe4d2f0562a3bc8f7f1ced8a9f2f5c940dd2a1e28ffbcb73f262eb39e492d81",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260820055234_create_admin_automation_rules.sql",
+      "sha256": "202425f8edec521375343613af331668e071ea5beb32d8608914337b9ee733f1",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260824034613_add_targeted_fk_supporting_indexes.sql",
+      "sha256": "fd3cdd36fc43ef55ee09ed1c13eb6bb25ea1c3b4d4b53a6f0232f597915099d1",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260504082338_3450dd18-84e0-4a6c-b2f3-fb42bc866270.sql",
+      "sha256": "e55da15d0a8283608eb08179b6a1eb1103b44e9bd18ab4792e5bd0f5a7b69462",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260504082338"
+      ]
+    },
+    {
+      "path": "20260505062444_835024ef-905f-4a8b-a171-7b18dc02361c.sql",
+      "sha256": "2376ee113d8d18926969abba6a7d8b4a220bd769e98eb4f05529e3af81bd6a76",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260505062444"
+      ]
+    },
+    {
+      "path": "20261104060622_assessment_align_privileges.sql",
+      "sha256": "d2f9ef23c7a7be1fce5975386f9ea3bc4134619600a7cb45687fa4b73f287895",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260815090000_harden_subscription_e_signature.sql",
+      "sha256": "8f8a55b3d7998fddc422bc27f3574d256e958232e3f0a64f199e82d7f1aa8338",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260815150000_secure_application_handoff_authorization.sql",
+      "sha256": "b1ca3bd446f433dbd76f22c4ed5dd9d469f1b2b6f522e1fce460d9ebc58d5ab5",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260820054428_create_system_settings.sql",
+      "sha256": "9f52af27e46871db595ecbeae2fc46b7abb97813cbe779be5c862090721c7430",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815170000_make_payslips_private.sql",
+      "sha256": "269a7187b6afbc01813e29d63a8d5abe137848c725e7e7a7e48a2a85a8cc5dfa",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260815165432"
+      ]
+    },
+    {
+      "path": "20261011211431_lock_verified_subscription_identity.sql",
+      "sha256": "1274a4507982c3126044dbcaaf8ff0fc28da205433f221b3e7641f78c1ae3a07",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819223601_add_reconciliation_finding_lifecycle.sql",
+      "sha256": "ca5b0af689980d6c63a98c7d6cf8708dcca88ced63257cf3795d402f5516f5ca",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260408091630_959dd15b-6360-4e06-a8bf-d649ffadf406.sql",
+      "sha256": "3571f5d2324af04beb567b9ba3f5ebafae81d7dbee04503662a5e496a199d35a",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260408091630"
+      ]
+    },
+    {
+      "path": "20260331183000_role_dashboards_and_loan_workflow.sql",
+      "sha256": "b89939c69033fce1edf0e0f0d48a180bbdf5520bb7a85e26fcdf0c2876749d5c",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261023081750_marketplace_ui_workflows.sql",
+      "sha256": "66d4e750d2fab24acafeba3b0e3a1c681df6dd1e621868c10a813554499e5998",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816130233_add_bank_product_audit.sql",
+      "sha256": "5bed17725c5ced4e9fa1372acb980b3733c0700feef6a9904aba990d5b635b83",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261011220749_harden_monthly_payroll_confirmation_read_mfa.sql",
+      "sha256": "bab2cfa2769362a7dc201e1dd223d1973976e4a009f3b9f54e817b4e3a5690b0",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261011220749"
+      ]
+    },
+    {
+      "path": "20261011030000_clear_billing_run_error_on_retry.sql",
+      "sha256": "f05d733b3a34f66a15a37b48e7a032d4028cef9473d5280c2900e80205cab9b7",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261011211553"
+      ]
+    },
+    {
+      "path": "20260816031705_revoke_client_audit_writer.sql",
+      "sha256": "2fab579361dba8b74d3f539f2112907fb026dd170bd141b63b0166f18cb660b8",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815183451_harden_audit_logging_and_remove_duplicate_triggers.sql",
+      "sha256": "3a78f231db6e98348c968d7a65b4d04507e0a4bb7c517942a18446df49ed01a1",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260904142451_restore_incident_center_schema.sql",
+      "sha256": "16a402adb365faf43d00a579906de3455f1f58181224b6c38d3f062de864d1ec",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819223107_implement_reconciliation_check_execution.sql",
+      "sha256": "7f0b19491cf07b17eb8412d3cc22a737779dc335498d43144167c20fbf00044a",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261110082452_marketplace_kyc_release_source.sql",
+      "sha256": "ccbec1236424624536f8821775e2aef0449190c56f75bdcc884618bbc14d4ec6",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816105107_add_kyc_write_audit.sql",
+      "sha256": "f5ed4c956f4bf18aee3ceebc1cd241ae61a781bed4aa320d0199e89030344796",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816103932_add_loan_application_audit.sql",
+      "sha256": "14e9ac14758b1e25b63313de892f8b9ae6cc229bf52cec5909552ab130890a7a",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815105123_restrict_application_handoff_rpc.sql",
+      "sha256": "d3badd080253890765595522eef350bd6df2c7c05d78d98f4378181f3b0fe434",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815165432_make_payslips_private.sql",
+      "sha256": "85cb8883780e7d6f6f4d158dc045f463c3b21b35a4156ac3d806c3e544783386",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819215445_add_incident_writer.sql",
+      "sha256": "f3eda5a8f32aebf64eb304148c0297e6ef246cf97a2886bf4d7840d14996419b",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260904111859_harden_handoff_trigger_search_path.sql",
+      "sha256": "91a81c073c715c06ff41de12ef775c8baa3c4bdb386408a48388fc8a95706855",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261007220942_enforce_privileged_mfa.sql",
+      "sha256": "54f637406ef67978d48a0a926c24213b3ef8d0bd8c54823ee45adebbbff3e4cd",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816090530_lock_audit_log_direct_inserts.sql",
+      "sha256": "d96430f66446d94c0cbcf8fd0ab33fb33f928ac9560c7ae04c68e8ac51243ff6",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260811064451_enforce_kyc_storage_object_names.sql",
+      "sha256": "b6131395924ccd0b01f3b3b6809d6d0683a132b32ee5f5f8846f1ee7f0b6f236",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260607134439_6797317b-9c24-48a8-86b6-8589bca6a1e9.sql",
+      "sha256": "7111a70db7f59c35be99ef90657610a3b1e0a57d87f368235173679caa125abe",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260607134439"
+      ]
+    },
+    {
+      "path": "20261110080536_marketplace_kyc_release_source.sql",
+      "sha256": "c01e314e434258c65a32fee11ba5e98cb542fdd4fe55a7ac6dc94ae0f2f14b20",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261110082452"
+      ]
+    },
+    {
+      "path": "20260907200218_harden_kyc_document_security_and_rls_performance.sql",
+      "sha256": "d7e14e758cbe8701288bf8b074c18d808fe7e04918ed14e1485f64334702cc4c",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260907200218"
+      ]
+    },
+    {
+      "path": "20260815105154_tighten_application_handoff_table_privileges.sql",
+      "sha256": "b442773644511271edb323f8836f6f290d01ada1a70b45a877a95e01b85cdcb0",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260824034153_harden_rbac_helper_search_paths.sql",
+      "sha256": "53d54c82dc46d602395697f8514dd3083db04c9b672ea8a9feaffaf9a6508631",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819220917_add_incident_promotion_function.sql",
+      "sha256": "850f11bd4bd88b022be01e53151c81402d636c3195852a121406d3ad60f7d5b4",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260504082031_8742b9ba-014c-4d67-879c-ea18c75c2830.sql",
+      "sha256": "98c13e95bf6e9d84ef1989c244f12330b1aaa0f8a5877016f01608926a3574bb",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260504082031"
+      ]
+    },
+    {
+      "path": "20261011040000_subscription_payroll_reconciliation.sql",
+      "sha256": "ec5660f4e3af9c2bbd721f0325244d87e28be522a3e915c21ffa512f5753a909",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261011211640"
+      ]
+    },
+    {
+      "path": "20260817185528_remove_unused_private_role_helper_copies.sql",
+      "sha256": "867f2f4faf4e8c6de69000cb3a7e7cd7ff871cd50108c0e5bd35eead5f85750d",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010112416_fix_privileged_mfa_bootstrap.sql",
+      "sha256": "667a44473b4747e62e938ad98c960b51d4743459b589e179e52b3581cf5e48b0",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261013110927_fix_bank_product_audit_trigger_schema.sql",
+      "sha256": "6e062b31cea8568a2812c720008976035e746c1d07c83278578701e5dd7a628f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819223343_fix_reconciliation_runner_role_check.sql",
+      "sha256": "3e220e467b4d5291215aa09ff0ce855ba4700e81441b5b700a92b10f2eebaf56",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260502121424_90dc4c28-3974-45dc-b6cf-f0ed2c4152b9.sql",
+      "sha256": "a11a1d7ceb369c33074fdb6930220803caa89de90811f9a1b1464b3dd2da2b27",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260502121424"
+      ]
+    },
+    {
+      "path": "20260905121835_20260905130000_add_external_incident_ingestion.sql",
+      "sha256": "18d31113ecf600235b0a156c5f4a5407c8ab1678a69ce74731f273966b9f4b34",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261104060250_assessment_align_deployed_functions.sql",
+      "sha256": "ac9c70bffde552fb55228a730a85c0f23d81fc557b52406b5b55144305dc33f9",
+      "recorded_version": false,
+      "classification": "comment_only_retired_preview_alias",
+      "matches": []
+    },
+    {
+      "path": "20260817193755_optimize_direct_user_rls_initplans.sql",
+      "sha256": "b5a2f57905068bb8c0fad008cfe218ec62aca9dc491170439632f34415df6cc3",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819220415_separate_incident_actions_from_audit_details.sql",
+      "sha256": "5515cbd125a458f234a8959befb91fa32acbf2eff1b0967a7d90c10ad41cd960",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816022439_harden_profile_audit_logging.sql",
+      "sha256": "077fc1244094c0a1cadc4fb4a04a8701706c747205826988bf4ad499f10407a5",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260817193601_add_missing_fk_indexes_and_remove_duplicate_indexes.sql",
+      "sha256": "b9fdc9af7f5dae700706af0c09545ebf666b4b3d0247937c8939f77bdfa0844e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260817185446_move_role_helpers_to_private_schema.sql",
+      "sha256": "d5bee6af2cb603e1e3467171cd9a1c56f3caa34adb30f3f49e23cdf157263f9b",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260824033104_repair_legacy_rbac_function_references.sql",
+      "sha256": "54db385b0bbdb31980557b0cfb8eba1b11d4119f6e72cdcc631c8f2890e4cbd8",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816104742_add_user_role_audit.sql",
+      "sha256": "ff00ef4d171b6c879b4a1144b61848006af6c6bb8441769a640b1b97372952eb",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815085459_bind_subscription_authorization_to_kyc_identity.sql",
+      "sha256": "a19f32767499673927779202a0097c5cc85b97fc1bd2188d6130945282f5e4f9",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261013160000_fix_application_handoff_rpc_execution_privileges.sql",
+      "sha256": "d914e8bf323ded116f8ab5702d7d42062adc200c7b4252a817637b4862e95315",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261013112144"
+      ]
+    },
+    {
+      "path": "20260817190022_move_role_helpers_to_private_schema.sql",
+      "sha256": "cedecc4af2cc52b15f0db08d4e2c815e7e47bd03150b42bc260beb0ea6a25b58",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261013112413_fix_handoff_consent_separate_from_subscription_consent.sql",
+      "sha256": "e42980e32de2605796f2b6e9f77c606e8b754ef94f4a0db5903a212a66a2cb6f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816103000_fix_system_audit_actor_attribution.sql",
+      "sha256": "d6b21f355ee7da940fdb35a118f7cd443a539ecea8056f8a209670281864b5b2",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260816090014"
+      ]
+    },
+    {
+      "path": "20261011221226_vault_backed_resend_config.sql",
+      "sha256": "064ab972af2a14d78a5d19ad80370d8344f7655ab6f13b2599eb680ba2065534",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261011221226"
+      ]
+    },
+    {
+      "path": "20260817192010_lock_down_edge_request_log.sql",
+      "sha256": "9e30e010256510d5d1a3e1b9a83c8e15031a97e8a9c2645f2c5946703bc02876",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260409060557_e5f7d418-44b3-4e11-9177-6beea46f05b4.sql",
+      "sha256": "b82c60e4a3f735c3dc011a90c7c4b56bb0521c8c6510e514aa81e8b4d41e9171",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260409060557"
+      ]
+    },
+    {
+      "path": "20260815164246_prevent_profile_role_escalation.sql",
+      "sha256": "0af75b94c359abfa9cdc35c1c9177f7782c7075315934894c48ce3ec0994ccfc",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260815164246"
+      ]
+    },
+    {
+      "path": "20260905094311_harden_incident_table_grants.sql",
+      "sha256": "82b72530e4ed6055b476d6d6a6204b26dc7479c438d4f961a4d4c28893df786c",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819215241_create_incidents.sql",
+      "sha256": "0dd0674e9b6f647185a300bd722f00a8bd2f6016730471940a7725b35b736571",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260816090014_fix_system_audit_actor_attribution.sql",
+      "sha256": "d65c50879ba568b8ae37c699403d467dcccd41ec55d6fbc887c71aaa145a0a2d",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815085255_harden_subscription_e_signature_binding.sql",
+      "sha256": "b05a50e7eb0f831d6252ccaa5dfcd50b74565394f3bb31ea787cb580235dd322",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260814062738_correct_kyc_storage_object_name_regex_v2.sql",
+      "sha256": "ed29dac9d55eccb69854e9067288ce307feb958e0c96ab38ff95561360502e0d",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260814062738"
+      ]
+    },
+    {
+      "path": "20261013170000_fix_handoff_consent_separate_from_subscription_consent.sql",
+      "sha256": "3634cf1447b2aad23cb6387d5b37eda1b3a6904dc359a2f21fe1e302b33de5ae",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260815164136_harden_rbac_role_source_and_seed_user_roles.sql",
+      "sha256": "00f46c285dea3a6630b27edeecacaf111f36736e41213ca9c45e0afe47ced797",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260815164136"
+      ]
+    },
+    {
+      "path": "20260904142545_enable_incident_realtime.sql",
+      "sha256": "a1dce9aea1a1e9f9898e99312830cedec5a0064daf64997bf38b906900b2707c",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010230514_retain_incomplete_applications_one_year_after_last_update.sql",
+      "sha256": "247f5be6224d5ef7c608824f647941edaa425ab339dfa7341579aa467298a35f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261010230514"
+      ]
+    },
+    {
+      "path": "20260819223508_add_reconciliation_failure_detection_function.sql",
+      "sha256": "c39581f2776aa91336158b8e2728c443284cc6100883c695b25dd02ac4f7a22a",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261109110816_marketplace_sensitive_storage_sessions.sql",
+      "sha256": "6aae775db565391e39ac9969d9a37da692e708d3873f7545c76d2f1dc7cf6760",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261109110816"
+      ]
+    },
+    {
+      "path": "20261006231425_add_explicit_service_role_rls_policies.sql",
+      "sha256": "da55b2f1496f99e4686ae74c482ff96367ed7a54968f0943bf9c85960c12a74e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260505062122_882c1666-1d25-4b0d-9061-43cd6406714c.sql",
+      "sha256": "78095005745e255bfa3cd24eeb14ae5795a7a374f80ac1087c18693a25069ed2",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260505062122"
+      ]
+    },
+    {
+      "path": "20260314124347_cf4c7d28-2932-443c-b54f-630a4e63ad01.sql",
+      "sha256": "0cffcdd7a5d38c908bcdb368fd96f270dc27243422d171a371d6bc00cc6cdf3e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261109120438_marketplace_scan_evidence_ordering.sql",
+      "sha256": "a5e00ca25c8d4037ee9964cfcfcbf388db3d58a94296cccdfd708bbfe3078979",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20261109120438"
+      ]
+    },
+    {
+      "path": "20261008000000_enforce_privileged_mfa.sql",
+      "sha256": "c84a0a760ebf5224b8d1895427f645a374ceadd8e8e2e48ff097dd9da046b3a4",
+      "recorded_version": false,
+      "classification": "historical_unrecorded_variant",
+      "matches": []
+    },
+    {
+      "path": "20260907200150_add_strict_kyc_documents.sql",
+      "sha256": "44c1a5f678e319daf7b4d8cd73a493295402cc0a19aadc747a59af0b5e2da4ea",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260907200150"
+      ]
+    },
+    {
+      "path": "20260816090013_separate_system_actor_in_audit_logs.sql",
+      "sha256": "564a77166d9959a9f55e71efd53598b056c20c4758285e9b13d9572ef34e6ae8",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260817200500_add_incident_writer.sql",
+      "sha256": "e5dd614576ff45845152c665927805c3bef26aff1762b72b342863ff95e9465a",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20260819215445"
+      ]
+    },
+    {
+      "path": "20260824034448_harden_incident_security_definer_search_paths.sql",
+      "sha256": "7a2a1dbad284271f48535aca288c0f76a34e490c684664f2eb200111ca099315",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260813192552_fix_kyc_storage_object_name_regex.sql",
+      "sha256": "6f694724582f43727181d0f8b43d87d5f54693efc265ce3f2883348ce7cc922b",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261010085423_consolidate_profile_admin_policies.sql",
+      "sha256": "0afab3ad4519ff0a74999d1ed572b51218c5122352793d113eada7629051c46a",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261022205917_marketplace_ui_workflows.sql",
+      "sha256": "16f07c4349bff92cac3ea911fad4ed3ee439c132c9276b69bbf2d63adde4c8ef",
+      "recorded_version": false,
+      "classification": "exact_recorded_sql_variant",
+      "matches": [
+        "20261023081750"
+      ]
+    },
+    {
+      "path": "20260815105031_secure_application_handoff_authorization.sql",
+      "sha256": "eee9fd244e190938f8b8151ccf82437a7c2da4388c845b2de401a06defcc4b5b",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260903221951_add_payroll_confirmation_fields.sql",
+      "sha256": "6797d4d2ddb0c32943894e1e16c2a8338377ec74ec431476b2ecb779abd4e32f",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260903221951"
+      ]
+    },
+    {
+      "path": "20260225144117_2233fcd6-13f9-4527-8cea-49ff9820cad9.sql",
+      "sha256": "c2fa0fa280dbf36da4f1d3381666a7f2ae3b56cc5d6df67151c340fcac2f0005",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20261030193144_add_kyc_review_revision.sql",
+      "sha256": "8b9817be250a9a95c76870ffcdb16fc5f37cca040b5df898126b1e2bf9b38ec2",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260815103137_verify_loan_product_type_classification.sql",
+      "sha256": "7806152d4dfa261f72ea5b7c831df918285b48879493255a3774e3d8543347b4",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260817185122_harden_audit_function_api_execution.sql",
+      "sha256": "cda45e69c9bf74a790ca317847747f84394a2d195bb8cdbfbfc0ce11284ab647",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260819222843_create_reconciliation_framework.sql",
+      "sha256": "afb13a2812325d0f621776f7ec2829ea4691bb789e7fdf9ab762e5af7793e47e",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260504082320_e7aa46af-fe3c-4a32-8911-317895f82bf7.sql",
+      "sha256": "04914cb816fd432efdddf9dc7e28da07c04917ed6a6633bd40d47c359dbb81e2",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": [
+        "20260504082320"
+      ]
+    },
+    {
+      "path": "20260904111826_protect_lender_controlled_handoff_status.sql",
+      "sha256": "7c19c20c9c0eb1e368e4e027bcab420eccb5b1cfeaf0ea4559fcf575a6b7ca98",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260814062706_reconstruct_check_connection_baseline.sql",
+      "sha256": "90ab69a7d8002052857f81ec9861b1d2f519ca2891eacd8a5daca69b0ff352d6",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    },
+    {
+      "path": "20260824033402_reconcile_log_audit_client_execute_privilege.sql",
+      "sha256": "bf8f9fe556f1b03dceb46791e2f817581be24fca6645046b14c8990189512f28",
+      "recorded_version": true,
+      "classification": "recorded_version_original",
+      "matches": []
+    }
+  ],
+  "unrecorded_archived_count": 49,
+  "database_mutations": false
+}

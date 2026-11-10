@@ -15,8 +15,8 @@ async function claims(user, extra={}) {
 async function count() { return (await db.query("select count(*)::int n from storage.objects")).rows[0].n; }
 try {
   await db.exec(await read("supabase/tests/fixtures/ui_bootstrap.sql"));
-  await db.exec(await read("supabase/migrations/20261022205917_marketplace_ui_workflows.sql"));
-  await db.exec(await read("supabase/migrations/20261024064302_cloudflare_audit_remediation.sql"));
+  await db.exec(await read("supabase/migrations/20261023081750_marketplace_ui_workflows.sql"));
+  await db.exec(await read("supabase/migrations/20261105082522_assessment_authorization_and_intake_repairs.sql"));
   await db.exec(`create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz,oauth_client_id uuid);
     create function storage.operation() returns text language sql stable as $$select current_setting('storage.operation',true)$$;
     create function storage.allow_any_operation(ops text[]) returns boolean language sql stable as $$select replace(storage.operation(),'storage.','')=any(ops)$$;

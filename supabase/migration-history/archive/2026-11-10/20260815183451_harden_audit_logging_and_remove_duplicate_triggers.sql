@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260815183451 (harden_audit_logging_and_remove_duplicate_triggers).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

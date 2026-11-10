@@ -1,11 +1,10 @@
 -- Riverbanc production access-control hardening.
--- This migration runs as the postgres role; Supabase-managed supabase_admin default ACLs
--- require owner-level access unavailable to the deployment connection and are not modified here.
 BEGIN;
 
 REVOKE TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM anon;
 
+-- The migration role owns these defaults. Supabase-managed supabase_admin defaults require owner-level access unavailable to this connection.
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE ALL ON TABLES FROM anon, authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
@@ -56,7 +55,6 @@ DROP POLICY IF EXISTS profiles_admin_select_policy ON public.profiles;
 CREATE POLICY profiles_admin_select_policy ON public.profiles
   FOR SELECT TO authenticated
   USING (private.has_role('admin') OR private.has_role('super_admin'));
-
 DROP POLICY IF EXISTS profiles_admin_update_policy ON public.profiles;
 CREATE POLICY profiles_admin_update_policy ON public.profiles
   FOR UPDATE TO authenticated

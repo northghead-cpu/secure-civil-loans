@@ -1,2 +1,1 @@
--- Compatibility alias for already recorded production migration 20260904142545.
--- Canonical migrations retain the implementation; no SQL or customer-data mutation.
+alter publication supabase_realtime add table public.incidents;

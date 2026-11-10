@@ -699,24 +699,6 @@
       "name": "marketplace_kyc_release_source"
     }
   ],
-  "canonicalized_sources": [
-    {
-      "old_path": "20260815_remove_legacy_public_kyc_loan_policies.sql",
-      "canonical_path": "20260815181032_remove_legacy_public_kyc_loan_policies.sql",
-      "sha256": "b4fa508d56df4cc4d1e39f5bf3867ee403fea8baa1862f07d24b5fec7d1462f8",
-      "verification": "SQL tokens match the recorded production migration"
-    },
-    {
-      "old_path": "202610270001_handshake_transfer_retry.sql",
-      "canonical_path": "20261027085120_handshake_transfer_retry.sql",
-      "sha256": "74610d9ddadaf43bb95a02bfb97b68793cb96e9f4a46451aeb2e927af55effd1",
-      "verification": "SQL tokens match the recorded production migration"
-    },
-    {
-      "old_path": "20260815130000_add_loan_product_type_classification.sql",
-      "canonical_path": "20260815094140_add_loan_product_type_classification.sql",
-      "sha256": "9ae7be0c5138dd83c26e5f5b56fcc8b22aff5fde1c954e325dc9b3ae89dbb1e5",
-      "verification": "SQL tokens match the recorded production migration"
-    }
-  ]
+  "canonicalized_sources": [],
+  "reconciliation_manifest": "supabase/migration-history/reconciliation.json"
 }
