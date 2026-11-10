@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20261104055855 (assessment_restore_access_and_kyc).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

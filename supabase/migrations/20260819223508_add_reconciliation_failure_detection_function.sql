@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260819223508 (add_reconciliation_failure_detection_function).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.

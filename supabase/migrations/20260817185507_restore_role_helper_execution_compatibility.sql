@@ -1,0 +1,4 @@
+-- Compatibility alias for migration 20260817185507 (restore_role_helper_execution_compatibility).
+-- Verified as already recorded on the existing Supabase preview branch.
+-- Canonical repository migrations retain the schema implementation.
+-- No schema/data mutation; preserve remote history and do not replay legacy SQL.
