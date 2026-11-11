@@ -23,5 +23,5 @@ jobs:
       - name: Check the deployed Sheets function with Deno
         run: >-
           npx --yes --package=deno@2.9.6 deno check
-          --config=supabase/tests/edge/deno.json
+          --node-modules-dir=auto --config=supabase/tests/edge/deno.json
           supabase/functions/sheets-export/index.ts
