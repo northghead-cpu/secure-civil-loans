@@ -1,0 +1,42 @@
+{
+  "test_case": "TEST-LIVE-KYC-20261111",
+  "synthetic_only": true,
+  "documents": [
+    {
+      "file": "NRC.pdf",
+      "sha256": "515dac9c276497e8b1b53c67a2fbf7de2179a4c7ed6ab90873c2cad9f69f1a4d",
+      "size": 2108,
+      "synthetic": true
+    },
+    {
+      "file": "GOV_ID.pdf",
+      "sha256": "4171579c81ef90223c11c1299b296a933e89e710f6e97f30635bb68b178c7f38",
+      "size": 2102,
+      "synthetic": true
+    },
+    {
+      "file": "INTRODUCTORY_LETTER.pdf",
+      "sha256": "b2b9416bd70245cf8910302e064a3bcee1802bcf7658469a6a9ca1fa5124a95e",
+      "size": 2111,
+      "synthetic": true
+    },
+    {
+      "file": "PAYSLIP-2026-08.pdf",
+      "sha256": "116ea6ed2536486d98ce6675a436ee26da2e9d11a143fae069c8a408f5ef9c21",
+      "size": 2186,
+      "synthetic": true
+    },
+    {
+      "file": "PAYSLIP-2026-09.pdf",
+      "sha256": "314cf13f6326d223856e6aff04d7f98427234ff098857299a12cb7d67242b9af",
+      "size": 2187,
+      "synthetic": true
+    },
+    {
+      "file": "PAYSLIP-2026-10.pdf",
+      "sha256": "a14317786c88d741e2fdaf709eb8e7e3c0d4e455e8c128ab5bf84ba25e473687",
+      "size": 2186,
+      "synthetic": true
+    }
+  ]
+}
