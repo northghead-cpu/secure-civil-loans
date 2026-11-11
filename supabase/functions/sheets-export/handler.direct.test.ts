@@ -23,7 +23,7 @@ async function fixture(
   });
   const updates = vi.fn(async () => ({ error: null }));
   const from = vi.fn((table: string) => {
-    if (table !== "report_sync_state" && !options.allowSync)
+    if (!["report_sync_state", "audit_logs"].includes(table) && !options.allowSync)
       throw new Error("Connection checks must never read customer tables");
     const rows =
       table === "profiles"
@@ -43,6 +43,8 @@ async function fixture(
           ]
         : [];
     const q = {
+      insert: (value: unknown) => { updates(value); return q; },
+      single: async () => ({ data: { id: "synthetic-audit" }, error: null }),
       select: () => q,
       eq: () => q,
       order: () => q,
@@ -193,9 +195,9 @@ it("exports all twelve tabs with RAW values while retaining NRC masking and secr
   const r = await fixture({ action: "sync", allowSync: true });
   expect(r.response.status).toBe(200);
   expect(r.body.ok).toBe(true);
-  expect(r.userRpc).toHaveBeenCalledWith("log_audit", expect.objectContaining({
-    _action: "google_sheets_report_sync",
-    _record_id: id,
+  expect(r.updates).toHaveBeenCalledWith(expect.objectContaining({
+    action_performed: "google_sheets_report_sync", record_id: id,
+    user_id: "synthetic-admin",
   }));
   const writes = r.provider.mock.calls.filter((call) => call[1]?.method === "PUT");
   expect(writes).toHaveLength(12);

@@ -1009,20 +1009,25 @@ Deno.serve(async (req) => {
       throw new Error("Sync completed but status persistence failed");
     }
 
-    // log_audit requires auth.uid(); preserve the verified admin's JWT.
-    const { error: auditError } = await asUser.rpc("log_audit", {
-      _user_id: userId,
-      _role: authorization.role,
-      _action: "google_sheets_report_sync",
-      _record_id: spreadsheetId,
-      _table_name: "report_sync_state",
-      _old_value: null,
-      _new_value: { row_counts: rowCounts, created },
-    });
-    if (auditError) {
+    // Browser audit RPC access is deliberately revoked. Write this fixed server
+    // event with the identity already verified above, then run incident evaluation.
+    const { data: audit, error: auditError } = await db.from("audit_logs").insert({
+      user_id: userId,
+      role: authorization.role,
+      action_performed: "google_sheets_report_sync",
+      record_id: spreadsheetId,
+      table_name: "report_sync_state",
+      old_value: null,
+      new_value: { row_counts: rowCounts, created },
+    }).select("id").single();
+    if (auditError || !audit?.id) {
       console.error("sheets-export failed to write audit event");
       throw new Error("Sync completed but audit logging failed");
     }
+    const { error: evaluationError } = await db.rpc("evaluate_audit_event_for_incident", {
+      p_audit_log_id: audit.id,
+    });
+    if (evaluationError) throw new Error("Sync completed but audit evaluation failed");
 
     return json({
       ok: true,
