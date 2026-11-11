@@ -9,14 +9,29 @@ export type SheetsExportErrorCode =
   | "CONNECTOR_NOT_LINKED"
   | "PROVIDER_AUTH"
   | "PROVIDER_ERROR"
-  | "SYNC_FAILED";
+  | "SYNC_FAILED"
+  | "GOOGLE_CREDENTIALS_MISSING"
+  | "GOOGLE_CREDENTIALS_INVALID"
+  | "WORKBOOK_REQUIRED"
+  | "INVALID_WORKBOOK"
+  | "WORKBOOK_MISMATCH";
 
 const MESSAGES: Record<SheetsExportErrorCode, string> = {
+  GOOGLE_CREDENTIALS_MISSING:
+    "Save the Google service account credential in the reporting server's secure settings first.",
+  GOOGLE_CREDENTIALS_INVALID:
+    "The Google service account credential is invalid. Replace it in secure server settings.",
+  WORKBOOK_REQUIRED:
+    "Paste the link or ID of your private reporting workbook, shared with the service account as Editor.",
+  INVALID_WORKBOOK: "Enter a valid Google Sheets workbook link or spreadsheet ID.",
+  WORKBOOK_MISMATCH:
+    "This workbook differs from the reporting destination configured on the server.",
   AUTH_REQUIRED: "Your session has expired. Please sign in again.",
   FORBIDDEN: "Only admins and super admins can use the reporting workbook.",
   MFA_REQUIRED: "Two-factor verification is required. Complete MFA and try again.",
   CONNECTOR_NOT_LINKED: "Google Sheets is not connected to this project.",
-  PROVIDER_AUTH: "Google Sheets refused access. The Google connection may need to be reconnected or shared with the workbook.",
+  PROVIDER_AUTH:
+    "Google refused access. Confirm the Sheets API is enabled, the credential is valid, and the workbook is shared with the service account as Editor.",
   PROVIDER_ERROR: "Google Sheets returned an error. Please try again shortly.",
   SYNC_FAILED: "The sync failed while preparing report data.",
 };

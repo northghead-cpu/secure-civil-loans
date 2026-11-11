@@ -1,3 +1,9 @@
+import {
+  createSheetsConnection,
+  spreadsheetId as parseSpreadsheetId,
+  SheetsSetupError,
+  ProviderError,
+} from "./google-sheets.mjs";
 import { RequestError, readBoundedText, requireJson } from "../_shared/request-security.ts";
 import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
 /**
@@ -15,7 +21,7 @@ import { requirePrivilegedMfa } from "../_shared/privileged-auth.ts";
  *  - NRC values are masked (see maskNrc). Raw NRC is never written.
  *
  * POST { action: "sync", spreadsheetId?: string }
- * POST { action: "status" }
+ * POST { action: "status" | "check", spreadsheetId?: string }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 const ALLOWED_RIVERBANC_ORIGINS = new Set([
@@ -33,15 +39,18 @@ function corsHeadersFor(req: Request, methods: string): Record<string, string> {
     ...(origin && ALLOWED_RIVERBANC_ORIGINS.has(origin)
       ? { "Access-Control-Allow-Origin": origin }
       : {}),
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-request-id",
     "Access-Control-Allow-Methods": methods,
-    "Vary": "Origin",
+    Vary: "Origin",
   };
 }
 
-const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-const GOOGLE_SHEETS_API_KEY = Deno.env.get("GOOGLE_SHEETS_API_KEY");
+const googleSheets = createSheetsConnection({
+  secret: Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON"),
+});
+const gateway = googleSheets.request;
+const configuredWorkbook = Deno.env.get("GOOGLE_CUSTOMER_SHEET_ID")?.trim();
 
 export const SHEET_TABS = [
   "Users",
@@ -73,30 +82,6 @@ const round2 = (v: number) => Math.round(v * 100) / 100;
 const cell = (v: unknown) =>
   v === null || v === undefined ? "" : typeof v === "boolean" ? (v ? "TRUE" : "FALSE") : v;
 
-async function gateway(path: string, init: RequestInit = {}) {
-  const res = await fetch(`${GATEWAY}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": GOOGLE_SHEETS_API_KEY!,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const details = await res.text();
-    console.error(`Google Sheets gateway ${path} failed [${res.status}]: ${details}`);
-    throw new ProviderError(res.status);
-  }
-  return res.json();
-}
-
-class ProviderError extends Error {
-  constructor(public status: number) {
-    super(`Google Sheets provider request failed [${status}]`);
-  }
-}
-
 type Grid = (string | number)[][];
 
 Deno.serve(async (req) => {
@@ -104,41 +89,60 @@ Deno.serve(async (req) => {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
     });
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
+  if (!authHeader?.startsWith("Bearer "))
+    return json({ error: "Unauthorized", code: "AUTH_REQUIRED" }, 401);
 
   // --- Identity + role check with the caller's own token (RLS-respecting) ---
-  const asUser = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
-  const authorization = await requirePrivilegedMfa({
+  const asUser = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const authorization = await requirePrivilegedMfa(
+    {
       auth: asUser.auth,
       accountForUser: async (id) => {
-        const { data, error } = await asUser.from("profiles").select("account_status").eq("user_id", id).maybeSingle();
+        const { data, error } = await asUser
+          .from("profiles")
+          .select("account_status")
+          .eq("user_id", id)
+          .maybeSingle();
         return { data, error };
       },
       rolesForUser: async (id) => {
-        const { data, error } = await asUser.from("user_roles").select("role")
-          .eq("user_id", id).in("role", ["admin", "super_admin"]).limit(1);
+        const { data, error } = await asUser
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", id)
+          .in("role", ["admin", "super_admin"])
+          .limit(1);
         return { data: data as { role: string }[] | null, error };
       },
-    }, authHeader);
-  if (authorization.status) return json({ error: authorization.code, code: authorization.code }, authorization.status);
+    },
+    authHeader,
+  );
+  if (authorization.status)
+    return json({ error: authorization.code, code: authorization.code }, authorization.status);
   const userId = authorization.userId;
 
   let body: { action?: string; spreadsheetId?: string };
   try {
     requireJson(req);
     body = JSON.parse(await readBoundedText(req, 4096));
-    if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid JSON object" }, 400);
+    if (!body || typeof body !== "object" || Array.isArray(body))
+      return json({ error: "Invalid JSON object" }, 400);
+    if (body.spreadsheetId !== undefined && typeof body.spreadsheetId !== "string")
+      return json({ code: "INVALID_WORKBOOK", error: "Workbook link or ID must be text" }, 400);
   } catch (error) {
     if (error instanceof RequestError) return json({ error: error.code }, error.status);
     return json({ error: "Invalid JSON body" }, 400);
@@ -152,11 +156,18 @@ Deno.serve(async (req) => {
   );
 
   const { data: quota, error: quotaError } = await db.rpc("consume_edge_request", {
-    p_user_id: userId, p_function_name: "sheets-export", p_nonce: req.headers.get("x-request-id") ?? crypto.randomUUID(),
+    p_user_id: userId,
+    p_function_name: "sheets-export",
+    p_nonce: req.headers.get("x-request-id") ?? crypto.randomUUID(),
   });
-  if (quotaError || !quota || typeof quota.allowed !== "boolean") return json({ error: "Service unavailable" }, 503);
+  if (quotaError || !quota || typeof quota.allowed !== "boolean")
+    return json({ error: "Service unavailable" }, 503);
   if (quota.replay) return json({ error: "Duplicate request" }, 409);
-  if (!quota.allowed) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } });
+  if (!quota.allowed)
+    return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+    });
   try {
     if (body.action === "status") {
       const { data, error } = await db
@@ -167,19 +178,49 @@ Deno.serve(async (req) => {
       if (error) return json({ error: "Unable to read reporting status" }, 500);
       return json({
         state: data ?? null,
-        configured: Boolean(LOVABLE_API_KEY && GOOGLE_SHEETS_API_KEY),
-        connectorLinked: Boolean(GOOGLE_SHEETS_API_KEY),
+        ...googleSheets.status(),
+        defaultSpreadsheetId: configuredWorkbook || null,
+        connectorLinked: googleSheets.status().configured,
         syncStateExists: Boolean(data),
       });
     }
 
-    if (body.action !== "sync") return json({ error: "Unknown action" }, 400);
-    if (!LOVABLE_API_KEY || !GOOGLE_SHEETS_API_KEY) {
+    if (body.action !== "sync" && body.action !== "check")
+      return json({ error: "Unknown action" }, 400);
+    if (!googleSheets.status().configured) {
       return json(
-        { error: "Google Sheets connection is not configured for this project.", code: "CONNECTOR_NOT_LINKED" },
+        {
+          error: "Direct Google Sheets credentials are not configured.",
+          code: googleSheets.status().setupCode,
+        },
         503,
       );
     }
+    const { data: existingState, error: stateLookupError } = await db
+      .from("report_sync_state")
+      .select("spreadsheet_id")
+      .eq("id", "google_sheets")
+      .maybeSingle();
+    if (stateLookupError) throw new Error("REPORT_STATE_UNAVAILABLE");
+    const requested = body.spreadsheetId?.trim();
+    const spreadsheetId = parseSpreadsheetId(
+      requested || configuredWorkbook || existingState?.spreadsheet_id || "",
+    );
+    if (configuredWorkbook && spreadsheetId !== parseSpreadsheetId(configuredWorkbook))
+      throw new SheetsSetupError("WORKBOOK_MISMATCH");
+    // Check Google authorization and the destination before reading any customer data.
+    const workbookMeta = await gateway(
+      `/spreadsheets/${spreadsheetId}?fields=spreadsheetId,properties(title),sheets(properties(sheetId,title,gridProperties))`,
+    );
+    if (workbookMeta.spreadsheetId !== spreadsheetId) throw new ProviderError(502);
+    if (body.action === "check")
+      return json({
+        verified: true,
+        spreadsheetId,
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        workbookTitle: workbookMeta.properties?.title ?? "",
+        ...googleSheets.status(),
+      });
 
     // ------------------------------ Extract ------------------------------
     const [
@@ -224,11 +265,25 @@ Deno.serve(async (req) => {
     ]);
 
     const queryResults = [
-      profiles, kyc, applications, offers, underwriting, creditChecks, riskFlags,
-      payouts, products, bankProducts, notifications, consentHistory, auditLogs, authorizations,
+      profiles,
+      kyc,
+      applications,
+      offers,
+      underwriting,
+      creditChecks,
+      riskFlags,
+      payouts,
+      products,
+      bankProducts,
+      notifications,
+      consentHistory,
+      auditLogs,
+      authorizations,
     ];
     if (queryResults.some((result) => result.error)) {
-      console.error("sheets-export database extraction failed: one or more source queries returned an error");
+      console.error(
+        "sheets-export database extraction failed: one or more source queries returned an error",
+      );
       throw new Error("Database extraction failed");
     }
 
@@ -463,10 +518,7 @@ Deno.serve(async (req) => {
           signed ? "TRUE" : "FALSE",
           cell(a.created_at),
           cell(a.updated_at),
-          Math.max(
-            0,
-            Math.floor((Date.now() - new Date(String(a.created_at)).getTime()) / day),
-          ),
+          Math.max(0, Math.floor((Date.now() - new Date(String(a.created_at)).getTime()) / day)),
           net ? round2(num(a.estimated_monthly_repayment) / net) : 0,
           isApproved(a) ? "TRUE" : "FALSE",
         ] as (string | number)[];
@@ -486,30 +538,36 @@ Deno.serve(async (req) => {
         "selected",
         "created_at",
       ],
-      ...O.map((o) => [
-        cell(o.id),
-        cell(o.user_id),
-        "underwriting_result",
-        "",
-        num(o.max_limit_zmw),
-        num(o.interest_rate),
-        "",
-        "",
-        "FALSE",
-        cell(o.created_at),
-      ] as (string | number)[]),
-      ...A.filter((a) => a.selected_lender).map((a) => [
-        `app-${String(a.id)}`,
-        cell(a.user_id),
-        "application_selection",
-        cell(a.selected_lender),
-        num(a.requested_amount),
-        num(a.selected_interest_rate ?? a.interest_rate),
-        cell(a.selected_repayment_months),
-        num(a.estimated_monthly_repayment),
-        "TRUE",
-        cell(a.created_at),
-      ] as (string | number)[]),
+      ...O.map(
+        (o) =>
+          [
+            cell(o.id),
+            cell(o.user_id),
+            "underwriting_result",
+            "",
+            num(o.max_limit_zmw),
+            num(o.interest_rate),
+            "",
+            "",
+            "FALSE",
+            cell(o.created_at),
+          ] as (string | number)[],
+      ),
+      ...A.filter((a) => a.selected_lender).map(
+        (a) =>
+          [
+            `app-${String(a.id)}`,
+            cell(a.user_id),
+            "application_selection",
+            cell(a.selected_lender),
+            num(a.requested_amount),
+            num(a.selected_interest_rate ?? a.interest_rate),
+            cell(a.selected_repayment_months),
+            num(a.estimated_monthly_repayment),
+            "TRUE",
+            cell(a.created_at),
+          ] as (string | number)[],
+      ),
     ];
 
     sheets["Underwriting & Risk"] = [
@@ -552,60 +610,69 @@ Deno.serve(async (req) => {
           cell(u.created_at),
         ] as (string | number)[];
       }),
-      ...C.map((c) => [
-        cell(c.id),
-        cell(c.checked_by),
-        "credit_check",
-        cell(c.status),
-        cell(c.score),
-        cell(c.score_rating),
-        cell(c.risk_level),
-        cell(c.recommendation),
-        "",
-        num(c.total_outstanding_zmw),
-        "",
-        "",
-        "",
-        "",
-        "",
-        cell(c.created_at),
-      ] as (string | number)[]),
-      ...R.map((r) => [
-        cell(r.id),
-        cell(r.user_id),
-        "risk_flag",
-        cell(r.status),
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        num(r.fraud_score),
-        "TRUE",
-        cell(r.flag_type),
-        cell(r.status),
-        cell(r.created_at),
-      ] as (string | number)[]),
-      ...A.filter((a) => a.underwriting_score !== null || a.fraud_score !== null).map((a) => [
-        `app-${String(a.id)}`,
-        cell(a.user_id),
-        "application_underwriting",
-        cell(a.status),
-        cell(a.underwriting_score ?? a.credit_score),
-        "",
-        cell(a.risk_level),
-        cell(a.decision),
-        num(a.net_salary),
-        num(a.deductions),
-        num(a.net_salary) ? round2(num(a.deductions) / num(a.net_salary)) : 0,
-        num(a.fraud_score),
-        cell(a.fraud_flag),
-        "",
-        "",
-        cell(a.created_at),
-      ] as (string | number)[]),
+      ...C.map(
+        (c) =>
+          [
+            cell(c.id),
+            cell(c.checked_by),
+            "credit_check",
+            cell(c.status),
+            cell(c.score),
+            cell(c.score_rating),
+            cell(c.risk_level),
+            cell(c.recommendation),
+            "",
+            num(c.total_outstanding_zmw),
+            "",
+            "",
+            "",
+            "",
+            "",
+            cell(c.created_at),
+          ] as (string | number)[],
+      ),
+      ...R.map(
+        (r) =>
+          [
+            cell(r.id),
+            cell(r.user_id),
+            "risk_flag",
+            cell(r.status),
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            num(r.fraud_score),
+            "TRUE",
+            cell(r.flag_type),
+            cell(r.status),
+            cell(r.created_at),
+          ] as (string | number)[],
+      ),
+      ...A.filter((a) => a.underwriting_score !== null || a.fraud_score !== null).map(
+        (a) =>
+          [
+            `app-${String(a.id)}`,
+            cell(a.user_id),
+            "application_underwriting",
+            cell(a.status),
+            cell(a.underwriting_score ?? a.credit_score),
+            "",
+            cell(a.risk_level),
+            cell(a.decision),
+            num(a.net_salary),
+            num(a.deductions),
+            num(a.net_salary) ? round2(num(a.deductions) / num(a.net_salary)) : 0,
+            num(a.fraud_score),
+            cell(a.fraud_flag),
+            "",
+            "",
+            cell(a.created_at),
+          ] as (string | number)[],
+      ),
     ];
 
     sheets["Subscriptions & Revenue"] = [
@@ -620,39 +687,48 @@ Deno.serve(async (req) => {
         "pricing_json",
         "created_at",
       ],
-      ...PAY.map((p) => [
-        cell(p.id),
-        "payout",
-        cell(p.lender),
-        cell(p.status),
-        num(p.amount_zmw),
-        cell(p.period),
-        cell(p.paid_date),
-        "",
-        cell(p.created_at),
-      ] as (string | number)[]),
-      ...PRD.map((p) => [
-        cell(p.id),
-        "product",
-        cell(p.name),
-        cell(p.status),
-        "",
-        "",
-        "",
-        JSON.stringify(p.pricing ?? {}),
-        cell(p.created_at),
-      ] as (string | number)[]),
-      ...BP.map((p) => [
-        cell(p.id),
-        "bank_product",
-        cell(p.bank_name),
-        p.active ? "active" : "inactive",
-        num(p.max_amount),
-        `${cell(p.max_term_months)} months`,
-        "",
-        JSON.stringify({ interest_rate: p.interest_rate, min_amount: p.min_amount }),
-        cell(p.created_at),
-      ] as (string | number)[]),
+      ...PAY.map(
+        (p) =>
+          [
+            cell(p.id),
+            "payout",
+            cell(p.lender),
+            cell(p.status),
+            num(p.amount_zmw),
+            cell(p.period),
+            cell(p.paid_date),
+            "",
+            cell(p.created_at),
+          ] as (string | number)[],
+      ),
+      ...PRD.map(
+        (p) =>
+          [
+            cell(p.id),
+            "product",
+            cell(p.name),
+            cell(p.status),
+            "",
+            "",
+            "",
+            JSON.stringify(p.pricing ?? {}),
+            cell(p.created_at),
+          ] as (string | number)[],
+      ),
+      ...BP.map(
+        (p) =>
+          [
+            cell(p.id),
+            "bank_product",
+            cell(p.bank_name),
+            p.active ? "active" : "inactive",
+            num(p.max_amount),
+            `${cell(p.max_term_months)} months`,
+            "",
+            JSON.stringify({ interest_rate: p.interest_rate, min_amount: p.min_amount }),
+            cell(p.created_at),
+          ] as (string | number)[],
+      ),
     ];
 
     sheets["Engagement"] = [
@@ -722,7 +798,12 @@ Deno.serve(async (req) => {
           changes,
           auths.filter((a) => a.status === "active" && !a.revoked_at).length,
           auths.filter((a) => a.revoked_at).length,
-          cell(auths.map((a) => String(a.agreement_version)).sort().at(-1)),
+          cell(
+            auths
+              .map((a) => String(a.agreement_version))
+              .sort()
+              .at(-1),
+          ),
         ] as (string | number)[];
       }),
     ];
@@ -767,15 +848,18 @@ Deno.serve(async (req) => {
         "record_id",
         "created_at",
       ],
-      ...AL.map((l) => [
-        cell(l.id),
-        cell(l.user_id),
-        cell(l.role),
-        cell(l.action_performed),
-        cell(l.table_name),
-        cell(l.record_id),
-        cell(l.created_at),
-      ] as (string | number)[]),
+      ...AL.map(
+        (l) =>
+          [
+            cell(l.id),
+            cell(l.user_id),
+            cell(l.role),
+            cell(l.action_performed),
+            cell(l.table_name),
+            cell(l.record_id),
+            cell(l.created_at),
+          ] as (string | number)[],
+      ),
     ];
 
     // ------------------------------ Dashboard ----------------------------
@@ -786,9 +870,10 @@ Deno.serve(async (req) => {
     const verified = kycCount("COMPLETED") + kycCount("VERIFIED");
     const totalApps = A.length;
     const approvedApps = A.filter(isApproved).length;
-    const rejectedApps = A.filter((a) =>
-      ["rejected", "REJECTED", "declined", "DECLINE"].includes(String(a.status)) ||
-      String(a.decision).toUpperCase() === "DECLINE",
+    const rejectedApps = A.filter(
+      (a) =>
+        ["rejected", "REJECTED", "declined", "DECLINE"].includes(String(a.status)) ||
+        String(a.decision).toUpperCase() === "DECLINE",
     ).length;
     const pendingApps = totalApps - approvedApps - rejectedApps;
     const disbursedValue = A.filter(isApproved).reduce((s, a) => s + num(a.requested_amount), 0);
@@ -808,7 +893,10 @@ Deno.serve(async (req) => {
       ["Riverbanc — Customer Data Management Dashboard"],
       ["Last synced (UTC)", new Date().toISOString()],
       ["Source", "Riverbanc production database (server-side, RLS-preserving export)"],
-      ["Note", "NRC values are masked. No credentials, tokens, documents or payslips are exported."],
+      [
+        "Note",
+        "NRC values are masked. No credentials, tokens, documents or payslips are exported.",
+      ],
       [],
       ["USERS", "Value", "Detail"],
       ["Total users", totalUsers, "Users sheet"],
@@ -854,53 +942,42 @@ Deno.serve(async (req) => {
       ["Open risk flags", R.filter((r) => String(r.status) === "pending").length, "risk_flags"],
       ["Total risk flags", R.length, ""],
       ["Fraud-flagged applications", A.filter((a) => a.fraud_flag === true).length, ""],
-      ["High-risk applications", A.filter((a) => String(a.risk_level).toUpperCase().includes("HIGH")).length, ""],
+      [
+        "High-risk applications",
+        A.filter((a) => String(a.risk_level).toUpperCase().includes("HIGH")).length,
+        "",
+      ],
       ["Credit checks run", C.length, "credit_checks"],
-      ["Active payroll authorizations", AUTH.filter((a) => a.status === "active" && !a.revoked_at).length, ""],
-      ["Marketing consent granted", P.filter((p) => p.consent_marketing === true).length, pct(P.filter((p) => p.consent_marketing === true).length, totalUsers)],
+      [
+        "Active payroll authorizations",
+        AUTH.filter((a) => a.status === "active" && !a.revoked_at).length,
+        "",
+      ],
+      [
+        "Marketing consent granted",
+        P.filter((p) => p.consent_marketing === true).length,
+        pct(P.filter((p) => p.consent_marketing === true).length, totalUsers),
+      ],
       ["Audit events (exported window)", AL.length, "payloads excluded"],
     ];
 
     // ------------------------------ Load ---------------------------------
-    let spreadsheetId = body.spreadsheetId;
-    if (!spreadsheetId) {
-      const { data: existing } = await db
-        .from("report_sync_state")
-        .select("spreadsheet_id")
-        .eq("id", "google_sheets")
-        .maybeSingle();
-      spreadsheetId = (existing?.spreadsheet_id as string | undefined) ?? undefined;
-    }
-
-    let created = false;
-    if (!spreadsheetId) {
-      const wb = await gateway("/spreadsheets", {
+    // Service accounts update a workbook owned by Riverbanc. They do not create
+    // personal Drive files or require domain-wide delegation/Drive access.
+    const created = false;
+    const have = new Set(
+      (workbookMeta.sheets ?? []).map(
+        (sheet: { properties: { title: string } }) => sheet.properties.title,
+      ),
+    );
+    const missing = SHEET_TABS.filter((title) => !have.has(title));
+    if (missing.length)
+      await gateway(`/spreadsheets/${spreadsheetId}:batchUpdate`, {
         method: "POST",
         body: JSON.stringify({
-          properties: { title: "Riverbanc — Customer Data Management" },
-          sheets: SHEET_TABS.map((title, i) => ({
-            properties: { title, index: i },
-          })),
+          requests: missing.map((title) => ({ addSheet: { properties: { title } } })),
         }),
       });
-      spreadsheetId = wb.spreadsheetId as string;
-      created = true;
-    } else {
-      // Make sure every expected tab exists on a pre-existing workbook.
-      const meta = await gateway(`/spreadsheets/${spreadsheetId}`);
-      const have = new Set(
-        (meta.sheets ?? []).map((s: { properties: { title: string } }) => s.properties.title),
-      );
-      const missing = SHEET_TABS.filter((t) => !have.has(t));
-      if (missing.length) {
-        await gateway(`/spreadsheets/${spreadsheetId}:batchUpdate`, {
-          method: "POST",
-          body: JSON.stringify({
-            requests: missing.map((title) => ({ addSheet: { properties: { title } } })),
-          }),
-        });
-      }
-    }
 
     const rowCounts: Record<string, number> = {};
     for (const tab of SHEET_TABS) {
@@ -912,10 +989,10 @@ Deno.serve(async (req) => {
         method: "POST",
         body: "{}",
       });
-      await gateway(
-        `/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`,
-        { method: "PUT", body: JSON.stringify({ range, majorDimension: "ROWS", values: padded }) },
-      );
+      await gateway(`/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`, {
+        method: "PUT",
+        body: JSON.stringify({ range, majorDimension: "ROWS", values: padded }),
+      });
       rowCounts[tab] = Math.max(0, padded.length - 1);
     }
 
@@ -955,21 +1032,26 @@ Deno.serve(async (req) => {
       syncedAt: new Date().toISOString(),
     });
   } catch (err) {
+    if (err instanceof SheetsSetupError)
+      return json({ error: "Google Sheets setup is incomplete", code: err.code }, 400);
     const isProvider = err instanceof ProviderError;
-    const message = err instanceof Error ? err.message : "Sync failed";
+
     // Log only a bounded internal diagnostic; never return or persist provider
     // error bodies because they can contain identifiers, URLs, or secrets.
-    const diagnostic = message.replace(/[\r\n\t]+/g, " ").slice(0, 160);
-    console.error("sheets-export failed:", diagnostic);
-    await db
-      .from("report_sync_state")
-      .upsert({
+
+    console.error(
+      "sheets-export failed:",
+      isProvider ? "GOOGLE_PROVIDER_ERROR" : "REPORT_SYNC_FAILED",
+    );
+    if (body.action === "sync")
+      await db.from("report_sync_state").upsert({
         id: "google_sheets",
         last_error: isProvider ? "Google Sheets rejected the request" : "Report sync failed",
       });
     if (isProvider) {
       const status = (err as ProviderError).status;
-      const code = status === 401 || status === 403 ? "PROVIDER_AUTH" : "PROVIDER_ERROR";
+      const code =
+        status === 401 || status === 403 || status === 404 ? "PROVIDER_AUTH" : "PROVIDER_ERROR";
       return json({ error: "Google Sheets request failed", code, providerStatus: status }, 502);
     }
     return json({ error: "Report sync failed", code: "SYNC_FAILED" }, 500);
