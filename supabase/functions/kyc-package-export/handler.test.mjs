@@ -84,11 +84,11 @@ test("Unsigned, browser, extra-field and wrong-lender requests never read PII", 
   assert.equal((await h(browser)).status, 403);
   assert.equal(reads, 0);
 });
-test("Missing real clean evidence refuses package assembly", async () => {
+test("Missing authorization context refuses package assembly", async () => {
   const r = await makeExport({
     ...ports,
     context: async () => {
-      throw Error("Scan evidence missing");
+      throw Error("Authorization missing");
     },
   })(req());
   assert.equal(r.status, 409);
@@ -164,4 +164,13 @@ test("ZIP rejects traversal and duplicate entries", () => {
       ["NRC.pdf", bytes],
     ]),
   );
+});
+
+test("Reviewed documents without scan evidence assemble with computed content hashes", async () => {
+  const r = await makeExport({...ports, context: async () => ({...ctx, documents: documents.map(({sha256, ...d}) => d)})})(req());
+  assert.equal(r.status, 200);
+  const archive = new TextDecoder().decode(await r.arrayBuffer());
+  assert.ok(archive.includes(sha(bytes)));
+  assert.ok(archive.includes("reviewed-source-versions-no-av-prerequisite"));
+  assert.ok(!archive.includes("clean-scans"));
 });

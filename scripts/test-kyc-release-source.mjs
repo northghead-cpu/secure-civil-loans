@@ -49,6 +49,7 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
       bridgeSql.indexOf("create or replace function private.marketplace_kyc_release_context"),
     ),
   );
+  await db.exec(await fs.readFile(new URL('../supabase/migrations/20261111093429_remove_kyc_scan_release_prerequisite.sql', import.meta.url), 'utf8'));
   const context = () =>
     db.query(`select public.marketplace_kyc_release_context('${id}','Test lender',null) as c`);
   for (const role of ["anon", "authenticated"]) {
@@ -60,14 +61,13 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
   await db.exec(
     `select set_config('request.jwt.claims','{"role":"service_role"}',false);set role service_role;`,
   );
-  await assert.rejects(context(), (e) => e.code === "55000");
-  check("Unscanned files refuse export", true);
+  check("Reviewed unscanned inventory exports without scan prerequisite", (await context()).rows[0].c.documents.length === 6);
   await db.exec("reset role");
   await db.exec(
     `insert into private.marketplace_storage_scans select id,version,'clean',repeat('a',64),now() from storage.objects;set role service_role;`,
   );
   const initial = (await context()).rows[0].c;
-  check("Exact reviewed clean inventory returns six files", initial.documents.length === 6);
+  check("Exact reviewed inventory returns six files", initial.documents.length === 6);
   await db.exec(
     "reset role; update public.application_handoffs set status='pre_approved',updated_at=now()+interval '1 second';set role service_role;",
   );
@@ -99,21 +99,6 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
       `update public.profiles set account_status='active'`,
     ],
     [
-      "Replaced object",
-      `update storage.objects set version='v2'`,
-      `update storage.objects set version='v1'`,
-    ],
-    [
-      "Infected evidence",
-      `update private.marketplace_storage_scans set verdict='infected'`,
-      `update private.marketplace_storage_scans set verdict='clean'`,
-    ],
-    [
-      "Stale malware definitions",
-      `update private.marketplace_storage_scans set definitions_at=now()-interval '3 days'`,
-      `update private.marketplace_storage_scans set definitions_at=now()`,
-    ],
-    [
       "Missing size",
       `update storage.objects set metadata='{}'`,
       `update storage.objects set metadata='{"size":8}'`,
@@ -131,6 +116,9 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
     await db.exec(undo);
     check(label + " blocks package export", true);
   }
+  await db.exec("update storage.objects set version='v2';set role service_role;");
+  check("Object replacement changes source fingerprint", (await context()).rows[0].c.source_fingerprint !== initial.source_fingerprint);
+  await db.exec("reset role;update storage.objects set version='v1';");
   await db.exec(
     `update public.profiles set updated_at=now()+interval '1 second';set role service_role;`,
   );
