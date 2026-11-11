@@ -42,19 +42,20 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "limit": {
+              "description": "Maximum applications to return (default 10, max 50).",
               "type": "integer",
-              "description": "Maximum applications to return (default 10, max 50)."
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             },
             "status": {
-              "type": "string",
-              "description": "Optional status filter, e.g. PENDING, APPROVED, DECLINED."
+              "description": "Optional status filter, e.g. PENDING, APPROVED, DECLINED.",
+              "type": "string"
             }
-          },
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          }
         },
         "outputSchema": null
       },
@@ -68,15 +69,14 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "amount": {
-              "type": "number",
-              "description": "Optional loan amount in ZMW to filter products that support it."
+              "description": "Optional loan amount in ZMW to filter products that support it.",
+              "type": "number"
             }
-          },
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          }
         },
         "outputSchema": null
       },
@@ -90,6 +90,7 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "net_salary": {
@@ -102,20 +103,20 @@
             },
             "term_months": {
               "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
               "description": "Repayment term in months."
             },
             "annual_interest_rate": {
-              "type": "number",
-              "description": "Annual interest rate as a percentage, e.g. 24 for 24%. Defaults to 24."
+              "description": "Annual interest rate as a percentage, e.g. 24 for 24%. Defaults to 24.",
+              "type": "number"
             }
           },
           "required": [
             "net_salary",
             "amount",
             "term_months"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          ]
         },
         "outputSchema": null
       }
