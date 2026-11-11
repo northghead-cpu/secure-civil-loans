@@ -1009,7 +1009,8 @@ Deno.serve(async (req) => {
       throw new Error("Sync completed but status persistence failed");
     }
 
-    const { error: auditError } = await db.rpc("log_audit", {
+    // log_audit requires auth.uid(); preserve the verified admin's JWT.
+    const { error: auditError } = await asUser.rpc("log_audit", {
       _user_id: userId,
       _role: authorization.role,
       _action: "google_sheets_report_sync",

@@ -62,7 +62,15 @@ async function fixture(
     from,
     rpc: async () => ({ data: { allowed: true, replay: false }, error: null }),
   };
-  const createClient = vi.fn(() => client);
+  const userRpc = vi.fn(async () => ({ error: null }));
+  const createClient = vi.fn((_url, _key, config) =>
+    config?.global?.headers?.Authorization
+      ? { ...client, rpc: userRpc }
+      : { ...client, rpc: async (name: string) => {
+          if (name === "log_audit") return { error: { message: "authenticated caller required" } };
+          return client.rpc();
+        } },
+  );
   const parsed = ts.createSourceFile(
     "index.ts",
     readFileSync(new URL("./index.ts", import.meta.url), "utf8"),
@@ -130,7 +138,7 @@ async function fixture(
       }),
     }),
   );
-  return { response, body: await response.json(), provider, from, createClient, updates };
+  return { response, body: await response.json(), provider, from, createClient, updates, userRpc };
 }
 describe("direct customer workbook connection", () => {
   it("status checks report setup without calling Google or reading customers", async () => {
@@ -185,6 +193,10 @@ it("exports all twelve tabs with RAW values while retaining NRC masking and secr
   const r = await fixture({ action: "sync", allowSync: true });
   expect(r.response.status).toBe(200);
   expect(r.body.ok).toBe(true);
+  expect(r.userRpc).toHaveBeenCalledWith("log_audit", expect.objectContaining({
+    _action: "google_sheets_report_sync",
+    _record_id: id,
+  }));
   const writes = r.provider.mock.calls.filter((call) => call[1]?.method === "PUT");
   expect(writes).toHaveLength(12);
   const bodies = JSON.stringify(writes);
