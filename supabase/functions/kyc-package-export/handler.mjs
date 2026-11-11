@@ -111,13 +111,13 @@ export function makeExport({
         if (
           bytes.length !== d.size ||
           total > 20971520 ||
-          sha(bytes) !== d.sha256
+          (d.sha256 != null && sha(bytes) !== d.sha256)
         )
           throw Error("DOCUMENT_CHANGED");
         const ext = d.path.split(".").pop();
         const filename = `${d.type}${d.period ? "-" + d.period : ""}.${ext}`;
         entries.push([filename, bytes]);
-        manifest.push({ filename, sha256: d.sha256, size: d.size });
+        manifest.push({ filename, sha256: sha(bytes), size: d.size });
       }
       const latest = await context(body.reference.slice(4), lenders[0], null);
       if (latest.source_fingerprint !== initial.source_fingerprint)
@@ -133,7 +133,7 @@ export function makeExport({
             format: "Riverbanc-KYC-v1",
             request_id: body.request_id,
             source_fingerprint: initial.source_fingerprint,
-            verification: "exact-source-document-clean-scans",
+            verification: "reviewed-source-versions-no-av-prerequisite",
             documents: manifest,
           }),
         ),
