@@ -23,7 +23,7 @@ async function fixture(
   });
   const updates = vi.fn(async () => ({ error: null }));
   const from = vi.fn((table: string) => {
-    if (table !== "report_sync_state" && !options.allowSync)
+    if (!["report_sync_state", "audit_logs"].includes(table) && !options.allowSync)
       throw new Error("Connection checks must never read customer tables");
     const rows =
       table === "profiles"
@@ -43,6 +43,8 @@ async function fixture(
           ]
         : [];
     const q = {
+      insert: (value: unknown) => { updates(value); return q; },
+      single: async () => ({ data: { id: "synthetic-audit" }, error: null }),
       select: () => q,
       eq: () => q,
       order: () => q,
@@ -62,7 +64,15 @@ async function fixture(
     from,
     rpc: async () => ({ data: { allowed: true, replay: false }, error: null }),
   };
-  const createClient = vi.fn(() => client);
+  const userRpc = vi.fn(async () => ({ error: null }));
+  const createClient = vi.fn((_url, _key, config) =>
+    config?.global?.headers?.Authorization
+      ? { ...client, rpc: userRpc }
+      : { ...client, rpc: async (name: string) => {
+          if (name === "log_audit") return { error: { message: "authenticated caller required" } };
+          return client.rpc();
+        } },
+  );
   const parsed = ts.createSourceFile(
     "index.ts",
     readFileSync(new URL("./index.ts", import.meta.url), "utf8"),
@@ -130,7 +140,7 @@ async function fixture(
       }),
     }),
   );
-  return { response, body: await response.json(), provider, from, createClient, updates };
+  return { response, body: await response.json(), provider, from, createClient, updates, userRpc };
 }
 describe("direct customer workbook connection", () => {
   it("status checks report setup without calling Google or reading customers", async () => {
@@ -185,6 +195,10 @@ it("exports all twelve tabs with RAW values while retaining NRC masking and secr
   const r = await fixture({ action: "sync", allowSync: true });
   expect(r.response.status).toBe(200);
   expect(r.body.ok).toBe(true);
+  expect(r.updates).toHaveBeenCalledWith(expect.objectContaining({
+    action_performed: "google_sheets_report_sync", record_id: id,
+    user_id: "synthetic-admin",
+  }));
   const writes = r.provider.mock.calls.filter((call) => call[1]?.method === "PUT");
   expect(writes).toHaveLength(12);
   const bodies = JSON.stringify(writes);
