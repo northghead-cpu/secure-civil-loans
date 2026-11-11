@@ -5,10 +5,9 @@ export function handoffProgress(status: string): {
   if (["approved", "declined", "disbursed"].includes(status))
     return { completed: 5, current: null };
   if (status === "sent_to_lender") return { completed: 3, current: 3 };
-  if (["lender_review", "additional_information_requested"].includes(status))
+  if (["lender_review", "additional_information_requested", "pre_approved"].includes(status))
     return { completed: 3, current: 3 };
-  if (["authorized", "preparing"].includes(status))
-    return { completed: 2, current: 2 };
+  if (["authorized", "preparing"].includes(status)) return { completed: 2, current: 2 };
   return { completed: 0, current: null };
 }
 export function handoffStatusLabel(status: string): string {
@@ -20,6 +19,9 @@ export function handoffStatusLabel(status: string): string {
         sent_to_lender: "Application sent",
         lender_review: "Financial institution review",
         additional_information_requested: "Additional information requested",
+        pre_approved: "Pre-approved; KYC and final lender approval pending",
+        expired: "Lender review window expired",
+        cancelled: "Application cancelled",
         approved: "Approved by the institution",
         declined: "Declined by the institution",
         disbursed: "Institution reported disbursement",

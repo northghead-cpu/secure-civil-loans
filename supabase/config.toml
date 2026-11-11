@@ -32,3 +32,6 @@ project_id = "zdpeaxkormwjrgllwalq"
 [remotes.main.auth.sessions]
 timebox = "12h"
 inactivity_timeout = "30m"
+
+[functions.handshake-status]
+verify_jwt = false

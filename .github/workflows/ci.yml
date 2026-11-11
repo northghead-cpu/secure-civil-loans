@@ -29,6 +29,8 @@ jobs:
         run: bun run test:storage-security
       - name: Marketplace KYC export authorization and archive regressions
         run: |
+          node scripts/test-handshake-status.mjs
+          bun run vitest run --config vitest.status.config.ts
           node scripts/test-kyc-release-source.mjs
           node --test supabase/functions/kyc-package-export/handler.test.mjs
       - name: Synthetic encrypted backup and recovery regressions
@@ -53,6 +55,7 @@ jobs:
         run: >-
           npx --yes --package=deno@2.9.6 deno check
           --config=supabase/tests/edge/deno.json
+          supabase/functions/handshake-status/index.ts
           supabase/functions/process-loan/index.ts
           supabase/functions/crb-proxy/index.ts
           supabase/functions/reference-data/index.ts

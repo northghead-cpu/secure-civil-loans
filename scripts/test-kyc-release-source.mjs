@@ -34,10 +34,23 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
       "utf8",
     ),
   );
+  await db.exec(
+    "alter table public.application_handoffs add column requested_amount numeric,add column term_months integer,add column lender_product_id uuid",
+  );
+  const bridgeSql = await fs.readFile(
+    new URL(
+      "../supabase/migrations/20261111074019_authenticated_handshake_status.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  await db.exec(
+    bridgeSql.slice(
+      bridgeSql.indexOf("create or replace function private.marketplace_kyc_release_context"),
+    ),
+  );
   const context = () =>
-    db.query(
-      `select public.marketplace_kyc_release_context('${id}','Test lender',null) as c`,
-    );
+    db.query(`select public.marketplace_kyc_release_context('${id}','Test lender',null) as c`);
   for (const role of ["anon", "authenticated"]) {
     await db.exec(`set role ${role}`);
     await assert.rejects(context(), (e) => e.code === "42501");
@@ -54,24 +67,22 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
     `insert into private.marketplace_storage_scans select id,version,'clean',repeat('a',64),now() from storage.objects;set role service_role;`,
   );
   const initial = (await context()).rows[0].c;
+  check("Exact reviewed clean inventory returns six files", initial.documents.length === 6);
+  await db.exec(
+    "reset role; update public.application_handoffs set status='pre_approved',updated_at=now()+interval '1 second';set role service_role;",
+  );
   check(
-    "Exact reviewed clean inventory returns six files",
-    initial.documents.length === 6,
+    "Preapproval and operational updates preserve the reviewed package fingerprint",
+    (await context()).rows[0].c.source_fingerprint === initial.source_fingerprint,
   );
   await assert.rejects(
-    db.query(
-      `select public.marketplace_kyc_release_context('${id}','Wrong lender',null)`,
-    ),
+    db.query(`select public.marketplace_kyc_release_context('${id}','Wrong lender',null)`),
     (e) => e.code === "42501",
   );
   check("Cross-lender handoff refused", true);
-  await db.query(
-    `select public.marketplace_kyc_release_context('${id}','Test lender','${nonce}')`,
-  );
+  await db.query(`select public.marketplace_kyc_release_context('${id}','Test lender','${nonce}')`);
   await assert.rejects(
-    db.query(
-      `select public.marketplace_kyc_release_context('${id}','Test lender','${nonce}')`,
-    ),
+    db.query(`select public.marketplace_kyc_release_context('${id}','Test lender','${nonce}')`),
     (e) => e.code === "23505",
   );
   check("Preparation nonce replay refused", true);
@@ -125,8 +136,7 @@ insert into storage.objects(bucket_id,name,version,metadata)select 'kyc-document
   );
   check(
     "Profile changes invalidate source fingerprint",
-    (await context()).rows[0].c.source_fingerprint !==
-      initial.source_fingerprint,
+    (await context()).rows[0].c.source_fingerprint !== initial.source_fingerprint,
   );
   console.log("PASS: " + n + " isolated source authorization checks");
 } finally {
