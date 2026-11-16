@@ -1,0 +1,26 @@
+name: Private payslip forensics
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: marketplace-payslip-forensics
+  cancel-in-progress: false
+jobs:
+  scan:
+    if: github.repository == 'northghead-cpu/secure-civil-loans' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned analysis dependencies
+        run: python3 -m pip install --only-binary=:all: -r ops/payslip-forensics/requirements.txt
+      - name: Verify pinned upstream analysis source
+        run: python3 ops/payslip-forensics/fetch_upstream.py
+      - name: Review queued documents without logging evidence
+        run: python3 ops/payslip-forensics/worker.py

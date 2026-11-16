@@ -23,6 +23,8 @@ jobs:
       - name: Migration filename and recorded-ledger regressions
         run: node --test scripts/migration-history.test.mjs
       - run: bun run vitest run
+      - name: Payslip scanner identity and verdict restrictions
+        run: node --test supabase/functions/payslip-forensics-worker/policy.test.mjs
       - name: Isolated PostgreSQL workflow regression tests
         run: bun run test:db-ui
       - name: Marketplace private storage authorization regressions
