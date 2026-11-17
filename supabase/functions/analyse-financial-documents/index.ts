@@ -2,11 +2,17 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.50.0";
 import { extractText, getDocumentProxy } from "npm:unpdf@2.2.1";
 import { analyseDocuments, readPayrollLayout } from "./analysis.mjs";
-import { selectFinancialDocuments, markPreliminaryAnalysis } from "./document-policy.mjs";
+import {
+  selectFinancialDocuments,
+  markPreliminaryAnalysis,
+} from "./document-policy.mjs";
 const json = (status: number, data: unknown) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
   });
 const hex = (b: ArrayBuffer) =>
   [...new Uint8Array(b)].map((v) => v.toString(16).padStart(2, "0")).join("");
@@ -21,9 +27,13 @@ Deno.serve(async (req: Request) => {
   const isService = req.headers.get("authorization") === "Bearer " + service;
   if (!isService) {
     const secret = req.headers.get("x-cron-secret") ?? "";
-    if (secret.length < 24 || secret.length > 512) return json(401, { error: "UNAUTHORISED" });
-    const check = await db.rpc("financial_cron_authorized", { p_secret: secret });
-    if (check.error || check.data !== true) return json(401, { error: "UNAUTHORISED" });
+    if (secret.length < 24 || secret.length > 512)
+      return json(401, { error: "UNAUTHORISED" });
+    const check = await db.rpc("financial_cron_authorized", {
+      p_secret: secret,
+    });
+    if (check.error || check.data !== true)
+      return json(401, { error: "UNAUTHORISED" });
   }
   let userId: string | null = null;
   const input = await req.json().catch(() => ({}));
@@ -42,7 +52,9 @@ Deno.serve(async (req: Request) => {
     if (p.error) throw Error("PROFILE_LOOKUP_FAILED");
     const inventory = await db
       .from("kyc_documents")
-      .select("id,document_type,pay_period,storage_path,updated_at,validation_status")
+      .select(
+        "id,document_type,pay_period,storage_path,updated_at,validation_status",
+      )
       .eq("user_id", job.user_id)
       .in("validation_status", ["VALID", "PENDING"])
       .in("document_type", ["PAYSLIP", "BANK_STATEMENT"])
@@ -54,13 +66,21 @@ Deno.serve(async (req: Request) => {
     const previewSources = selectFinancialDocuments(candidates);
     const verifiedSources = selectFinancialDocuments(candidates, true);
     // Read each file once, even if the preview and validated snapshots differ.
-    const sources = [...new Map([...previewSources, ...verifiedSources].map((d) => [d.id, d])).values()];
+    const sources = [
+      ...new Map(
+        [...previewSources, ...verifiedSources].map((d) => [d.id, d]),
+      ).values(),
+    ];
     for (const d of sources) {
       if (!d.storage_path?.startsWith(job.user_id + "/"))
         throw Error("DOCUMENT_PATH_BINDING_FAILED");
-      const download = await db.storage.from("kyc-documents").download(d.storage_path);
-      if (download.error || !download.data) throw Error("DOCUMENT_DOWNLOAD_FAILED");
-      if (download.data.size > 12 * 1024 * 1024) throw Error("DOCUMENT_TOO_LARGE");
+      const download = await db.storage
+        .from("kyc-documents")
+        .download(d.storage_path);
+      if (download.error || !download.data)
+        throw Error("DOCUMENT_DOWNLOAD_FAILED");
+      if (download.data.size > 12 * 1024 * 1024)
+        throw Error("DOCUMENT_TOO_LARGE");
       const bytes = new Uint8Array(await download.data.arrayBuffer());
       const sha256 = hex(await crypto.subtle.digest("SHA-256", bytes));
       try {
@@ -68,7 +88,8 @@ Deno.serve(async (req: Request) => {
           password: p.data.employee_number ?? undefined,
         });
         if (pdf.numPages > 40) throw Error("PAGE_LIMIT");
-        const layout = d.document_type === "PAYSLIP" ? await readPayrollLayout(pdf) : null;
+        const layout =
+          d.document_type === "PAYSLIP" ? await readPayrollLayout(pdf) : null;
         const extracted = await extractText(pdf, { mergePages: true });
         docs.push({
           id: d.id,
@@ -80,7 +101,14 @@ Deno.serve(async (req: Request) => {
           sha256,
         });
       } catch {
-        docs.push({ validation_status: d.validation_status, id: d.id, type: d.document_type, period: d.pay_period, text: "", sha256 });
+        docs.push({
+          validation_status: d.validation_status,
+          id: d.id,
+          type: d.document_type,
+          period: d.pay_period,
+          text: "",
+          sha256,
+        });
       }
     }
     const handoffs = await db
@@ -99,15 +127,23 @@ Deno.serve(async (req: Request) => {
         "pre_approved",
       ]);
     if (handoffs.error) throw Error("HANDOFF_LOOKUP_FAILED");
-    const previewDocs = docs.filter((d) => previewSources.some((s) => s.id === d.id));
-    const verifiedDocs = docs.filter((d) => verifiedSources.some((s) => s.id === d.id));
+    const previewDocs = docs.filter((d) =>
+      previewSources.some((s) => s.id === d.id),
+    );
+    const verifiedDocs = docs.filter((d) =>
+      verifiedSources.some((s) => s.id === d.id),
+    );
     const active = handoffs.data ?? [],
       base = analyseDocuments(
         previewDocs,
         p.data.employee_number,
         active[0]?.estimated_monthly_repayment ?? null,
       );
-    result = { ...markPreliminaryAnalysis(base, previewSources), sourceGeneration: job.generation, analysedAt: new Date().toISOString() };
+    result = {
+      ...markPreliminaryAnalysis(base, previewSources),
+      sourceGeneration: job.generation,
+      analysedAt: new Date().toISOString(),
+    };
     for (const handoff of active) {
       if (
         p.data.account_status !== "active" ||
@@ -120,7 +156,8 @@ Deno.serve(async (req: Request) => {
         p_lease: job.lease_token,
       });
       if (current.error) throw Error("LEASE_CHECK_FAILED");
-      if (current.data !== true) return json(200, { processed: 1, current: false });
+      if (current.data !== true)
+        return json(200, { processed: 1, current: false });
       const scope = (categories: string[] | null) =>
         Boolean(
           categories?.includes("financial_assessment") ||
@@ -192,7 +229,8 @@ Deno.serve(async (req: Request) => {
       };
       const tenant = tenantMap[handoff.lender_name],
         secret = Deno.env.get("FINANCIAL_ASSESSMENT_HMAC_SECRET");
-      if (!tenant || !secret || secret.length < 32) throw Error("ASSESSMENT_SYNC_NOT_CONFIGURED");
+      if (!tenant || !secret || secret.length < 32)
+        throw Error("ASSESSMENT_SYNC_NOT_CONFIGURED");
       const body = JSON.stringify({
         handoff_id: handoff.id,
         reference: "RBH-" + handoff.id,
@@ -212,7 +250,9 @@ Deno.serve(async (req: Request) => {
         await crypto.subtle.sign(
           "HMAC",
           key,
-          new TextEncoder().encode("financial-assessment-v1." + timestamp + "." + body),
+          new TextEncoder().encode(
+            "financial-assessment-v1." + timestamp + "." + body,
+          ),
         ),
       );
       const sent = await fetch(
@@ -230,7 +270,8 @@ Deno.serve(async (req: Request) => {
         },
       );
       const receipt = await sent.json().catch(() => ({}));
-      if (!sent.ok || receipt.accepted !== true) throw Error("ASSESSMENT_SYNC_NOT_ACCEPTED");
+      if (!sent.ok || receipt.accepted !== true)
+        throw Error("ASSESSMENT_SYNC_NOT_ACCEPTED");
     }
     const finish = await db.rpc("finish_financial_analysis", {
       p_user_id: job.user_id,
@@ -246,7 +287,10 @@ Deno.serve(async (req: Request) => {
       issues: base.issues,
     });
   } catch (e) {
-    const error = e instanceof Error && /^[A-Z_]+$/.test(e.message) ? e.message : "ANALYSIS_FAILED";
+    const error =
+      e instanceof Error && /^[A-Z_]+$/.test(e.message)
+        ? e.message
+        : "ANALYSIS_FAILED";
     await db.rpc("finish_financial_analysis", {
       p_user_id: job.user_id,
       p_generation: job.generation,
