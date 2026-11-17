@@ -1,9 +1,18 @@
 import createQpdf from "npm:@neslinesli93/qpdf-wasm@0.3.1";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { getDocumentProxy, extractText } from "npm:unpdf@2.2.1";
 import { validateDocument, MAX_DOCUMENT_BYTES } from "./validate.ts";
 import { RequestError } from "../_shared/request-security.ts";
+
+type QpdfModule={FS:{writeFile:(path:string,bytes:Uint8Array)=>void;readFile:(path:string)=>Uint8Array;unlink:(path:string)=>void};callMain:(args:string[])=>number};
+export async function createQpdfModule():Promise<QpdfModule>{
+ const factory=createQpdf as unknown as (options:Record<string,unknown>)=>Promise<QpdfModule>;
+ const entry=createRequire(import.meta.url).resolve("@neslinesli93/qpdf-wasm");
+ return factory({noInitialRun:true,print:()=>{},printErr:()=>{},wasmBinary:await readFile(new URL("./qpdf.wasm",pathToFileURL(entry)))});
+}
 
 const months=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
 export function pageMatches(text:string,employee:string,period:string):boolean {
@@ -25,8 +34,7 @@ export function pageMatches(text:string,employee:string,period:string):boolean {
 export async function unlockPayslip(bytes:Uint8Array,employee:string):Promise<Uint8Array>{
  try{await PDFDocument.load(bytes,{ignoreEncryption:false});return bytes;}catch{
   // The only attempted password is the entered employee number. No logs or persistence.
-  const qpdf=await createQpdf({noInitialRun:true,print:()=>{},printErr:()=>{},
-   wasmBinary:await readFile(new URL("./qpdf.wasm",import.meta.resolve("npm:@neslinesli93/qpdf-wasm@0.3.1")))});
+  const qpdf=await createQpdfModule();
   try{
    qpdf.FS.writeFile("/input.pdf",bytes);
    const code=qpdf.callMain(["--password="+employee,"--decrypt","/input.pdf","/output.pdf"]);
@@ -42,7 +50,7 @@ export async function selectPayslipMonth(bytes:Uint8Array,employee:string,period
  if(!/^[A-Za-z0-9/-]{3,50}$/.test(employee)||!/^\d{4}-(0[1-9]|1[0-2])-01$/.test(period))throw new RequestError(400,"PAYSLIP_EMPLOYEE_AND_MONTH_REQUIRED");
  if(!bytes.length||bytes.length>MAX_DOCUMENT_BYTES)throw new RequestError(413,"DOCUMENT_SIZE_LIMIT");
  const clean=await validateDocument(await unlockPayslip(bytes,employee),"application/pdf");
- const proxy=await getDocumentProxy(clean.bytes.slice(),{isEvalSupported:false,maxImageSize:4_000_000});
+ const proxy=await getDocumentProxy(clean.bytes.slice(),{maxImageSize:4_000_000});
  try{
   if(proxy.numPages>36)throw new RequestError(422,"PAYSLIP_PAGE_LIMIT");
   const extracted=await extractText(proxy,{mergePages:false});
@@ -53,5 +61,8 @@ export async function selectPayslipMonth(bytes:Uint8Array,employee:string,period
   for(const page of await selected.copyPages(source,pages))selected.addPage(page);
   const document=await validateDocument(await selected.save(),"application/pdf");
   return {...document,source_pages:pages.map(i=>i+1),pay_period:period};
- }finally{await proxy.destroy();}
+ }finally{
+  const disposable=proxy as unknown as {destroy?:()=>Promise<void>;cleanup?:()=>Promise<void>};
+  if(disposable.destroy)await disposable.destroy();else if(disposable.cleanup)await disposable.cleanup();
+ }
 }
