@@ -65,7 +65,6 @@ Deno.serve(async (req: Request) => {
         });
         if (pdf.numPages > 40) throw Error("PAGE_LIMIT");
         const extracted = await extractText(pdf, { mergePages: true });
-        await pdf.destroy();
         docs.push({
           id: d.id,
           type: d.document_type,
