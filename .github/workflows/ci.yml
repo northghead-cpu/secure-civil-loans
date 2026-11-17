@@ -55,7 +55,7 @@ jobs:
         run: bun run build
       - name: Check privileged Edge Functions in Deno
         run: >-
-          npx --yes --package=deno@2.9.6 deno check
+          npx --yes --package=deno@2.9.6 deno check --node-modules-dir=auto
           --config=supabase/tests/edge/deno.json
           supabase/functions/handshake-status/index.ts
           supabase/functions/process-loan/index.ts
