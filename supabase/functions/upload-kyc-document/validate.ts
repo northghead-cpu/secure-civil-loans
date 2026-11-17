@@ -22,6 +22,29 @@ export async function validateDocument(bytes: Uint8Array, mime: string) {
           !/%%EOF\s*$/.test(new TextDecoder().decode(bytes.slice(-32)))) throw new Error("PDF signature");
       const pdf = await PDFDocument.load(bytes, { ignoreEncryption: false, throwOnInvalidObject: true, updateMetadata: false });
       if (pdf.getPageCount() < 1 || pdf.getPageCount() > 100) throw new Error("Page limit");
+      // Remove URI actions, not page contents or visible annotations. Leave every
+      // other action intact so the denylist below still rejects active content.
+      let linksRemoved = false;
+      const scrubbed = new Set<unknown>();
+      let scrubNodes = 0;
+      const stripLinks = (input: unknown, depth = 0) => {
+        const value = input instanceof PDFRef ? pdf.context.lookup(input) : input;
+        if (scrubbed.has(value)) return;
+        if (++scrubNodes > 20000 || depth > 100) throw new Error("Object limit");
+        scrubbed.add(value);
+        if (value instanceof PDFDict) {
+          const action = value.lookup(PDFName.of("S"));
+          if (action instanceof PDFName && action.decodeText() === "URI") {
+            value.delete(PDFName.of("S"));
+            value.delete(PDFName.of("URI"));
+            linksRemoved = true;
+          }
+          for (const [, child] of value.entries()) stripLinks(child, depth + 1);
+        } else if (value instanceof PDFArray) {
+          for (const child of value.asArray()) stripLinks(child, depth + 1);
+        } else if (value && typeof value === "object" && "dict" in value) stripLinks(value.dict, depth + 1);
+      };
+      for (const [, object] of pdf.context.enumerateIndirectObjects()) stripLinks(object);
       const seen = new Set<unknown>();
       let nodes = 0;
       const visit = (input: unknown, depth = 0) => {
@@ -35,7 +58,9 @@ export async function validateDocument(bytes: Uint8Array, mime: string) {
         else if (value && typeof value === "object" && "dict" in value) visit(value.dict,depth+1);
       };
       for (const [,object] of pdf.context.enumerateIndirectObjects()) visit(object);
-      return { bytes, mime, extension: "pdf" };
+      const clean = linksRemoved ? await pdf.save({ updateFieldAppearances: false }) : bytes;
+      if (clean.byteLength > MAX_DOCUMENT_BYTES) throw new Error("Normalized size");
+      return { bytes: clean, mime, extension: "pdf" };
     }
     if (mime === "image/png") {
       if (bytes.length < 33 || !Buffer.from(bytes.slice(0,8)).equals(Buffer.from([137,80,78,71,13,10,26,10]))) throw new Error("PNG signature");
