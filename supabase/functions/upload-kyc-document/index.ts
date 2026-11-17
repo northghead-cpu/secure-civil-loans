@@ -1,3 +1,4 @@
+import { selectPayslipMonth } from "./payslip-pdf.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { corsHeadersFor } from "../_shared/cors.ts";
 import { RequestError, readBoundedBytes } from "../_shared/request-security.ts";
@@ -30,13 +31,25 @@ Deno.serve(async (req: Request) => {
     const kind=new URL(req.url).searchParams.get("kind");
     if(!["nrc","gov-id","payslip","introductory-letter"].includes(kind??""))return json(400,{error:"INVALID_DOCUMENT_KIND"});
     if(req.headers.get("content-encoding") && req.headers.get("content-encoding")!=="identity")return json(415,{error:"CONTENT_ENCODING_NOT_SUPPORTED"});
-    const mime=req.headers.get("content-type")?.split(";")[0].trim().toLowerCase()??"";
-    if(!["application/pdf","image/jpeg","image/png"].includes(mime))return json(415,{error:"UNSUPPORTED_DOCUMENT_TYPE"});
+    let mime=req.headers.get("content-type")?.split(";")[0].trim().toLowerCase()??"";
+    const multipart=mime==="multipart/form-data" && kind==="payslip";
+    if(!multipart&&!["application/pdf","image/jpeg","image/png"].includes(mime))return json(415,{error:"UNSUPPORTED_DOCUMENT_TYPE"});
     const admin=createClient(url,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});
     const {data:quota,error:quotaError}=await admin.rpc("consume_edge_request",{p_user_id:user.id,p_function_name:"upload-kyc-document",p_nonce:crypto.randomUUID()});
     if(quotaError||!quota||typeof quota.allowed!=="boolean")return json(503,{error:"UPLOAD_UNAVAILABLE"});
     if(!quota.allowed)return json(429,{error:"UPLOAD_RATE_LIMIT"});
-    const document=await validateDocument(await readBoundedBytes(req,MAX_DOCUMENT_BYTES,10000),mime);
+    let employee="",period="";
+    let input:Uint8Array;
+    if(multipart){
+      const body=await readBoundedBytes(req,MAX_DOCUMENT_BYTES+8192,10000);
+      const form=await new Response(new Uint8Array(body).buffer,{headers:{"Content-Type":req.headers.get("content-type")!}}).formData();
+      const file=form.get("file");
+      if(!(file instanceof File)||file.type!=="application/pdf")return json(400,{error:"PAYSLIP_PDF_REQUIRED"});
+      employee=String(form.get("employeeNumber")??"").trim();
+      period=String(form.get("payPeriod")??"");
+      input=new Uint8Array(await file.arrayBuffer());mime="application/pdf";
+    }else input=await readBoundedBytes(req,MAX_DOCUMENT_BYTES,10000);
+    const document=multipart?await selectPayslipMonth(input,employee,period):await validateDocument(input,mime);
     const {error:changedAccess}=await checkTarget();
     if(changedAccess)return json(403,{error:"UPLOAD_NOT_AUTHORIZED"});
     const path=`${ownerId}/${kind}-${Date.now()}.${document.extension}`;
