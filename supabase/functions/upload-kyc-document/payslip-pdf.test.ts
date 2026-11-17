@@ -8,7 +8,7 @@ Deno.test("month matching uses employee and pay-month labels, not deduction date
 });
 Deno.test({name:"encrypted multi-month PDF unlocks and returns matching pages only",sanitizeResources:false,sanitizeOps:false,fn:async()=>{
  const doc=await PDFDocument.create();const font=await doc.embedFont(StandardFonts.Helvetica);
- for(const month of ["08","09","10"])doc.addPage().drawText("EMPLOYEE NO 00174559\nPAY MONTH 2026-"+month+"-30",{font,size:12});
+ for(const month of ["08","09","10"])doc.addPage().drawText("EMPLOYEE NO 00174559\nPAY MONTH 2026-"+month+"-30",{font,size:12,x:50,y:700});
  const input=await doc.save();
  const qpdf=await createQpdfModule();
  qpdf.FS.writeFile("/in.pdf",input);
