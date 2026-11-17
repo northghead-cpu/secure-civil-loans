@@ -65,6 +65,24 @@ assert.equal(evidence.find(d=>d.validation_status==="REJECTED").rejection_reason
 assert(evidence.filter(d=>d.validation_status==="PENDING").every(d=>d.uploaded_by===actor&&d.intake_source==="super_admin_assisted"));
 assert.equal((await db.query("select count(*)::int n from public.audit_logs")).rows[0].n,1);
 await assert.rejects(()=>submit(),/already verified or under review/);
+
+await db.exec(await readFile(new URL("../supabase/migrations/20261117120000_kyc_requirement_exceptions.sql",import.meta.url),"utf8"));
+await db.exec("create table public.notifications(user_id uuid,title text,message text)");
+await db.query("update public.profiles set kyc_status='PENDING' where user_id=$1",[customer]);
+const partial={...details,employeeNumber:"",govIdNumber:"",govIdType:""};
+const exceptions={"field:employeeNumber":"Not required for this employer","field:govIdNumber":"NRC accepted instead","field:govIdType":"NRC accepted instead","doc:NRC":"Evidence checked separately","doc:GOV_ID":"NRC accepted instead","doc:INTRODUCTORY_LETTER":"Employment verified separately",...Object.fromEntries(periods.map(p=>["doc:PAYSLIP:"+p,"Not required for this review"]))};
+const submitPartial=(reasons)=>db.query("select public.submit_assisted_kyc($1,$2::jsonb,'[]'::jsonb,$3,$4::jsonb)",[customer,JSON.stringify(partial),revision,JSON.stringify(reasons)]);
+await assert.rejects(()=>submitPartial({}),/Skip reason required/);
+await assert.rejects(()=>submitPartial({...exceptions,"field:imaginary":"Invalid exception"}),/Unexpected exception/);
+await submitPartial(exceptions);
+await db.query("select set_config('test.role','admin',false)");
+await assert.rejects(()=>db.query("select public.approve_kyc_with_exceptions($1,$2,$3::jsonb)",[customer,revision,JSON.stringify(exceptions)]),/Super admin/);
+await db.query("select set_config('test.role','super_admin',false)");
+await assert.rejects(()=>db.query("select public.approve_kyc_with_exceptions($1,$2,'{}'::jsonb)",[customer,revision]),/Skip reason required/);
+await db.query("select public.approve_kyc_with_exceptions($1,$2,$3::jsonb)",[customer,revision,JSON.stringify(exceptions)]);
+const approved=(await db.query("select * from public.profiles where user_id=$1",[customer])).rows[0];
+assert.equal(approved.kyc_status,"COMPLETED");assert.equal(approved.consent_accepted,false);assert.equal(approved.kyc_signature,null);
+assert.equal((await db.query("select count(*)::int n from public.kyc_documents")).rows[0].n,7);
 await db.exec("set role authenticated");
 await assert.rejects(()=>db.query("alter table public.profiles add column unauthorized text"));
 await db.close();

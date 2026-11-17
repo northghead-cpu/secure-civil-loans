@@ -1,3 +1,4 @@
+import KycExceptionApproval from "@/components/admin/KycExceptionApproval";
 import AssistedKycIntake from "@/components/admin/AssistedKycIntake";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -302,6 +303,7 @@ export default function UsersKYC() {
                   )}
                 </div>
               )}
+              {hasRole("super_admin") && selected.kyc_status === "IN_REVIEW" && !documentsLoading && !documentError && <KycExceptionApproval userId={selected.user_id} onSaved={async()=>{setSelected(null);await load();}} />}
               {canReview && selected.kyc_status === "IN_REVIEW" && (
                 <>
                   <label htmlFor="review-reason">
