@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
    rolesForUser:id=>client.from("user_roles").select("role").eq("user_id",id).eq("role","super_admin"),
   },header);
   if(access.status)return json(access.status,{error:access.code});
+  if(access.role!=="super_admin")return json(403,{error:"SUPER_ADMIN_REQUIRED"});
   const body=JSON.parse(new TextDecoder().decode(await readBoundedBytes(req,4096,10000)));
   const email=typeof body.email==="string"?body.email.trim().toLowerCase():"";
   const fullName=typeof body.fullName==="string"?body.fullName.trim():"";
