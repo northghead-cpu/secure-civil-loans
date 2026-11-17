@@ -1,0 +1,8 @@
+PyMuPDF==1.26.7
+pikepdf==10.18.2
+networkx==3.7
+Pillow==13.0.0
+lxml==6.1.1
+packaging==26.3
+openpyxl==3.1.5
+et_xmlfile==2.0.0
