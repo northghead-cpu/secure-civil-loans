@@ -1,3 +1,4 @@
+import AssistedKycIntake from "@/components/admin/AssistedKycIntake";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { untypedDb } from "@/integrations/supabase/untyped";
@@ -33,6 +34,7 @@ type Document = {
   validation_status: string;
   pay_period: string | null;
   rejection_reason: string | null;
+  intake_source: string | null;
 };
 export default function UsersKYC() {
   const { hasRole } = useRBAC();
@@ -108,7 +110,7 @@ export default function UsersKYC() {
       untypedDb
         .from("kyc_documents")
         .select(
-          "id,document_type,storage_path,validation_status,pay_period,rejection_reason",
+          "id,document_type,storage_path,validation_status,pay_period,rejection_reason,intake_source",
         )
         .eq("user_id", selected.user_id)
         .order("id")
@@ -184,6 +186,7 @@ export default function UsersKYC() {
         {error ? "Unavailable" : counts.verified} · Returned:{" "}
         {error ? "Unavailable" : counts.rejected}
       </p>
+      {hasRole("super_admin") && <AssistedKycIntake customers={profiles} onSaved={load} />}
       <Button variant="outline" disabled={loading} onClick={() => void load()}>
         Refresh
       </Button>
@@ -265,6 +268,7 @@ export default function UsersKYC() {
                       <p>
                         {d.document_type} {d.pay_period} · {d.validation_status}
                       </p>
+                      {d.intake_source === "super_admin_assisted" && <p className="text-xs text-muted-foreground">Uploaded on behalf of the customer by a super admin.</p>}
                       {d.rejection_reason && (
                         <p className="text-sm">{d.rejection_reason}</p>
                       )}

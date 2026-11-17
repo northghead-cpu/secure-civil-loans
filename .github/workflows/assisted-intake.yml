@@ -1,0 +1,27 @@
+name: Assisted intake checks
+on:
+  pull_request:
+    paths:
+      - 'src/components/admin/AssistedKycIntake.tsx'
+      - 'src/pages/admin/UsersKYC.tsx'
+      - 'supabase/functions/admin-create-customer/**'
+      - 'supabase/functions/upload-kyc-document/**'
+      - 'supabase/migrations/20261117100000_assisted_customer_intake.sql'
+      - 'scripts/test-assisted-intake.mjs'
+      - '.github/workflows/assisted-intake.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/test-assisted-intake.mjs
+      - run: npx tsc --noEmit -p tsconfig.app.json
+      - run: npm run build
+      - run: npm test
