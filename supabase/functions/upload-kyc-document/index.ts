@@ -20,6 +20,13 @@ Deno.serve(async (req: Request) => {
     // by the same invoker guard used by the KYC database workflows.
     const {error:accessError}=await client.rpc("require_document_upload_session");
     if(accessError)return json(403,{error:"UPLOAD_NOT_AUTHORIZED"});
+    const target=new URL(req.url).searchParams.get("target_user_id");
+    const ownerId=target??user.id;
+    const checkTarget=()=>target
+      ? client.rpc("require_assisted_kyc_target",{_user_id:target})
+      : client.rpc("require_document_upload_session");
+    const {error:targetError}=await checkTarget();
+    if(targetError)return json(403,{error:"UPLOAD_NOT_AUTHORIZED"});
     const kind=new URL(req.url).searchParams.get("kind");
     if(!["nrc","gov-id","payslip","introductory-letter"].includes(kind??""))return json(400,{error:"INVALID_DOCUMENT_KIND"});
     if(req.headers.get("content-encoding") && req.headers.get("content-encoding")!=="identity")return json(415,{error:"CONTENT_ENCODING_NOT_SUPPORTED"});
@@ -30,9 +37,9 @@ Deno.serve(async (req: Request) => {
     if(quotaError||!quota||typeof quota.allowed!=="boolean")return json(503,{error:"UPLOAD_UNAVAILABLE"});
     if(!quota.allowed)return json(429,{error:"UPLOAD_RATE_LIMIT"});
     const document=await validateDocument(await readBoundedBytes(req,MAX_DOCUMENT_BYTES,10000),mime);
-    const {error:changedAccess}=await client.rpc("require_document_upload_session");
+    const {error:changedAccess}=await checkTarget();
     if(changedAccess)return json(403,{error:"UPLOAD_NOT_AUTHORIZED"});
-    const path=`${user.id}/${kind}-${Date.now()}.${document.extension}`;
+    const path=`${ownerId}/${kind}-${Date.now()}.${document.extension}`;
     const {error:uploadError}=await admin.storage.from("kyc-documents").upload(path,document.bytes,{contentType:document.mime,upsert:false,cacheControl:"0"});
     if(uploadError)return json(503,{error:"UPLOAD_UNAVAILABLE"});
     return json(201,{path,mime:document.mime,size:document.bytes.byteLength});
