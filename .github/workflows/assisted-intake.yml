@@ -27,4 +27,5 @@ jobs:
       - run: bun x tsc -b --noEmit
       - run: bun run build
       - run: bun run test
+      - run: npm ci --prefix supabase/tests/edge --ignore-scripts --no-audit --no-fund
       - run: npx --yes --package=deno@2.9.6 deno check --config=supabase/tests/edge/deno.json supabase/functions/admin-create-customer/index.ts
