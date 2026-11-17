@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
     let input:Uint8Array;
     if(multipart){
       const body=await readBoundedBytes(req,MAX_DOCUMENT_BYTES+8192,10000);
-      const form=await new Response(body,{headers:{"Content-Type":req.headers.get("content-type")!}}).formData();
+      const form=await new Response(new Uint8Array(body).buffer,{headers:{"Content-Type":req.headers.get("content-type")!}}).formData();
       const file=form.get("file");
       if(!(file instanceof File)||file.type!=="application/pdf")return json(400,{error:"PAYSLIP_PDF_REQUIRED"});
       employee=String(form.get("employeeNumber")??"").trim();
