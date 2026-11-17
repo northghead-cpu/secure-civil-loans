@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { PayslipReviewFlag } from "@/services/smartZambiaPayslip";
+import { PayslipForensics } from "@/components/PayslipForensics";
 type Profile = {
   user_id: string;
   full_name: string | null;
@@ -282,6 +283,7 @@ export default function UsersKYC() {
                       </Button>
                       {d.document_type === "PAYSLIP" && canReview && (
                         <div className="mt-3 space-y-2">
+                          <PayslipForensics key={d.id} documentId={d.id} />
                           <Button size="sm" variant="outline" disabled={payrollChecks[d.id]?.busy} onClick={() => void checkPayslip(d)}>
                             {payrollChecks[d.id]?.busy ? "Checking payslip…" : "Check payslip consistency"}
                           </Button>

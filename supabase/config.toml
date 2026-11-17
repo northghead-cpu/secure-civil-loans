@@ -1,5 +1,9 @@
 project_id = "zdpeaxkormwjrgllwalq"
 
+[functions.payslip-forensics-worker]
+# Validates the tightly scoped GitHub OIDC identity in code.
+verify_jwt = false
+
 [auth]
 minimum_password_length = 8
 
