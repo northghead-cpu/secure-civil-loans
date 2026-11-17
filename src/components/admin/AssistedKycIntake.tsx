@@ -26,6 +26,7 @@ function slots(): Slot[] {
 }
 export default function AssistedKycIntake({customers,onSaved}:{customers:Customer[];onSaved:()=>Promise<void>}) {
  const [details,setDetails]=useState<Details>(empty);
+ const [exceptions,setExceptions]=useState<Record<string,string>>({});
  const [email,setEmail]=useState("");
  const [target,setTarget]=useState("");
  const [files,setFiles]=useState<Record<string,File>>({});
@@ -38,9 +39,13 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
  const [requestSlots]=useState(slots);
  const uploaded=useRef<Record<string,{file:File;path:string}>>({});
  const targetId=createdId||target;
+ const missing=[...Object.keys(details).filter(k=>!details[k as keyof Details].trim()).map(k=>"field:"+k),...requestSlots.filter(s=>!files[s.key]).map(s=>"doc:"+s.type+(s.period?":"+s.period:""))];
+ const skipReasons=Object.fromEntries(missing.map(k=>[k,exceptions[k]||""]));
+ const skipValid=missing.every(k=>(exceptions[k]||"").trim().length>=5);
+ const reasonInput=(key:string)=><div className="space-y-1"><Label htmlFor={"skip-"+key}>Skip / Not required — reason</Label><Input id={"skip-"+key} value={exceptions[key]||""} maxLength={500} placeholder="Explain why this item is not required" onChange={e=>{setExceptions(x=>({...x,[key]:e.target.value}));setConfirmed(false);}}/></div>;
  const change=(key:keyof Details,value:string)=>{setDetails(d=>({...d,[key]:value}));setConfirmed(false);};
  const selectTarget=async(id:string)=>{
-  setTarget(id);setCreatedId("");setRevision("");setFormVersion(v=>v+1);setFiles({});uploaded.current={};setConfirmed(false);setDetails(empty);
+  setExceptions({});setTarget(id);setCreatedId("");setRevision("");setFormVersion(v=>v+1);setFiles({});uploaded.current={};setConfirmed(false);setDetails(empty);
   if(!id)return;
   setBusy(true);
   try {
@@ -78,8 +83,8 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
  };
  const submit=async()=>{
   if(busy)return;
-  if(!confirmed||requestSlots.some(s=>!files[s.key])){toast.error("Add all six documents and confirm the customer details.");return;}
-  if(!details.fullName.trim()||!/^\d{6}\/\d{2}\/\d$/.test(details.nrcNumber)||!/^\+?[0-9 -]{9,20}$/.test(details.phone)||!details.employer.trim()||!details.employeeNumber.trim()||!details.govIdNumber.trim()){toast.error("Complete the customer details, including a valid NRC and phone number.");return;}
+  if(!confirmed||!skipValid){toast.error("Give a reason for each skipped item and confirm the details.");return;}
+  if(!targetId&&!details.fullName.trim()){toast.error("A name is required to create a new customer account.");return;}
   if(!targetId&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){toast.error("Enter the customer's email address.");return;}
   setBusy(true);
   let id=targetId;
@@ -100,6 +105,7 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
    const documents=[];
    for(const slot of requestSlots){
     const file=files[slot.key];
+    if(!file)continue;
     let cached=uploaded.current[slot.key];
     if(!cached||cached.file!==file){
      setStatus("Uploading "+slot.label+"…");
@@ -110,10 +116,10 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
     documents.push({document_type:slot.type,storage_path:cached.path,pay_period:slot.period??null});
    }
    setStatus("Saving documents for review…");
-   const {error}=await untypedDb.rpc("submit_assisted_kyc",{_user_id:id,_details:details,_documents:documents,_expected_revision:expectedRevision});
+   const {error}=await untypedDb.rpc("submit_assisted_kyc",{_user_id:id,_details:details,_documents:documents,_expected_revision:expectedRevision,_exceptions:skipReasons});
    if(error)throw new Error(error.message||"The submission could not be saved.");
-   toast.success("Customer profile and six documents are ready for review.");
-   setRevision("");setFormVersion(v=>v+1);setDetails(empty);setFiles({});setEmail("");setTarget("");setCreatedId("");setConfirmed(false);uploaded.current={};
+   toast.success("Customer profile and supplied documents are ready for review.");
+   setExceptions({});setRevision("");setFormVersion(v=>v+1);setDetails(empty);setFiles({});setEmail("");setTarget("");setCreatedId("");setConfirmed(false);uploaded.current={};
    await onSaved();
   } catch(error){toast.error(error instanceof Error?error.message:"Intake failed. Keep this form open and retry.");}
   finally{setBusy(false);setStatus("");}
@@ -129,12 +135,12 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
     const file=e.target.files?.[0];if(!file)return;
     if(!["application/pdf","image/png","image/jpeg"].includes(file.type)||!file.size||file.size>5*1024*1024){toast.error("Use PDF, PNG or JPEG files up to 5 MB.");e.target.value="";return;}
     setFiles(f=>({...f,[slot.key]:file}));delete uploaded.current[slot.key];setConfirmed(false);
-   }}/>{files[slot.key]&&<p className="text-xs text-muted-foreground">{files[slot.key].name}</p>}</div>)}</div>
+   }}/>{files[slot.key]&&<p className="text-xs text-muted-foreground">{files[slot.key].name}</p>}{!files[slot.key]&&reasonInput("doc:"+slot.type+(slot.period?":"+slot.period:""))}</div>)}</div>
    <Button type="button" variant="outline" disabled={!files.nrc&&!requestSlots.some(s=>s.type==="PAYSLIP"&&files[s.key])} onClick={()=>void extract()}>Extract profile details</Button>
-   <div className="grid gap-4 md:grid-cols-2">{(Object.keys(labels) as (keyof Details)[]).map(key=><div key={key}><Label htmlFor={"assisted-"+key}>{labels[key]}</Label>{key==="govIdType"?<select id={"assisted-"+key} className="w-full rounded border bg-background p-2" value={details[key]} onChange={e=>change(key,e.target.value)}><option value="passport">Passport</option><option value="driving_license">Driving licence</option><option value="employee_id">Government employee ID</option></select>:<Input id={"assisted-"+key} maxLength={key==="employer"?150:key==="phone"?20:key==="fullName"?100:50} value={details[key]} onChange={e=>change(key,e.target.value)}/>}</div>)}</div>
+   <div className="grid gap-4 md:grid-cols-2">{(Object.keys(labels) as (keyof Details)[]).map(key=><div key={key}><Label htmlFor={"assisted-"+key}>{labels[key]}</Label>{key==="govIdType"?<select id={"assisted-"+key} className="w-full rounded border bg-background p-2" value={details[key]} onChange={e=>change(key,e.target.value)}><option value="">Not required</option><option value="passport">Passport</option><option value="driving_license">Driving licence</option><option value="employee_id">Government employee ID</option></select>:<Input id={"assisted-"+key} maxLength={key==="employer"?150:key==="phone"?20:key==="fullName"?100:50} value={details[key]} onChange={e=>change(key,e.target.value)}/>} {!details[key].trim()&&reasonInput("field:"+key)}</div>)}</div>
    <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>I checked the customer details and document months against the originals.</label>
    <p className="text-xs text-muted-foreground">Document extraction suggests fields for review. Uploading does not verify authenticity, record the customer's signature, or authorise subscription deductions or lender sharing.</p>
-   <Button type="button" disabled={!confirmed||requestSlots.some(s=>!files[s.key])} onClick={()=>void submit()}>Create profile and submit for review</Button>
+   <Button type="button" disabled={!confirmed||!skipValid} onClick={()=>void submit()}>Create profile and submit for review</Button>
   </fieldset>
   {status&&<p role="status">{status}</p>}
  </section>;
