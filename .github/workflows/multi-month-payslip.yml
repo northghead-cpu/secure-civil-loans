@@ -1,0 +1,19 @@
+name: Multi-month payslip checks
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/upload-kyc-document/**'
+      - 'src/components/admin/AssistedKycIntake.tsx'
+      - '.github/workflows/multi-month-payslip.yml'
+permissions:
+  contents: read
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24
+      - run: npx --yes --package=deno@2.9.6 deno test --no-config --allow-read --allow-env --allow-net supabase/functions/upload-kyc-document/payslip-pdf.test.ts
+      - run: npx --yes --package=deno@2.9.6 deno check --no-config supabase/functions/upload-kyc-document/index.ts

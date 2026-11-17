@@ -37,7 +37,7 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
  const [revision,setRevision]=useState("");
  const [formVersion,setFormVersion]=useState(0);
  const [requestSlots]=useState(slots);
- const uploaded=useRef<Record<string,{file:File;path:string}>>({});
+ const uploaded=useRef<Record<string,{file:File;path:string;employee:string}>>({});
  const targetId=createdId||target;
  const missing=[...Object.keys(details).filter(k=>!details[k as keyof Details].trim()).map(k=>"field:"+k),...requestSlots.filter(s=>!files[s.key]).map(s=>"doc:"+s.type+(s.period?":"+s.period:""))];
  const skipReasons=Object.fromEntries(missing.map(k=>[k,exceptions[k]||""]));
@@ -107,11 +107,18 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
     const file=files[slot.key];
     if(!file)continue;
     let cached=uploaded.current[slot.key];
-    if(!cached||cached.file!==file){
+    if(!cached||cached.file!==file||cached.employee!==details.employeeNumber){
      setStatus("Uploading "+slot.label+"…");
-     const {data,error}=await supabase.functions.invoke("upload-kyc-document?kind="+slot.kind+"&target_user_id="+encodeURIComponent(id),{body:file,headers:{"Content-Type":file.type}});
-     if(error||!data?.path)throw new Error(slot.label+" could not upload. Check the file and retry.");
-     cached={file,path:data.path};uploaded.current[slot.key]=cached;
+     const isPayslipPdf=slot.kind==="payslip"&&file.type==="application/pdf";
+     const body=isPayslipPdf?new FormData():file;
+     if(body instanceof FormData){body.set("file",file);body.set("employeeNumber",details.employeeNumber.trim());body.set("payPeriod",slot.period!);}
+     const {data,error}=await supabase.functions.invoke("upload-kyc-document?kind="+slot.kind+"&target_user_id="+encodeURIComponent(id),{body,headers:isPayslipPdf?undefined:{"Content-Type":file.type}});
+     if(error||!data?.path){
+      let code="";try{code=(await error?.context?.json())?.error||"";}catch{/* unavailable */}
+      const messages:Record<string,string>={PAYSLIP_EMPLOYEE_OR_MONTH_NOT_FOUND:"The PDF does not contain a readable payslip for this employee and selected month.",PAYSLIP_PASSWORD_OR_PDF_INVALID:"The employee number could not unlock this PDF. Check the number, including leading zeros.",PAYSLIP_EMPLOYEE_AND_MONTH_REQUIRED:"Enter the employee number before uploading a payslip PDF."};
+      throw new Error(slot.label+": "+(messages[code]||"Upload failed. Check the document and retry."));
+     }
+     cached={file,path:data.path,employee:details.employeeNumber};uploaded.current[slot.key]=cached;
     }
     documents.push({document_type:slot.type,storage_path:cached.path,pay_period:slot.period??null});
    }
@@ -127,6 +134,7 @@ export default function AssistedKycIntake({customers,onSaved}:{customers:Custome
  return <section className="rounded-lg border bg-card p-5 space-y-4" aria-label="Assisted customer intake">
   <h2 className="text-lg font-semibold">Upload documents for a customer</h2>
   <p className="text-sm text-muted-foreground">Create a customer profile or select an existing profile. Review extracted details, then submit the documents for approval.</p>
+  <p className="text-sm text-muted-foreground">For payslip PDFs, enter the employee number exactly as issued, including leading zeros. Riverbanc uses it to unlock the file and checks each selected month. You may select the same multi-month PDF in several month slots; only matching pages are uploaded. Scanned pages without readable text require a readable payslip or a recorded skip.</p>
   <fieldset key={formVersion} disabled={busy} className="space-y-4">
    <div><Label htmlFor="assisted-customer">Customer</Label><select id="assisted-customer" className="w-full rounded border bg-background p-2" value={target} disabled={!!createdId} onChange={e=>void selectTarget(e.target.value)}><option value="">Create a new customer profile</option>{customers.filter(c=>!["COMPLETED","VERIFIED","IN_REVIEW"].includes(c.kyc_status??"")).map(c=><option key={c.user_id} value={c.user_id}>{c.full_name||"Unnamed customer"} · {c.nrc_number||c.user_id}</option>)}</select></div>
    {!target&&<div><Label htmlFor="assisted-email">Customer email</Label><Input id="assisted-email" type="email" maxLength={254} disabled={!!createdId} value={email} onChange={e=>setEmail(e.target.value)}/></div>}
