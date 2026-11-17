@@ -115,7 +115,7 @@ export default function FinancialAnalysisPreview({
             <p className="text-sm">
               Review flags:{" "}
               {a.issues
-                .map((issue) => issue.toLowerCase().replaceAll("_", " "))
+                .map((issue) => issue.toLowerCase().replace(/_/g, " "))
                 .join("; ")}
               .
             </p>

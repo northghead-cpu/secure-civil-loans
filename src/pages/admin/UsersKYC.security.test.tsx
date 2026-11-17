@@ -7,7 +7,7 @@ vi.mock("@/lib/readAllRows",()=>({readAllRows:mocks.read}));
 vi.mock("@/integrations/supabase/untyped",()=>({untypedDb:{rpc:mocks.rpc}}));
 vi.mock("@/integrations/supabase/client",()=>({supabase:{storage:{from:()=>({download:mocks.download})}}}));
 vi.mock("@/services/payrollParsingService",()=>({parsePayslip:mocks.parse}));
-beforeEach(()=>{vi.clearAllMocks();mocks.read.mockReset();mocks.download.mockReset();mocks.parse.mockReset();mocks.rpc.mockReset();});
+beforeEach(()=>{vi.clearAllMocks();mocks.read.mockReset();mocks.download.mockReset();mocks.parse.mockReset();mocks.rpc.mockReset();mocks.rpc.mockResolvedValue({data:{state:"not_started"},error:null});});
 vi.mock("sonner",()=>({toast:{error:vi.fn(),success:vi.fn()}}));
 it("sends the displayed revision and discards the stale review after server rejection",async()=>{
  const profile={user_id:"borrower",full_name:"Synthetic Borrower",kyc_status:"IN_REVIEW",kyc_submitted_at:"2026-10-24",kyc_review_revision:"revision-a"};
@@ -25,7 +25,7 @@ it("shows consistency warnings from authorized evidence without making a decisio
  render(<UsersKYC/>);fireEvent.click(await screen.findByRole("button",{name:"Review evidence"}));
  fireEvent.click(await screen.findByRole("button",{name:"Check payslip consistency"}));
  await screen.findByText("Gross earnings minus deductions does not match net pay.");
- expect(mocks.download).toHaveBeenCalledWith("borrower/test.png",{}, {cache:"no-store"});expect(mocks.rpc).not.toHaveBeenCalled();
+ expect(mocks.download).toHaveBeenCalledWith("borrower/test.png",{}, {cache:"no-store"});expect(mocks.rpc.mock.calls.every(([name]) => name === "get_financial_analysis_preview")).toBe(true);
 });
 it("reports denied evidence access without calling OCR or approving KYC",async()=>{
  mocks.read.mockResolvedValueOnce([{user_id:"borrower",kyc_status:"IN_REVIEW",kyc_submitted_at:"2026-11-01",kyc_review_revision:"revision-a"}]).mockResolvedValueOnce([{id:"pay-a",document_type:"PAYSLIP",storage_path:"borrower/test.png",pay_period:"2026-10-01",validation_status:"PENDING"}]);
@@ -33,5 +33,5 @@ it("reports denied evidence access without calling OCR or approving KYC",async()
  render(<UsersKYC/>);fireEvent.click(await screen.findByRole("button",{name:"Review evidence"}));
  fireEvent.click(await screen.findByRole("button",{name:"Check payslip consistency"}));
  await screen.findByText("The check could not complete. Review the original evidence or retry.");
- expect(mocks.parse).not.toHaveBeenCalled();expect(mocks.rpc).not.toHaveBeenCalled();
+ expect(mocks.parse).not.toHaveBeenCalled();expect(mocks.rpc.mock.calls.every(([name]) => name === "get_financial_analysis_preview")).toBe(true);
 });
