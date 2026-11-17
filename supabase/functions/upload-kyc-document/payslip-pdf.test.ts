@@ -1,7 +1,5 @@
 import { PDFDocument,StandardFonts } from "npm:pdf-lib@1.17.1";
-import createQpdf from "npm:@neslinesli93/qpdf-wasm@0.3.1";
-import { readFile } from "node:fs/promises";
-import { selectPayslipMonth,pageMatches } from "./payslip-pdf.ts";
+import { selectPayslipMonth,pageMatches,createQpdfModule } from "./payslip-pdf.ts";
 const check=(value:unknown)=>{if(!value)throw new Error("Assertion failed");};
 Deno.test("month matching uses employee and pay-month labels, not deduction dates",()=>{
  check(pageMatches("EMPLOYEE NO NRC\n00174559 123456/78/1\nPAY MONTH 2026-09-30","00174559","2026-09-01"));
@@ -12,7 +10,7 @@ Deno.test({name:"encrypted multi-month PDF unlocks and returns matching pages on
  const doc=await PDFDocument.create();const font=await doc.embedFont(StandardFonts.Helvetica);
  for(const month of ["08","09","10"])doc.addPage().drawText("EMPLOYEE NO 00174559\nPAY MONTH 2026-"+month+"-30",{font,size:12});
  const input=await doc.save();
- const qpdf=await createQpdf({noInitialRun:true,print:()=>{},printErr:()=>{},wasmBinary:await readFile(new URL("./qpdf.wasm",import.meta.resolve("npm:@neslinesli93/qpdf-wasm@0.3.1")))});
+ const qpdf=await createQpdfModule();
  qpdf.FS.writeFile("/in.pdf",input);
  qpdf.callMain(["--encrypt","00174559","owner-test-password","256","--","/in.pdf","/encrypted.pdf"]);
  const bytes=new Uint8Array(qpdf.FS.readFile("/encrypted.pdf"));
