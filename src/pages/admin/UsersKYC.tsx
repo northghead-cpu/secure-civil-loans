@@ -1,3 +1,4 @@
+import FinancialAnalysisPreview from "@/components/admin/FinancialAnalysisPreview";
 import KycExceptionApproval from "@/components/admin/KycExceptionApproval";
 import AssistedKycIntake from "@/components/admin/AssistedKycIntake";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -257,6 +258,7 @@ export default function UsersKYC() {
               <p className="text-sm">
                 Submission signature: {selected.kyc_signature || "Not recorded"}
               </p>
+              {canReview && <FinancialAnalysisPreview key={selected.user_id} userId={selected.user_id} />}
               {documentsLoading ? (
                 <p>Loading evidence…</p>
               ) : documentError ? (

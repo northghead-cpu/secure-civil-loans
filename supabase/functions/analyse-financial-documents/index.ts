@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.50.0";
 import { extractText, getDocumentProxy } from "npm:unpdf@2.2.1";
 import { analyseDocuments, readPayrollLayout } from "./analysis.mjs";
+import { selectFinancialDocuments, markPreliminaryAnalysis } from "./document-policy.mjs";
 const json = (status: number, data: unknown) =>
   new Response(JSON.stringify(data), {
     status,
@@ -41,37 +42,20 @@ Deno.serve(async (req: Request) => {
     if (p.error) throw Error("PROFILE_LOOKUP_FAILED");
     const inventory = await db
       .from("kyc_documents")
-      .select("id,document_type,pay_period,storage_path,updated_at")
+      .select("id,document_type,pay_period,storage_path,updated_at,validation_status")
       .eq("user_id", job.user_id)
-      .eq("validation_status", "VALID")
+      .in("validation_status", ["VALID", "PENDING"])
       .in("document_type", ["PAYSLIP", "BANK_STATEMENT"])
       .order("updated_at", { ascending: false })
       .limit(100);
     if (inventory.error) throw Error("DOCUMENT_LOOKUP_FAILED");
     const docs = [];
     const candidates = inventory.data ?? [];
-    const seenPeriods = new Set<string>();
-    const payrollDocuments = candidates
-      .filter((d) => d.document_type === "PAYSLIP")
-      .sort(
-        (a, b) =>
-          String(b.pay_period).localeCompare(String(a.pay_period)) ||
-          String(b.updated_at).localeCompare(String(a.updated_at)),
-      )
-      .filter((d) => {
-        if (!d.pay_period || seenPeriods.has(d.pay_period)) return false;
-        seenPeriods.add(d.pay_period);
-        return true;
-      })
-      .slice(0, 3);
-    const bankDocuments = candidates
-      .filter((d) => d.document_type === "BANK_STATEMENT")
-      .sort(
-        (a, b) =>
-          String(b.updated_at).localeCompare(String(a.updated_at)) || a.id.localeCompare(b.id),
-      )
-      .slice(0, 3);
-    for (const d of [...payrollDocuments, ...bankDocuments]) {
+    const previewSources = selectFinancialDocuments(candidates);
+    const verifiedSources = selectFinancialDocuments(candidates, true);
+    // Read each file once, even if the preview and validated snapshots differ.
+    const sources = [...new Map([...previewSources, ...verifiedSources].map((d) => [d.id, d])).values()];
+    for (const d of sources) {
       if (!d.storage_path?.startsWith(job.user_id + "/"))
         throw Error("DOCUMENT_PATH_BINDING_FAILED");
       const download = await db.storage.from("kyc-documents").download(d.storage_path);
@@ -88,6 +72,7 @@ Deno.serve(async (req: Request) => {
         const extracted = await extractText(pdf, { mergePages: true });
         docs.push({
           id: d.id,
+          validation_status: d.validation_status,
           type: d.document_type,
           period: d.pay_period,
           text: extracted.text,
@@ -95,7 +80,7 @@ Deno.serve(async (req: Request) => {
           sha256,
         });
       } catch {
-        docs.push({ id: d.id, type: d.document_type, period: d.pay_period, text: "", sha256 });
+        docs.push({ validation_status: d.validation_status, id: d.id, type: d.document_type, period: d.pay_period, text: "", sha256 });
       }
     }
     const handoffs = await db
@@ -114,13 +99,15 @@ Deno.serve(async (req: Request) => {
         "pre_approved",
       ]);
     if (handoffs.error) throw Error("HANDOFF_LOOKUP_FAILED");
+    const previewDocs = docs.filter((d) => previewSources.some((s) => s.id === d.id));
+    const verifiedDocs = docs.filter((d) => verifiedSources.some((s) => s.id === d.id));
     const active = handoffs.data ?? [],
       base = analyseDocuments(
-        docs,
+        previewDocs,
         p.data.employee_number,
         active[0]?.estimated_monthly_repayment ?? null,
       );
-    result = { ...base, sourceGeneration: job.generation, analysedAt: new Date().toISOString() };
+    result = { ...markPreliminaryAnalysis(base, previewSources), sourceGeneration: job.generation, analysedAt: new Date().toISOString() };
     for (const handoff of active) {
       if (
         p.data.account_status !== "active" ||
@@ -169,11 +156,11 @@ Deno.serve(async (req: Request) => {
       )
         continue;
       const parsed = analyseDocuments(
-        docs,
+        verifiedDocs,
         p.data.employee_number,
         handoff.estimated_monthly_repayment,
       );
-      const sourceIds = docs.map((d) => ({
+      const sourceIds = verifiedDocs.map((d) => ({
         id: d.id,
         sha256: d.sha256,
         type: d.type,
