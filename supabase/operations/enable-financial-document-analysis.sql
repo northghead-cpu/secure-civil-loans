@@ -1,3 +1,6 @@
+create or replace trigger financial_profile_changed after update of employee_number,kyc_status,account_status on public.profiles
+ for each row execute function private.enqueue_financial_analysis();
+
 create or replace function private.run_financial_analysis_worker() returns bigint
 language plpgsql security definer set search_path='' as $$
 declare secret text; request_id bigint;

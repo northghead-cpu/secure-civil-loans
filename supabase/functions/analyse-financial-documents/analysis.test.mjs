@@ -53,3 +53,35 @@ assert.equal(result.notACreditDecision, true);
 console.log(
   "PASS 18 automated financial extraction, overlap, reversals, identity and missing-data assertions",
 );
+
+const { readPayrollLayout } = await import("./analysis.mjs");
+const item = (str, x, y, width = 50) => ({ str, transform: [1, 0, 0, 1, x, y], width });
+const layout = await readPayrollLayout({
+  numPages: 1,
+  getPage: async () => ({
+    getViewport: () => ({ width: 600 }),
+    getTextContent: async () => ({
+      items: [
+        item("E095", 10, 100),
+        item("600.00-", 400, 100),
+        item("5,400.00-", 500, 100),
+        item("/330", 10, 80),
+        item("500.00-", 400, 80),
+        item("4,500.00-", 500, 80),
+        item("/410", 10, 60),
+        item("15.00-", 500, 60),
+      ],
+    }),
+  }),
+});
+assert.equal(layout.find((r) => r.code === "/410").amount, 0);
+assert.equal(layout.find((r) => r.code === "/410").accumulationOnly, true);
+assert.equal(layout.find((r) => r.code === "E095").amount, 600);
+console.log("PASS accumulation-only payroll amounts do not become monthly deductions");
+
+const inbound = parseBankStatement(
+  "Zanaco Statement of Account Oct 01, 2026 DIGITAL NFS TRANSACTIONS GROCERY REF C 100.00 100.00",
+);
+assert.equal(inbound.rows[0].kind, "income");
+assert.equal(inbound.rows[0].livingExpense, false);
+console.log("PASS incoming credits are never classified as living-cost payments");

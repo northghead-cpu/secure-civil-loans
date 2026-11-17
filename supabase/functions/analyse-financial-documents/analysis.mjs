@@ -1,5 +1,5 @@
 const money = /-?(?:\d{1,3}(?:,\d{3})+|\d*)\.\d{2}(?!\d)/g;
-const amount = (s) => Math.abs(Number(String(s).replaceAll(",", "")));
+const amount = (s) => Math.abs(Number(String(s).replaceAll(",", "").replace(/-$/, "")));
 const round = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const flat = (s) => String(s).replace(/\s+/g, " ").trim();
 const key = (s) => {
@@ -39,7 +39,7 @@ const statutory =
   /p\.?\s*a\.?\s*y\.?\s*e|napsa|personal levy|national health|funeral ins|pension|teachers unio/i;
 const credit =
   /financial|finance|fin\.|loan|credit|bayport|yescash|dime|dalikas|fmc|lumo|afrobiz|transparent|ekas|gemz|kooloka|brex|tottengram|rukeys|ich esu|ichesu|fiel capital|firm.?stone|milena/i;
-export function parsePayslip(text, expectedPeriod, employeeNumber) {
+export function parsePayslip(text, expectedPeriod, employeeNumber, layout = null) {
   const t = flat(text);
   const period = t.match(/PAY MONTH.{0,180}?(20\d{2}-\d{2}-\d{2})/i)?.[1]?.slice(0, 7);
   const issues = [];
@@ -78,7 +78,7 @@ export function parsePayslip(text, expectedPeriod, employeeNumber) {
     rows.push({
       code: match[1],
       description,
-      amount: amount(m[0]),
+      amount: layout?.find((r) => r.code === match[1])?.amount ?? amount(m[0]),
       category,
       creditor: key(description),
     });
@@ -134,7 +134,7 @@ export function parseBankStatement(text) {
     }
     const period = d[3] + "-" + monthNumber[d[1]],
       date = period + "-" + d[2].padStart(2, "0");
-    const kind = /^Unpaid/i.test(m[0])
+    let kind = /^Unpaid/i.test(m[0])
       ? "reversal"
       : /^Direct Debit/i.test(m[0])
         ? "debt"
@@ -146,6 +146,8 @@ export function parseBankStatement(text) {
     const parts = block.split(":").map((s) => s.trim());
     const creditor = kind === "reversal" ? parts[3] : parts[2];
     const narrative = block.slice(0, nums[0].index);
+    const direction = block.slice(0, nums[0].index).match(/\b([DC])\s*$/)?.[1];
+    if (kind === "spending" && direction === "C") kind = "income";
     const living =
       kind === "spending" &&
       /grocery|supermarket|shoprite|pick.n.pay|rent payment|electricity|water bill|school fee|medical|pharmacy/i.test(
@@ -168,7 +170,7 @@ export function analyseDocuments(documents, employeeNumber, proposedInstalment =
   const payslips = documents
     .filter((d) => d.type === "PAYSLIP")
     .map((d) => ({
-      ...parsePayslip(d.text, d.period, employeeNumber),
+      ...parsePayslip(d.text, d.period, employeeNumber, d.layout),
       documentId: d.id,
       sha256: d.sha256,
     }));
@@ -280,4 +282,50 @@ export function analyseDocuments(documents, employeeNumber, proposedInstalment =
     },
     notACreditDecision: true,
   };
+}
+
+export async function readPayrollLayout(pdf) {
+  const rows = [];
+  for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+    const page = await pdf.getPage(pageNo),
+      content = await page.getTextContent(),
+      width = page.getViewport({ scale: 1 }).width,
+      lines = [];
+    for (const item of content.items) {
+      if (
+        typeof item.str !== "string" ||
+        !Array.isArray(item.transform) ||
+        typeof item.width !== "number"
+      )
+        continue;
+      const y = item.transform[5],
+        line = lines.find((l) => Math.abs(l.y - y) < 1.5);
+      if (line) line.items.push(item);
+      else lines.push({ y, items: [item] });
+    }
+    for (const line of lines) {
+      const items = line.items.sort((a, b) => a.transform[4] - b.transform[4]);
+      const code = items
+        .map((i) => i.str.trim().match(/^(\/\d{3}|[EF]\d{3})(?:\s|$)/)?.[1])
+        .find(Boolean);
+      if (!code) continue;
+      const values = items
+        .filter((i) => /^-?[\d,]*\.\d{2}-?$/.test(i.str.trim()))
+        .map((i) => ({ text: i.str.trim(), right: (i.transform[4] + i.width) / width }));
+      if (values.length) rows.push({ code, values });
+    }
+  }
+  const candidates = rows
+    .filter((r) => r.values.length >= 2)
+    .map((r) => Math.min(...r.values.map((v) => v.right)))
+    .sort((a, b) => a - b);
+  if (candidates.length < 2) return null;
+  const currentColumn = candidates[Math.floor(candidates.length / 2)];
+  return rows.map((r) => {
+    const v =
+      r.values.length >= 2
+        ? r.values[0]
+        : r.values.find((v) => Math.abs(v.right - currentColumn) < 0.012);
+    return { code: r.code, amount: v ? amount(v.text) : 0, accumulationOnly: !v };
+  });
 }

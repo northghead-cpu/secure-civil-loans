@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.50.0";
 import { extractText, getDocumentProxy } from "npm:unpdf@2.2.1";
-import { analyseDocuments } from "./analysis.mjs";
+import { analyseDocuments, readPayrollLayout } from "./analysis.mjs";
 const json = (status: number, data: unknown) =>
   new Response(JSON.stringify(data), {
     status,
@@ -25,10 +25,8 @@ Deno.serve(async (req: Request) => {
     if (check.error || check.data !== true) return json(401, { error: "UNAUTHORISED" });
   }
   let userId: string | null = null;
-  if (isService) {
-    const input = await req.json().catch(() => ({}));
-    userId = typeof input.user_id === "string" ? input.user_id : null;
-  }
+  const input = await req.json().catch(() => ({}));
+  userId = typeof input.user_id === "string" ? input.user_id : null;
   const claim = await db.rpc("claim_financial_analysis", { p_user_id: userId });
   if (claim.error) return json(500, { error: "QUEUE_CLAIM_FAILED" });
   const job = claim.data?.[0];
@@ -37,7 +35,7 @@ Deno.serve(async (req: Request) => {
   try {
     const p = await db
       .from("profiles")
-      .select("employee_number")
+      .select("employee_number,kyc_status,account_status")
       .eq("user_id", job.user_id)
       .single();
     if (p.error) throw Error("PROFILE_LOOKUP_FAILED");
@@ -47,11 +45,33 @@ Deno.serve(async (req: Request) => {
       .eq("user_id", job.user_id)
       .eq("validation_status", "VALID")
       .in("document_type", ["PAYSLIP", "BANK_STATEMENT"])
-      .order("pay_period", { ascending: false, nullsFirst: false })
-      .limit(12);
+      .order("updated_at", { ascending: false })
+      .limit(100);
     if (inventory.error) throw Error("DOCUMENT_LOOKUP_FAILED");
     const docs = [];
-    for (const d of inventory.data ?? []) {
+    const candidates = inventory.data ?? [];
+    const seenPeriods = new Set<string>();
+    const payrollDocuments = candidates
+      .filter((d) => d.document_type === "PAYSLIP")
+      .sort(
+        (a, b) =>
+          String(b.pay_period).localeCompare(String(a.pay_period)) ||
+          String(b.updated_at).localeCompare(String(a.updated_at)),
+      )
+      .filter((d) => {
+        if (!d.pay_period || seenPeriods.has(d.pay_period)) return false;
+        seenPeriods.add(d.pay_period);
+        return true;
+      })
+      .slice(0, 3);
+    const bankDocuments = candidates
+      .filter((d) => d.document_type === "BANK_STATEMENT")
+      .sort(
+        (a, b) =>
+          String(b.updated_at).localeCompare(String(a.updated_at)) || a.id.localeCompare(b.id),
+      )
+      .slice(0, 3);
+    for (const d of [...payrollDocuments, ...bankDocuments]) {
       if (!d.storage_path?.startsWith(job.user_id + "/"))
         throw Error("DOCUMENT_PATH_BINDING_FAILED");
       const download = await db.storage.from("kyc-documents").download(d.storage_path);
@@ -64,12 +84,14 @@ Deno.serve(async (req: Request) => {
           password: p.data.employee_number ?? undefined,
         });
         if (pdf.numPages > 40) throw Error("PAGE_LIMIT");
+        const layout = d.document_type === "PAYSLIP" ? await readPayrollLayout(pdf) : null;
         const extracted = await extractText(pdf, { mergePages: true });
         docs.push({
           id: d.id,
           type: d.document_type,
           period: d.pay_period,
           text: extracted.text,
+          layout,
           sha256,
         });
       } catch {
@@ -100,9 +122,18 @@ Deno.serve(async (req: Request) => {
       );
     result = { ...base, sourceGeneration: job.generation, analysedAt: new Date().toISOString() };
     for (const handoff of active) {
-    const current = await db.rpc("financial_analysis_current", {p_user_id:job.user_id,p_generation:job.generation,p_lease:job.lease_token});
-    if(current.error) throw Error("LEASE_CHECK_FAILED");
-    if(current.data!==true) return json(200,{processed:1,current:false});
+      if (
+        p.data.account_status !== "active" ||
+        !["COMPLETED", "VERIFIED"].includes(p.data.kyc_status)
+      )
+        continue;
+      const current = await db.rpc("financial_analysis_current", {
+        p_user_id: job.user_id,
+        p_generation: job.generation,
+        p_lease: job.lease_token,
+      });
+      if (current.error) throw Error("LEASE_CHECK_FAILED");
+      if (current.data !== true) return json(200, { processed: 1, current: false });
       const scope = (categories: string[] | null) =>
         Boolean(
           categories?.includes("financial_assessment") ||
@@ -168,9 +199,12 @@ Deno.serve(async (req: Request) => {
         analysedAt: new Date().toISOString(),
         notACreditDecision: true,
       };
-      const tenantMap = JSON.parse(Deno.env.get("RIVERBANC_HANDSHAKE_TENANT_MAP") ?? "{}");
+      const tenantMap = {
+        ...JSON.parse(Deno.env.get("RIVERBANC_HANDSHAKE_TENANT_MAP") ?? "{}"),
+        ...JSON.parse(Deno.env.get("FINANCIAL_ASSESSMENT_TENANT_MAP") ?? "{}"),
+      };
       const tenant = tenantMap[handoff.lender_name],
-        secret = Deno.env.get("RIVERBANC_HANDSHAKE_HMAC_SECRET");
+        secret = Deno.env.get("FINANCIAL_ASSESSMENT_HMAC_SECRET");
       if (!tenant || !secret || secret.length < 32) throw Error("ASSESSMENT_SYNC_NOT_CONFIGURED");
       const body = JSON.stringify({
         handoff_id: handoff.id,
