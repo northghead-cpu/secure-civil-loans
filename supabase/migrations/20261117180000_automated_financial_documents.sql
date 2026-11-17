@@ -30,7 +30,7 @@ begin
  and extensions.digest(expected,'sha256')=extensions.digest(p_secret,'sha256');
 end $$;
 create or replace function public.claim_financial_analysis(p_user_id uuid default null)
-returns jsonb language plpgsql security definer set search_path='' as $
+returns jsonb language plpgsql security definer set search_path='' as $$
 declare result jsonb;
 begin
  if auth.role() is distinct from 'service_role' then raise insufficient_privilege;end if;
@@ -42,7 +42,7 @@ begin
  from chosen c where j.user_id=c.user_id returning j.*)
  select coalesce(jsonb_agg(to_jsonb(updated)),'[]'::jsonb) into result from updated;
  return result;
-end $;
+end $$;
 create or replace function public.finish_financial_analysis(p_user_id uuid,p_generation bigint,p_lease uuid,p_result jsonb,p_error text default null)
 returns boolean language plpgsql security definer set search_path='' as $$
 begin
