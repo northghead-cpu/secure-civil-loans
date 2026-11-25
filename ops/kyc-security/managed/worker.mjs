@@ -31,7 +31,7 @@ export async function tick(env, now = Date.now(), request = globalThis.fetch.bin
   };
   state.lease_until = now + 240000;
   state.attempts++;
-  if (state.attempts > 4) state.status = "failed";
+  if (state.attempts > 5) state.status = "failed";
   const claimed = await bucket.put(stateKey, JSON.stringify(state), {
     onlyIf: existing
       ? { etagMatches: existing.etag }
@@ -53,7 +53,7 @@ export async function tick(env, now = Date.now(), request = globalThis.fetch.bin
     const timeout = setTimeout(() => controller.abort(), 120000);
     const response = await request(SOURCE, {
       method: "POST",
-      redirect: "error",
+      redirect: "manual",
       headers: {
         Authorization: `Bearer ${env.SOURCE_TOKEN}`,
         "Content-Type": "application/json",
