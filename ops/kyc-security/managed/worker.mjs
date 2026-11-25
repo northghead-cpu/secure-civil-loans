@@ -44,23 +44,30 @@ export async function tick(env, now = Date.now(), request = fetch) {
   if (!claimed) return { status: "busy" };
   if (state.status === "failed") return { status: "failed" };
   const key = `managed-daily-v2/runs/${state.run_id}/snapshot.enc.json`;
-  let stored = await bucket.get(key);
+  const listed = await bucket.list({ prefix: key, limit: 1 });
+  let stored = listed.objects.some((item) => item.key === key)
+    ? await bucket.get(key)
+    : null;
   if (!stored) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
     const response = await request(SOURCE, {
       method: "POST",
       redirect: "error",
       headers: {
         Authorization: `Bearer ${env.SOURCE_TOKEN}`,
         "Content-Type": "application/json",
+        "Cache-Control": "no-store",
       },
       body: JSON.stringify({
         action: "snapshot",
         before: state.before,
         run_id: state.run_id,
       }),
-      signal: AbortSignal.timeout(120000),
-      cache: "no-store",
-    });
+      signal: controller.signal,
+    })
+      .catch(() => { throw Error("SOURCE_CONNECTION_FAILED"); })
+      .finally(() => clearTimeout(timeout));
     if (!response.ok) throw Error(`SOURCE_SNAPSHOT_HTTP_${response.status}`);
     const sha = response.headers.get("X-Backup-SHA256"),
       keyId = response.headers.get("X-Backup-Key-Id"),
@@ -164,7 +171,7 @@ export default {
         )
         .catch((error) => {
           const message = error instanceof Error ? error.message : "";
-          const reason = /^(SOURCE_SNAPSHOT_HTTP_\d{3}|SNAPSHOT_LIMIT|SIZE_LIMIT|TRANSFER_INTEGRITY|DESTINATION_MISSING|READBACK_INTEGRITY|CHECKPOINT_CONFLICT)$/.test(message)
+          const reason = /^(SOURCE_SNAPSHOT_HTTP_\d{3}|SOURCE_CONNECTION_FAILED|SNAPSHOT_LIMIT|SIZE_LIMIT|TRANSFER_INTEGRITY|DESTINATION_MISSING|READBACK_INTEGRITY|CHECKPOINT_CONFLICT)$/.test(message)
             ? message
             : "UNEXPECTED";
           console.error(JSON.stringify({ event: "backup_daily_failed", reason }));
