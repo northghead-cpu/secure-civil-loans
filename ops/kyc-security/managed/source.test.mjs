@@ -164,7 +164,10 @@ test("Synthetic real-stream readback reaches complete and keeps restore false", 
   const result = await tick(
     { BACKUP_ENABLED: "true", SOURCE_TOKEN: token, BACKUPS: bucket },
     Date.parse("2026-11-10T10:00:00Z"),
-    (_url, init) => handler(new Request("https://source.test", init)),
+    (_url, init) => {
+      assert.equal(init.redirect, "manual");
+      return handler(new Request("https://source.test", init));
+    },
   );
   assert.equal(result.status, "complete");
   const state = JSON.parse(
