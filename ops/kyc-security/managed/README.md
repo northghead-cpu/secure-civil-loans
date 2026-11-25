@@ -27,10 +27,10 @@ ClamAV worker. It never records a clean scan or changes quarantine settings.
 
 ## Bounded pilot, not unlimited free storage
 
-Fail if the snapshot is empty, reaches 100 objects, exceeds 4 MiB original bytes,
-or an individual original exceeds 2 MiB. Today's 75 objects total 702,586 bytes.
-Encrypted responses are limited to 8 MiB. Only one daily run may progress; completed and failed days do not restart.
-The consumer is hard-stopped after November 30, 2026 Africa/Lusaka time. This
+Fail if the snapshot is empty, reaches 100 objects, exceeds 8 MiB original bytes,
+or an individual original exceeds 2 MiB. The November 25 inventory had 84 objects totaling 5,062,230 bytes.
+Encrypted responses are limited to 16 MiB. Only one daily run may progress; completed and failed days do not restart.
+The consumer is hard-stopped after December 31, 2026 Africa/Lusaka time. This
 stops backup work, not customer access. No retained document is deleted.
 At these caps the planned encrypted storage and operation counts are far below
 R2's free allowance. However allowances are account-wide and R2 itself permits
@@ -58,7 +58,7 @@ Supabase also shares project egress and Edge invocation quotas with the app.
    downloaded envelopes and verifies every original hash. Do not mark a run
    restore-verified from ciphertext readback or fixture tests.
 6. Only then enable `BACKUP_ENABLED=true` and one daily cron during the
-   remaining November pilot. Do not use a minute/checkpoint schedule. Check
+   remaining backup window. Do not use a minute/checkpoint schedule. Check
    daily completion/failure receipts. No alerts or outbound messages are sent
    by this code. Free log retention is limited; retain evidence independently.
 

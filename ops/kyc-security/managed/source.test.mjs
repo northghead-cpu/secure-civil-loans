@@ -114,13 +114,13 @@ test("Changed source version is refused, never certified clean", async () => {
   );
   assert.equal(r.status, 503);
 });
-test("Scheduled worker fails closed without enablement and after the November pilot", async () => {
+test("Scheduled worker fails closed without enablement and after the December backup window", async () => {
   assert.equal((await tick({})).status, "disabled");
   assert.equal(
     (
       await tick(
         { BACKUP_ENABLED: "true", SOURCE_TOKEN: token },
-        Date.parse("2026-12-01T00:00:00Z"),
+        Date.parse("2027-01-01T00:00:00Z"),
       )
     ).status,
     "disabled",
@@ -266,4 +266,29 @@ test("A failed daily snapshot returns no partial archive", async () => {
   );
   assert.equal(r.status, 503);
   assert.equal((await r.json()).error, "BACKUP_SOURCE_FAILED");
+});
+
+test("Current production-sized synthetic inventory can be encrypted and recovered", async () => {
+  const objects = Array.from({ length: 84 }, (_, index) => ({
+    ...item,
+    id: `11111111-1111-4111-8111-${String(index).padStart(12, "0")}`,
+    metadata: { size: 61000 },
+  }));
+  const lookup = new Map(objects.map((value) => [value.id, value]));
+  const payload = Buffer.alloc(61000, 17);
+  const response = await makeBackupSource({
+    ...base,
+    page: async () => objects,
+    object: async (id) => lookup.get(id),
+    read: async () => payload,
+  })(request({ action: "snapshot", run_id: run, before: new Date().toISOString() }));
+  assert.equal(response.status, 200);
+  assert.equal(Number(response.headers.get("X-Backup-Source-Bytes")), 5124000);
+  const { records } = await response.json();
+  assert.equal(records.length, 84);
+  const key = createPrivateKey(pair.privateKey);
+  for (const record of records) {
+    const encrypted = Buffer.from(JSON.stringify(record.envelope));
+    assert.equal(verifyManagedObject(encrypted, key, record, run).size, payload.length);
+  }
 });

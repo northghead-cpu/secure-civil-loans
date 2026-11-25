@@ -1,8 +1,8 @@
 // One bounded encrypted snapshot per daily invocation; no HTTP data endpoint.
 const SOURCE =
   "https://zdpeaxkormwjrgllwalq.supabase.co/functions/v1/marketplace-backup-source";
-const END = Date.parse("2026-12-01T00:00:00+02:00"),
-  MAX_ENVELOPE = 8 * 1024 * 1024;
+const END = Date.parse("2027-01-01T00:00:00+02:00"),
+  MAX_ENVELOPE = 16 * 1024 * 1024;
 export async function tick(env, now = Date.now(), request = fetch) {
   if (
     env.BACKUP_ENABLED !== "true" ||
@@ -61,7 +61,7 @@ export async function tick(env, now = Date.now(), request = fetch) {
       signal: AbortSignal.timeout(120000),
       cache: "no-store",
     });
-    if (!response.ok) throw Error("SOURCE_SNAPSHOT_FAILED");
+    if (!response.ok) throw Error(`SOURCE_SNAPSHOT_HTTP_${response.status}`);
     const sha = response.headers.get("X-Backup-SHA256"),
       keyId = response.headers.get("X-Backup-Key-Id"),
       count = Number(response.headers.get("X-Backup-Object-Count")),
@@ -74,7 +74,7 @@ export async function tick(env, now = Date.now(), request = fetch) {
       count >= 100 ||
       !Number.isSafeInteger(sourceBytes) ||
       sourceBytes < 1 ||
-      sourceBytes > 4 * 1024 * 1024
+      sourceBytes > 8 * 1024 * 1024
     )
       throw Error("SNAPSHOT_LIMIT");
     const bytes = await bounded(response.body, MAX_ENVELOPE);
@@ -162,9 +162,13 @@ export default {
         .then((result) =>
           console.log(JSON.stringify({ event: "backup_daily", ...result })),
         )
-        .catch(() =>
-          console.error(JSON.stringify({ event: "backup_daily_failed" })),
-        ),
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "";
+          const reason = /^(SOURCE_SNAPSHOT_HTTP_\d{3}|SNAPSHOT_LIMIT|SIZE_LIMIT|TRANSFER_INTEGRITY|DESTINATION_MISSING|READBACK_INTEGRITY|CHECKPOINT_CONFLICT)$/.test(message)
+            ? message
+            : "UNEXPECTED";
+          console.error(JSON.stringify({ event: "backup_daily_failed", reason }));
+        }),
     );
   },
 };
