@@ -3,7 +3,8 @@ import { timingSafeEqual } from "node:crypto";
 import { seal, digest, publicKeyId } from "./envelope.mjs";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const MAX_OBJECT = 2 * 1024 * 1024,
-  MAX_SNAPSHOT = 4 * 1024 * 1024;
+  MAX_SNAPSHOT = 8 * 1024 * 1024,
+  MAX_BUNDLE = 16 * 1024 * 1024;
 export function makeBackupSource({ token, publicKey, page, object, read }) {
   const headers = {
     "Content-Type": "application/json",
@@ -159,7 +160,7 @@ export function makeBackupSource({ token, publicKey, page, object, read }) {
           records,
         }),
       );
-      if (bundle.length > 8 * 1024 * 1024) throw Error("ENVELOPE_LIMIT");
+      if (bundle.length > MAX_BUNDLE) throw Error("ENVELOPE_LIMIT");
       return new Response(bundle, {
         headers: {
           ...headers,
