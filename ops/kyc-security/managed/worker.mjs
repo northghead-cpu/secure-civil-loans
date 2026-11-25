@@ -3,7 +3,7 @@ const SOURCE =
   "https://zdpeaxkormwjrgllwalq.supabase.co/functions/v1/marketplace-backup-source";
 const END = Date.parse("2027-01-01T00:00:00+02:00"),
   MAX_ENVELOPE = 16 * 1024 * 1024;
-export async function tick(env, now = Date.now(), request = fetch) {
+export async function tick(env, now = Date.now(), request = globalThis.fetch.bind(globalThis)) {
   if (
     env.BACKUP_ENABLED !== "true" ||
     !env.SOURCE_TOKEN ||
@@ -31,7 +31,7 @@ export async function tick(env, now = Date.now(), request = fetch) {
   };
   state.lease_until = now + 240000;
   state.attempts++;
-  if (state.attempts > 3) state.status = "failed";
+  if (state.attempts > 4) state.status = "failed";
   const claimed = await bucket.put(stateKey, JSON.stringify(state), {
     onlyIf: existing
       ? { etagMatches: existing.etag }
@@ -66,7 +66,13 @@ export async function tick(env, now = Date.now(), request = fetch) {
       }),
       signal: controller.signal,
     })
-      .catch(() => { throw Error("SOURCE_CONNECTION_FAILED"); })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : "";
+        if (/illegal invocation/i.test(message)) throw Error("SOURCE_FETCH_BINDING");
+        if (/redirect/i.test(message)) throw Error("SOURCE_REDIRECT");
+        if (controller.signal.aborted) throw Error("SOURCE_TIMEOUT");
+        throw Error("SOURCE_CONNECTION_FAILED");
+      })
       .finally(() => clearTimeout(timeout));
     if (!response.ok) throw Error(`SOURCE_SNAPSHOT_HTTP_${response.status}`);
     const sha = response.headers.get("X-Backup-SHA256"),
@@ -171,7 +177,7 @@ export default {
         )
         .catch((error) => {
           const message = error instanceof Error ? error.message : "";
-          const reason = /^(SOURCE_SNAPSHOT_HTTP_\d{3}|SOURCE_CONNECTION_FAILED|SNAPSHOT_LIMIT|SIZE_LIMIT|TRANSFER_INTEGRITY|DESTINATION_MISSING|READBACK_INTEGRITY|CHECKPOINT_CONFLICT)$/.test(message)
+          const reason = /^(SOURCE_SNAPSHOT_HTTP_\d{3}|SOURCE_CONNECTION_FAILED|SOURCE_FETCH_BINDING|SOURCE_REDIRECT|SOURCE_TIMEOUT|SNAPSHOT_LIMIT|SIZE_LIMIT|TRANSFER_INTEGRITY|DESTINATION_MISSING|READBACK_INTEGRITY|CHECKPOINT_CONFLICT)$/.test(message)
             ? message
             : "UNEXPECTED";
           console.error(JSON.stringify({ event: "backup_daily_failed", reason }));
