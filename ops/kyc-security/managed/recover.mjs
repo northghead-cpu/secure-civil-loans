@@ -20,3 +20,30 @@ export async function loadBrowserRecoveryKey(path,passphrase){
   try{const d=createDecipheriv('aes-256-gcm',key,iv);d.setAAD(Buffer.from(kit.format));d.setAuthTag(cipher.subarray(-16));const raw=Buffer.concat([d.update(cipher.subarray(0,-16)),d.final()]);try{return createPrivateKey({key:raw,type:'pkcs8',format:'der'});}finally{raw.fill(0);}}
   finally{key.fill(0);}
 }
+
+/** Verify a completed incremental receipt using private R2 reads on the recovery computer. */
+export async function verifyIncrementalReceipt(receipt, privateKey, readObject) {
+  if (receipt.status !== "complete") throw Error("INCOMPLETE_BACKUP");
+  let page = receipt.last_page;
+  let bytes = 0;
+  const ids = new Set();
+  while (page) {
+    const contents = await readObject(page.key);
+    if (digest(contents) !== page.sha256) throw Error("PAGE_INTEGRITY");
+    const { records, previous } = JSON.parse(contents.toString("utf8"));
+    if (!Array.isArray(records) || !records.length || records.length > 8)
+      throw Error("PAGE_INTEGRITY");
+    for (const record of records) {
+      if (ids.has(record.id) || ids.size >= receipt.count)
+        throw Error("DUPLICATE_OR_EXTRA_OBJECT");
+      const result = verifyManagedObject(await readObject(record.key), privateKey, record, record.run_id);
+      if (result.size !== record.size) throw Error("RESTORE_INTEGRITY");
+      ids.add(result.id);
+      bytes += result.size;
+    }
+    page = previous;
+  }
+  if (ids.size !== receipt.count || bytes !== receipt.source_bytes)
+    throw Error("INCOMPLETE_RESTORE");
+  return { count: ids.size, bytes };
+}

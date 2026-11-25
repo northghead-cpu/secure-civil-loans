@@ -13,28 +13,37 @@ export function makeBackupSource({ token, publicKey, page, object, read }) {
   };
   const reply = (status, body) =>
     new Response(JSON.stringify(body), { status, headers });
-  async function inventory(before) {
+  async function inventory(before, after = null, limit = null) {
     if (typeof before !== "string" || !Number.isFinite(Date.parse(before)))
       throw Error("REQUEST");
-    const items = await page(null, before);
-    if (!Array.isArray(items) || !items.length || items.length >= 100)
+    if (after !== null && !UUID.test(after)) throw Error("REQUEST");
+    const rows = await page(after, before);
+    const items = limit === null ? rows : rows?.slice(0, limit);
+    if (!Array.isArray(items) || (limit === null && (!items.length || items.length >= 100)))
       throw Error("SNAPSHOT_LIMIT");
     let total = 0;
-    const clean = items.map((x) => {
+    const clean = [];
+    for (const x of items) {
       const size = Number(x.metadata?.size);
       if (
         !UUID.test(x.id) ||
+        typeof x.version !== "string" ||
         !x.version ||
+        x.version.length > 128 ||
         !Number.isSafeInteger(size) ||
         size <= 0 ||
         size > MAX_OBJECT
       )
         throw Error("OBJECT_LIMIT");
+      if (limit !== null && total + size > MAX_OBJECT) break;
       total += size;
-      return { id: x.id, version: x.version, size };
-    });
-    if (total > MAX_SNAPSHOT) throw Error("SNAPSHOT_LIMIT");
-    return { items: clean, total_bytes: total, key_id: publicKeyId(publicKey) };
+      clean.push({ id: x.id, version: x.version, size });
+    }
+    if (limit === null && total > MAX_SNAPSHOT) throw Error("SNAPSHOT_LIMIT");
+    return {
+      items: clean, total_bytes: total, key_id: publicKeyId(publicKey),
+      ...(limit === null ? {} : { has_more: rows.length > clean.length }),
+    };
   }
   async function sealObject(body) {
     if (
@@ -103,6 +112,8 @@ export function makeBackupSource({ token, publicKey, page, object, read }) {
       const body = JSON.parse(
         new TextDecoder().decode(await limited(req.body, 4096)),
       );
+      if (body.action === "inventory-page")
+        return reply(200, await inventory(body.before, body.after ?? null, 8));
       if (body.action === "page")
         return reply(200, await inventory(body.before));
       if (body.action === "seal") {

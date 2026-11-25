@@ -1,3 +1,5 @@
+import { incrementalTick } from "./incremental.mjs";
+
 // One bounded encrypted snapshot per daily invocation; no HTTP data endpoint.
 const SOURCE =
   "https://zdpeaxkormwjrgllwalq.supabase.co/functions/v1/marketplace-backup-source";
@@ -11,6 +13,8 @@ export async function tick(env, now = Date.now(), request = globalThis.fetch.bin
     now < Date.parse("2026-11-09T00:00:00Z")
   )
     return { status: "disabled" };
+  if (env.BACKUP_MODE === "incremental")
+    return incrementalTick(env.BACKUPS, (payload) => requestSource(env, request, payload), now, hash, bounded);
   const bucket = env.BACKUPS,
     day = new Date(now + 7200000).toISOString().slice(0, 10),
     stateKey = "managed-daily-v2/state/" + day + ".json";
@@ -49,32 +53,9 @@ export async function tick(env, now = Date.now(), request = globalThis.fetch.bin
     ? await bucket.get(key)
     : null;
   if (!stored) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
-    const response = await request(SOURCE, {
-      method: "POST",
-      redirect: "manual",
-      headers: {
-        Authorization: `Bearer ${env.SOURCE_TOKEN}`,
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-      },
-      body: JSON.stringify({
-        action: "snapshot",
-        before: state.before,
-        run_id: state.run_id,
-      }),
-      signal: controller.signal,
-    })
-      .catch((error) => {
-        const message = error instanceof Error ? error.message : "";
-        if (/illegal invocation/i.test(message)) throw Error("SOURCE_FETCH_BINDING");
-        if (/redirect/i.test(message)) throw Error("SOURCE_REDIRECT");
-        if (controller.signal.aborted) throw Error("SOURCE_TIMEOUT");
-        throw Error("SOURCE_CONNECTION_FAILED");
-      })
-      .finally(() => clearTimeout(timeout));
-    if (!response.ok) throw Error(`SOURCE_SNAPSHOT_HTTP_${response.status}`);
+    const response = await requestSource(env, request, {
+      action: "snapshot", before: state.before, run_id: state.run_id,
+    });
     const sha = response.headers.get("X-Backup-SHA256"),
       keyId = response.headers.get("X-Backup-Key-Id"),
       count = Number(response.headers.get("X-Backup-Object-Count")),
@@ -132,6 +113,31 @@ export async function tick(env, now = Date.now(), request = globalThis.fetch.bin
   });
   if (!saved) throw Error("CHECKPOINT_CONFLICT");
   return { status: "complete", count: state.count };
+}
+async function requestSource(env, request, payload) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+  const response = await request(SOURCE, {
+    method: "POST",
+    redirect: "manual",
+    headers: {
+      Authorization: `Bearer ${env.SOURCE_TOKEN}`,
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
+    body: JSON.stringify(payload),
+    signal: controller.signal,
+  })
+    .catch((error) => {
+      const message = error instanceof Error ? error.message : "";
+      if (/illegal invocation/i.test(message)) throw Error("SOURCE_FETCH_BINDING");
+      if (/redirect/i.test(message)) throw Error("SOURCE_REDIRECT");
+      if (controller.signal.aborted) throw Error("SOURCE_TIMEOUT");
+      throw Error("SOURCE_CONNECTION_FAILED");
+    })
+    .finally(() => clearTimeout(timeout));
+  if (!response.ok) throw Error(`SOURCE_SNAPSHOT_HTTP_${response.status}`);
+  return response;
 }
 async function bounded(stream, max) {
   const reader = stream.getReader(),
