@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, createPrivateKey } from "node:crypto";
 import { makeBackupSource } from "../../../supabase/functions/marketplace-backup-source/handler.mjs";
-import { verifyManagedObject, loadBrowserRecoveryKey } from "./recover.mjs";
+import { verifyManagedObject, loadBrowserRecoveryKey, verifyIncrementalReceipt } from "./recover.mjs";
 import { readFile, mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -126,10 +126,11 @@ test("Scheduled worker fails closed without enablement and after the December ba
     "disabled",
   );
 });
-test("Synthetic real-stream readback reaches complete and keeps restore false", async () => {
+function memoryBucket() {
   const entries = new Map();
   let etag = 0;
   const bucket = {
+    async head(key) { return entries.get(key) ?? null; },
     async list({ prefix }) {
       return { objects: [...entries.keys()].filter((key) => key.startsWith(prefix)).map((key) => ({ key })) };
     },
@@ -160,6 +161,10 @@ test("Synthetic real-stream readback reaches complete and keeps restore false", 
       return e;
     },
   };
+  return { bucket, entries };
+}
+test("Synthetic real-stream readback reaches complete and keeps restore false", async () => {
+  const { bucket, entries } = memoryBucket();
   const handler = makeBackupSource(base);
   const result = await tick(
     { BACKUP_ENABLED: "true", SOURCE_TOKEN: token, BACKUPS: bucket },
@@ -297,4 +302,38 @@ test("Current production-sized synthetic inventory can be encrypted and recovere
     const encrypted = Buffer.from(JSON.stringify(record.envelope));
     assert.equal(verifyManagedObject(encrypted, key, record, run).size, payload.length);
   }
+});
+
+test("Incremental backup crosses 100 files, resumes and transfers only changed versions", async () => {
+  const { bucket, entries } = memoryBucket();
+  const objects = Array.from({ length: 101 }, (_, index) => ({
+    ...item,
+    id: `11111111-1111-4111-8111-${String(index).padStart(12, "0")}`,
+  }));
+  let reads = 0;
+  const handler = makeBackupSource({
+    ...base,
+    page: async (after) => objects.filter((object) => !after || object.id > after).slice(0, 100),
+    object: async (id) => objects.find((object) => object.id === id),
+    read: async () => { reads++; return bytes; },
+  });
+  const request = (_url, init) => handler(new Request("https://source.test", init));
+  const env = { BACKUP_ENABLED: "true", BACKUP_MODE: "incremental", SOURCE_TOKEN: token, BACKUPS: bucket };
+  const firstDay = Date.parse("2026-11-10T10:00:00Z");
+  for (let page = 0; page < 13; page++) {
+    const result = await tick(env, firstDay + page * 300000, request);
+    assert.equal(result.status, page === 12 ? "complete" : "running");
+  }
+  assert.equal(reads, 101);
+  objects[40] = { ...objects[40], version: "two" };
+  for (let page = 0; page < 13; page++)
+    await tick(env, firstDay + 86400000 + page * 300000, request);
+  assert.equal(reads, 102);
+  const receipt = JSON.parse(entries.get("managed-incremental-v1/checkpoint.json").bytes);
+  assert.equal(receipt.restore_verified, false);
+  const key = createPrivateKey(pair.privateKey);
+  assert.deepEqual(
+    await verifyIncrementalReceipt(receipt, key, async (key) => entries.get(key).bytes),
+    { count: 101, bytes: 101 * bytes.length },
+  );
 });
