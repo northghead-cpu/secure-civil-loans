@@ -32,7 +32,8 @@ export async function incrementalTick(bucket, source, now, hash, bounded) {
     await bounded((await source({ action: "inventory-page", before: state.before, after: state.after })).body, 16384),
   ));
   if (!SHA.test(listing.key_id) || (state.key_id && state.key_id !== listing.key_id) ||
-      !Array.isArray(listing.items) || listing.items.length > 8)
+      !Array.isArray(listing.items) || listing.items.length > 8 ||
+      typeof listing.has_more !== "boolean" || (listing.has_more && !listing.items.length))
     throw Error("INVENTORY_INVALID");
   state.key_id = listing.key_id;
   const records = [];
@@ -76,7 +77,7 @@ export async function incrementalTick(bucket, source, now, hash, bounded) {
     state.count += records.length;
     state.source_bytes += records.reduce((total, record) => total + record.size, 0);
   }
-  if (records.length < 8) {
+  if (!listing.has_more) {
     state.status = "complete";
     state.restore_verified = false;
     const receipt = JSON.stringify(state);
