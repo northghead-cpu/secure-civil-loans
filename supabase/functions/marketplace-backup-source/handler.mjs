@@ -22,7 +22,8 @@ export function makeBackupSource({ token, publicKey, page, object, read }) {
     if (!Array.isArray(items) || (limit === null && (!items.length || items.length >= 100)))
       throw Error("SNAPSHOT_LIMIT");
     let total = 0;
-    const clean = items.map((x) => {
+    const clean = [];
+    for (const x of items) {
       const size = Number(x.metadata?.size);
       if (
         !UUID.test(x.id) ||
@@ -34,11 +35,15 @@ export function makeBackupSource({ token, publicKey, page, object, read }) {
         size > MAX_OBJECT
       )
         throw Error("OBJECT_LIMIT");
+      if (limit !== null && total + size > MAX_OBJECT) break;
       total += size;
-      return { id: x.id, version: x.version, size };
-    });
+      clean.push({ id: x.id, version: x.version, size });
+    }
     if (limit === null && total > MAX_SNAPSHOT) throw Error("SNAPSHOT_LIMIT");
-    return { items: clean, total_bytes: total, key_id: publicKeyId(publicKey) };
+    return {
+      items: clean, total_bytes: total, key_id: publicKeyId(publicKey),
+      ...(limit === null ? {} : { has_more: rows.length > clean.length }),
+    };
   }
   async function sealObject(body) {
     if (
