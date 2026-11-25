@@ -337,3 +337,22 @@ test("Incremental backup crosses 100 files, resumes and transfers only changed v
     { count: 101, bytes: 101 * bytes.length },
   );
 });
+
+test("A byte-limited page retains the next cursor even below eight objects", async () => {
+  const objects = Array.from({ length: 3 }, (_, index) => ({
+    ...item,
+    id: `11111111-1111-4111-8111-${String(index).padStart(12, "0")}`,
+    metadata: { size: 1024 * 1024 },
+  }));
+  const h = makeBackupSource({ ...base, page: async (after) =>
+    objects.filter((value) => !after || value.id > after) });
+  const before = new Date().toISOString();
+  const first = await (await h(request({ action: "inventory-page", before }))).json();
+  assert.equal(first.items.length, 2);
+  assert.equal(first.has_more, true);
+  const second = await (await h(request({
+    action: "inventory-page", before, after: first.items[1].id,
+  }))).json();
+  assert.deepEqual(second.items.map((value) => value.id), [objects[2].id]);
+  assert.equal(second.has_more, false);
+});
