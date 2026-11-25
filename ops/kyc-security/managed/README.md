@@ -74,3 +74,28 @@ Malware scanning remains deferred; structural PDF/image validation is not AV.
 
 Run `node --test ops/kyc-security/managed/source.test.mjs` for synthetic tests,
 including the actual browser setup script and its encrypted recovery format.
+
+## Incremental mode
+
+Deploy the source first. The source keeps the existing snapshot operation and adds
+an authenticated cursor operation that returns up to eight IDs, versions and sizes.
+Enable the new Worker route only by setting `BACKUP_MODE=incremental`. Each
+invocation advances one checkpointed page. A short-interval trigger is required
+during a crawl, and completed runs return without requesting another inventory
+until the next Lusaka day. Keep the existing pilot cutoff and review account-wide
+R2 and Supabase quota before scheduling the incremental Worker.
+
+Objects are encrypted at source, written with create-only conditions and keyed
+by recovery key, object ID and version. A repeated crawl transfers only new
+versions. An interrupted run resumes from its last committed page. Version
+changes or unreadable files never advance the affected page. If the recovery key
+changes during a run, reinitialize the checkpoint under a new prefix or move the
+prior checkpoint to a retained archive before restarting the crawl.
+
+The run receipt references hash-linked pages in private R2. Use
+`verifyIncrementalReceipt` on the trusted recovery computer with the existing
+private key and an authenticated R2 read adapter. The verifier checks every
+page, record, original file hash, file count and aggregate size in memory.
+Retain the trusted receipt independently. This is a version-checked crawl over
+the current object inventory, with a creation-time cutoff. It does not lock
+production uploads and is not point-in-time recovery for PostgreSQL.
