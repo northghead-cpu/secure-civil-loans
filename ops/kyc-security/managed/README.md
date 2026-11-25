@@ -78,7 +78,7 @@ including the actual browser setup script and its encrypted recovery format.
 ## Incremental mode
 
 Deploy the source first. The source keeps the existing snapshot operation and adds
-an authenticated cursor operation that returns up to eight IDs, versions and sizes.
+an authenticated cursor operation that returns up to eight IDs, versions and sizes, capped at 2 MiB of source data per page.
 Enable the new Worker route only by setting `BACKUP_MODE=incremental`. Each
 invocation advances one checkpointed page. A short-interval trigger is required
 during a crawl, and completed runs return without requesting another inventory
