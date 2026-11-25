@@ -130,6 +130,9 @@ test("Synthetic real-stream readback reaches complete and keeps restore false", 
   const entries = new Map();
   let etag = 0;
   const bucket = {
+    async list({ prefix }) {
+      return { objects: [...entries.keys()].filter((key) => key.startsWith(prefix)).map((key) => ({ key })) };
+    },
     async get(k) {
       const e = entries.get(k);
       return e
