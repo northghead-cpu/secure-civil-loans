@@ -6,6 +6,31 @@ import { Input } from "@/components/ui/input";
 const inviteParams = typeof window === "undefined"
   ? null
   : new URLSearchParams(window.location.hash.slice(1));
+// Supabase can return a failed email-link callback without type=invite.
+const expiredEmailLink = inviteParams?.get("error_code") === "otp_expired";
+
+function ExpiredEmailLink() {
+  useEffect(() => {
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+  }, []);
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <section className="w-full max-w-md space-y-4">
+        <h1 className="text-2xl font-display font-bold">This email link can’t be used</h1>
+        <p role="alert">
+          The link may have expired or already been used. If you already have a password, sign in.
+          If you still need to set one, request a password reset or contact Riverbanc for a new invitation.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a className="text-primary underline" href="/login">Go to sign in</a>
+          <a className="text-primary underline" href="/forgot-password">Request a password reset</a>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 const inviteCallback = inviteParams?.get("type") === "invite";
 const inviteAccessToken = inviteCallback ? inviteParams?.get("access_token") : null;
 
@@ -111,5 +136,6 @@ function InvitationSetup() {
 }
 
 export default function InvitationGate({ children }: { children: ReactNode }) {
+  if (expiredEmailLink) return <ExpiredEmailLink />;
   return inviteCallback ? <InvitationSetup /> : <>{children}</>;
 }
