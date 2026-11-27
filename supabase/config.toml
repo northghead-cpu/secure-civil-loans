@@ -7,6 +7,10 @@ verify_jwt = false
 [auth]
 minimum_password_length = 8
 
+[auth.email.template.invite]
+subject = "You’re invited to Riverbanc Marketplace"
+content_path = "./supabase/templates/invite.html"
+
 [auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true
