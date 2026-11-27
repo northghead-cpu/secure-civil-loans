@@ -34,14 +34,20 @@ function ExpiredEmailLink() {
 const inviteCallback = inviteParams?.get("type") === "invite";
 const inviteAccessToken = inviteCallback ? inviteParams?.get("access_token") : null;
 
+const inviteTokenHash = typeof window !== "undefined" && window.location.pathname === "/login" && inviteCallback
+  ? inviteParams?.get("token_hash")
+  : null;
+
 function InvitationSetup() {
-  const [status, setStatus] = useState<"checking" | "ready" | "invalid" | "complete">("checking");
+  const [status, setStatus] = useState<"confirm" | "checking" | "ready" | "invalid" | "complete">(inviteTokenHash ? "confirm" : "checking");
+  const [verifiedAccessToken, setVerifiedAccessToken] = useState(inviteAccessToken);;
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (inviteTokenHash) return;
     let active = true;
     const timer = window.setTimeout(() => {
       if (active) setStatus((current) => current === "checking" ? "invalid" : current);
@@ -68,6 +74,29 @@ function InvitationSetup() {
     };
   }, []);
 
+  async function acceptInvitation() {
+    if (!inviteTokenHash || status !== "confirm") return;
+    setStatus("checking");
+    setError("");
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error: verificationError } = await supabase.auth.verifyOtp({
+        token_hash: inviteTokenHash,
+        type: "invite",
+      });
+      window.history.replaceState(window.history.state, "", "/login");
+      if (verificationError || !data.session) {
+        setStatus("invalid");
+        return;
+      }
+      setVerifiedAccessToken(data.session.access_token);
+      setStatus("ready");
+    } catch {
+      setStatus("confirm");
+      setError("We couldn’t check your invitation. Try again.");
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (status !== "ready" || submitting) return;
@@ -81,7 +110,7 @@ function InvitationSetup() {
     try {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !inviteAccessToken || session?.access_token !== inviteAccessToken) {
+      if (sessionError || !verifiedAccessToken || session?.access_token !== verifiedAccessToken) {
         setStatus("invalid");
         return;
       }
@@ -103,6 +132,13 @@ function InvitationSetup() {
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <section className="w-full max-w-md space-y-4">
         <h1 className="text-2xl font-display font-bold">Set up your Riverbanc account</h1>
+        {status === "confirm" && (
+          <>
+            <p>Accept your invitation to set up your Marketplace sign-in.</p>
+            {error && <p role="alert" className="text-destructive">{error}</p>}
+            <Button type="button" onClick={() => void acceptInvitation()}>Accept invitation</Button>
+          </>
+        )}
         {status === "checking" && <p role="status">Checking your invitation…</p>}
         {status === "invalid" && (
           <p role="alert">This invitation is invalid, expired, or already used. Contact Riverbanc support for help signing in.</p>
