@@ -40,7 +40,7 @@ const inviteTokenHash = typeof window !== "undefined" && window.location.pathnam
 
 function InvitationSetup() {
   const [status, setStatus] = useState<"confirm" | "checking" | "ready" | "invalid" | "complete">(inviteTokenHash ? "confirm" : "checking");
-  const [verifiedAccessToken, setVerifiedAccessToken] = useState(inviteAccessToken);;
+  const [verifiedAccessToken, setVerifiedAccessToken] = useState(inviteAccessToken);
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
